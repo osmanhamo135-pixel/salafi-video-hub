@@ -1,0 +1,37 @@
+[package]
+name = "salafi-video-hub"
+version = "1.3.3"
+description = "A polished, fast, local-only desktop Islamic video library and player"
+authors = ["Salafi Video Hub"]
+license = "MIT"
+repository = "https://github.com/osmanhamo135-pixel/salafi-video-hub"
+edition = "2021"
+rust-version = "1.77.2"
+
+[build-dependencies]
+tauri-build = { version = "2.5.6", features = [] }
+
+[dependencies]
+tauri = { version = "2.10.3", features = ["protocol-asset"] }
+tauri-plugin-dialog = "2.7.0"
+tauri-plugin-fs = "2.5.0"
+tauri-plugin-notification = "2.3.3"
+tauri-plugin-os = "2.3.2"
+tauri-plugin-shell = "2.3.5"
+tauri-plugin-process = "2.3.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rusqlite = { version = "0.31", features = ["bundled", "uuid"] }
+uuid = { version = "1.8", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+walkdir = "2.5"
+sha2 = "0.10"
+hex = "0.4"
+tokio = { version = "1.39", features = ["rt-multi-thread", "sync", "time", "process"] }
+regex = "1.10"
+dirs = "5.0"
+natord = "1.0"
+tauri-plugin-updater = "2.10.1"
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]

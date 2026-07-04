@@ -1,0 +1,46 @@
+name: Publish beta update
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, matching package.json and tauri.conf.json, for example 1.3.2'
+        required: true
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish-windows:
+    permissions:
+      contents: write
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build and publish signed Windows update
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        with:
+          tagName: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+          releaseName: ${{ github.event_name == 'workflow_dispatch' && format('Salafi Video Hub Beta v{0}', inputs.version) || format('Salafi Video Hub Beta {0}', github.ref_name) }}
+          releaseBody: 'Signed beta build with in-app updater metadata.'
+          releaseDraft: false
+          prerelease: true
+          includeUpdaterJson: true
+          updaterJsonPreferNsis: true

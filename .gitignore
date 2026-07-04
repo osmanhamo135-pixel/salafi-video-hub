@@ -1,0 +1,16 @@
+node_modules
+dist
+dist-ssr
+*.local
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+.DS_Store
+src-tauri/target
+src-tauri/gen
+.vscode
+.idea
+*.log
