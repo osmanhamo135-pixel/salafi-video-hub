@@ -198,6 +198,10 @@ fn unique_video_ids(video_ids: Vec<String>) -> Vec<String> {
         .collect()
 }
 
+fn thumbnail_needs_background_generation(status: &str) -> bool {
+    matches!(status, "missing" | "queued" | "generating")
+}
+
 fn save_playlist_for_ids(
     db: &DbState,
     existing: Option<Playlist>,
@@ -314,7 +318,7 @@ pub fn import_folder(
             Some(existing_video) => {
                 skipped_count += 1;
                 playlist_video_ids.push(existing_video.id.clone());
-                if existing_video.thumbnail_status != "ready" {
+                if thumbnail_needs_background_generation(&existing_video.thumbnail_status) {
                     background_video_ids.push(existing_video.id);
                 }
             }
@@ -434,7 +438,7 @@ pub fn import_single_video(db: &DbState, video_path: &str) -> Result<ImportOutco
     let video_id = match db::video::get_video_by_path(db, &path_str).map_err(|e| e.to_string())? {
         Some(existing_video) => {
             skipped_count += 1;
-            if existing_video.thumbnail_status != "ready" {
+            if thumbnail_needs_background_generation(&existing_video.thumbnail_status) {
                 background_video_ids.push(existing_video.id.clone());
             }
             existing_video.id

@@ -367,7 +367,7 @@ const PlaylistVideoRow: React.FC<{
             </span>
           )}
           {video.thumbnailStatus === 'queued' && <span>{t('thumbnailQueued')}</span>}
-          {video.thumbnailStatus === 'failed' && <span>{t('fallbackThumbnail')}</span>}
+          {(video.thumbnailStatus === 'failed' || video.thumbnailStatus === 'fallback') && <span>{t('fallbackThumbnail')}</span>}
         </div>
       </div>
 

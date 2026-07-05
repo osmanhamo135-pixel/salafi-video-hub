@@ -155,7 +155,10 @@ pub fn get_videos_by_ids(db: &DbState, ids: &[String]) -> Result<Vec<Video>> {
         .take(unique_ids.len())
         .collect::<Vec<_>>()
         .join(",");
-    let sql = format!("SELECT * FROM videos WHERE id IN ({}) ORDER BY title", placeholders);
+    let sql = format!(
+        "SELECT * FROM videos WHERE id IN ({}) ORDER BY title",
+        placeholders
+    );
     let mut stmt = conn.prepare(&sql)?;
     let rows = stmt.query_map(params_from_iter(unique_ids.iter()), row_to_video)?;
     rows.collect()
@@ -212,7 +215,10 @@ pub fn delete_video(db: &DbState, id: &str) -> Result<()> {
 
 pub fn delete_videos_by_folder(db: &DbState, folder_path: &str) -> Result<usize> {
     let conn = db.lock().unwrap();
-    conn.execute("DELETE FROM videos WHERE folder_path = ?1", params![folder_path])
+    conn.execute(
+        "DELETE FROM videos WHERE folder_path = ?1",
+        params![folder_path],
+    )
 }
 
 pub fn get_continue_watching(db: &DbState, limit: i64) -> Result<Vec<Video>> {

@@ -11,7 +11,10 @@ pub fn convert_file_src(_app_handle: AppHandle, file_path: String) -> Result<Str
 }
 
 #[tauri::command]
-pub async fn allow_video_asset_path(app_handle: AppHandle, file_path: String) -> Result<(), String> {
+pub async fn allow_video_asset_path(
+    app_handle: AppHandle,
+    file_path: String,
+) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
         let path = Path::new(&file_path);
 

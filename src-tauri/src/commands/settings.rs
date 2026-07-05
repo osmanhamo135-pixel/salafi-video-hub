@@ -147,10 +147,10 @@ pub fn export_backup(db: State<'_, DbState>) -> Result<String, String> {
 
 #[tauri::command]
 pub fn import_backup(db: State<'_, DbState>, path: String) -> Result<(), String> {
-    let backup_json = std::fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read backup file: {}", e))?;
-    let backup: BackupPayload = serde_json::from_str(&backup_json)
-        .map_err(|e| format!("Invalid backup JSON: {}", e))?;
+    let backup_json =
+        std::fs::read_to_string(&path).map_err(|e| format!("Failed to read backup file: {}", e))?;
+    let backup: BackupPayload =
+        serde_json::from_str(&backup_json).map_err(|e| format!("Invalid backup JSON: {}", e))?;
 
     for video in backup.videos {
         if crate::db::video::get_video_by_id(&db, &video.id)

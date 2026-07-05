@@ -16,8 +16,7 @@ pub async fn save_progress(
     tauri::async_runtime::spawn_blocking(move || {
         crate::db::video::update_video_progress(&db, &video_id, progress_seconds, completed)
             .map_err(|e| e.to_string())?;
-        crate::db::playlist::refresh_progress_for_video(&db, &video_id)
-            .map_err(|e| e.to_string())
+        crate::db::playlist::refresh_progress_for_video(&db, &video_id).map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| e.to_string())??;
@@ -82,10 +81,7 @@ pub async fn get_continue_watching(
 }
 
 #[tauri::command]
-pub async fn get_recently_added(
-    db: State<'_, DbState>,
-    limit: i64,
-) -> Result<Vec<Video>, String> {
+pub async fn get_recently_added(db: State<'_, DbState>, limit: i64) -> Result<Vec<Video>, String> {
     let db = db.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         crate::db::video::get_recently_added(&db, limit).map_err(|e| e.to_string())

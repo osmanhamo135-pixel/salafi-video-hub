@@ -74,7 +74,10 @@ pub fn remove_playlist_from_library(db: State<'_, DbState>, id: String) -> Resul
 
 #[tauri::command]
 pub fn delete_playlist_and_files(_db: State<'_, DbState>, _id: String) -> Result<(), String> {
-    Err("Deleting video files from disk is disabled. Use Remove from library to keep files safe.".to_string())
+    Err(
+        "Deleting video files from disk is disabled. Use Remove from library to keep files safe."
+            .to_string(),
+    )
 }
 
 #[tauri::command]

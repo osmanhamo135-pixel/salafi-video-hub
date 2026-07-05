@@ -184,7 +184,9 @@ fn bundled_ytdlp_path(app_handle: &AppHandle) -> Option<PathBuf> {
         }
     }
 
-    candidates.into_iter().find(|path| path.exists() && path.is_file())
+    candidates
+        .into_iter()
+        .find(|path| path.exists() && path.is_file())
 }
 
 fn copy_helper(source: &Path, target: &Path) -> Result<(), String> {
@@ -273,7 +275,10 @@ fn download_ytdlp_with_powershell(temp_path: &Path) -> Result<(), String> {
     if output.status.success() {
         Ok(())
     } else {
-        Err(format_process_error("PowerShell download failed", &output.stderr))
+        Err(format_process_error(
+            "PowerShell download failed",
+            &output.stderr,
+        ))
     }
 }
 
@@ -364,7 +369,9 @@ impl DownloadStrategy {
     fn start_message(self) -> &'static str {
         match self {
             Self::Turbo => "Turbo download mode: 16 parallel fragments with fast chunking...",
-            Self::StableChunkRetry => "Stable retry mode: smaller chunks for broken YouTube responses...",
+            Self::StableChunkRetry => {
+                "Stable retry mode: smaller chunks for broken YouTube responses..."
+            }
         }
     }
 
@@ -421,7 +428,8 @@ fn run_ytdlp_once(
 ) -> Result<Vec<String>, String> {
     let mut command = hidden_command(ytdlp);
     let output_dir_string = output_dir.to_string_lossy().to_string();
-    let should_download_playlist = request.download_playlist || looks_like_playlist_url(&request.url);
+    let should_download_playlist =
+        request.download_playlist || looks_like_playlist_url(&request.url);
     let output_template = if should_download_playlist {
         "%(playlist_title).180B/%(playlist_index)03d - %(title).180B [%(id)s].%(ext)s"
     } else {
@@ -505,7 +513,10 @@ fn run_ytdlp_once(
         if request.quality == "fast" || ffmpeg_status == "missing" {
             match request.quality.as_str() {
                 "1080" => {
-                    command.args(["-f", "b[height<=1080][ext=mp4]/b[height<=1080]/b[ext=mp4]/b"]);
+                    command.args([
+                        "-f",
+                        "b[height<=1080][ext=mp4]/b[height<=1080]/b[ext=mp4]/b",
+                    ]);
                 }
                 "720" => {
                     command.args(["-f", "b[height<=720][ext=mp4]/b[height<=720]/b[ext=mp4]/b"]);
@@ -700,7 +711,10 @@ fn is_retryable_download_error(error: &str) -> bool {
         "age-restricted",
     ];
 
-    if permanent_markers.iter().any(|marker| lower.contains(marker)) {
+    if permanent_markers
+        .iter()
+        .any(|marker| lower.contains(marker))
+    {
         return false;
     }
 
@@ -900,7 +914,10 @@ fn extract_existing_path(line: &str, output_dir: &Path) -> Option<String> {
         .map(|path| path.to_string_lossy().to_string())
 }
 
-fn discover_downloaded_files(output_dir: &Path, include_audio: bool) -> Result<Vec<String>, String> {
+fn discover_downloaded_files(
+    output_dir: &Path,
+    include_audio: bool,
+) -> Result<Vec<String>, String> {
     let mut files = Vec::new();
     let entries = WalkDir::new(output_dir).into_iter();
 

@@ -10,7 +10,7 @@ export interface Video {
   extension: string;
   durationSeconds: number;
   thumbnailPath: string | null;
-  thumbnailStatus: 'missing' | 'queued' | 'generating' | 'ready' | 'failed';
+  thumbnailStatus: 'missing' | 'queued' | 'generating' | 'ready' | 'failed' | 'fallback';
   category: string | null;
   speaker: string | null;
   description: string | null;

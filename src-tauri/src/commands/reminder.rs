@@ -99,10 +99,7 @@ pub fn allow_reminder_sound_path(
 }
 
 #[tauri::command]
-pub fn test_reminder_sound(
-    sound_path: Option<String>,
-    _volume: Option<f64>,
-) -> Result<(), String> {
+pub fn test_reminder_sound(sound_path: Option<String>, _volume: Option<f64>) -> Result<(), String> {
     let path = sound_path.ok_or_else(|| "No reminder sound selected".to_string())?;
     if path.trim().is_empty() {
         return Err("No reminder sound selected".to_string());

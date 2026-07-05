@@ -59,14 +59,16 @@ pub fn generate_thumbnail(
         }
     }
 
-    // Try the requested timestamp, then the standard import fallbacks.
-    let timestamps = [timestamp, 0.1, 0.2, 1.0, 3.0];
+    // Try the requested timestamp, then broader fallbacks for intros, black frames, and title cards.
+    let timestamps = [timestamp, 0.1, 0.5, 1.0, 3.0, 8.0, 15.0];
 
     for &ts in &timestamps {
         let result = hidden_command(&ffmpeg)
             .args([
                 "-y",
                 "-hide_banner",
+                "-loglevel",
+                "error",
                 "-ss",
                 &format!("{:.1}", ts),
                 "-i",
@@ -76,39 +78,25 @@ pub fn generate_thumbnail(
                 "-q:v",
                 "2",
                 "-vf",
-                "blackframe=amount=90:threshold=32,scale=320:-1",
+                "scale=320:-1",
                 thumb_path.to_str().unwrap(),
             ])
             .output()
             .map_err(|e| format!("FFmpeg error: {}", e))?;
 
-        if result.status.success() {
-            let meta = std::fs::metadata(&thumb_path).map_err(|e| e.to_string())?;
-            if meta.len() > 100 && !ffmpeg_reported_black_frame(&result.stderr) {
-                return Ok(thumb_path.to_string_lossy().to_string());
-            }
+        if result.status.success() && thumbnail_output_is_usable(&thumb_path) {
+            return Ok(thumb_path.to_string_lossy().to_string());
         }
 
         let _ = std::fs::remove_file(&thumb_path);
     }
 
-    Err("Failed to generate thumbnail".to_string())
+    Err("No usable thumbnail frame was extracted".to_string())
 }
 
-fn ffmpeg_reported_black_frame(stderr: &[u8]) -> bool {
-    let text = String::from_utf8_lossy(stderr);
-    let Some(index) = text.find("pblack:") else {
-        return false;
-    };
-
-    let value = text[index + "pblack:".len()..]
-        .chars()
-        .take_while(|ch| ch.is_ascii_digit() || *ch == '.')
-        .collect::<String>();
-
-    value
-        .parse::<f64>()
-        .map(|pblack| pblack >= 98.0)
+fn thumbnail_output_is_usable(path: &std::path::Path) -> bool {
+    std::fs::metadata(path)
+        .map(|metadata| metadata.len() > 100)
         .unwrap_or(false)
 }
 

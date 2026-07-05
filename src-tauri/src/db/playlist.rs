@@ -123,10 +123,7 @@ pub fn refresh_playlist_progress(db: &DbState, playlist: &Playlist) -> Result<Pl
     }
 
     let video_count = videos.len() as i64;
-    let total_duration_seconds = videos
-        .iter()
-        .map(|video| video.duration_seconds)
-        .sum();
+    let total_duration_seconds = videos.iter().map(|video| video.duration_seconds).sum();
     let progress_seconds = videos
         .iter()
         .map(|video| {

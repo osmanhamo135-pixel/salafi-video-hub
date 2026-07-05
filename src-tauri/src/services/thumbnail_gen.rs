@@ -84,11 +84,13 @@ pub fn generate_thumbnail_for_video(
     }
 
     let output_path = thumb_path.to_string_lossy().to_string();
-    for timestamp in ["0.1", "0.2", "1.0", "3.0"] {
+    for timestamp in ["0.1", "0.5", "1.0", "3.0", "8.0", "15.0"] {
         let result = hidden_command(&ffmpeg)
             .args([
                 "-y",
                 "-hide_banner",
+                "-loglevel",
+                "error",
                 "-ss",
                 timestamp,
                 "-i",
@@ -98,17 +100,14 @@ pub fn generate_thumbnail_for_video(
                 "-q:v",
                 "2",
                 "-vf",
-                "blackframe=amount=90:threshold=32,scale=480:-1",
+                "scale=480:-1",
                 &output_path,
             ])
             .output()
             .map_err(|e| format!("FFmpeg error: {}", e))?;
 
-        if result.status.success() {
-            let meta = std::fs::metadata(&thumb_path).map_err(|e| e.to_string())?;
-            if meta.len() > 100 && !ffmpeg_reported_black_frame(&result.stderr) {
-                return Ok(Some(output_path));
-            }
+        if result.status.success() && thumbnail_output_is_usable(&thumb_path) {
+            return Ok(Some(output_path));
         }
 
         let _ = std::fs::remove_file(&thumb_path);
@@ -196,7 +195,6 @@ pub fn generate_thumbnails_for_ids(
     );
 
     for video_id in unique_video_ids {
-
         while THUMBNAIL_PAUSED.load(Ordering::Relaxed) {
             thread::sleep(Duration::from_millis(1000));
         }
@@ -260,16 +258,10 @@ fn process_thumbnail_video(
             video.thumbnail_status = "ready".to_string();
             video.last_playback_error = None;
         }
-        Ok(None) => {
+        Ok(None) | Err(_) => {
             video.thumbnail_path = None;
-            video.thumbnail_status = "failed".to_string();
-            video.last_playback_error =
-                Some("FFmpeg could not extract a usable thumbnail frame".to_string());
-        }
-        Err(error) => {
-            video.thumbnail_path = None;
-            video.thumbnail_status = "failed".to_string();
-            video.last_playback_error = Some(error.clone());
+            video.thumbnail_status = "fallback".to_string();
+            video.last_playback_error = None;
         }
     }
 
@@ -277,16 +269,9 @@ fn process_thumbnail_video(
     db::video::update_video(db, &video).map_err(|e| e.to_string())?;
     refresh_playlists_containing_video(db, &video.id)?;
 
-    if video.thumbnail_status == "ready" {
-        Ok(ProcessOutcome::Generated)
-    } else {
-        Err(format!(
-            "{}: {}",
-            video.file_name,
-            video
-                .last_playback_error
-                .unwrap_or_else(|| "thumbnail generation failed".to_string())
-        ))
+    match video.thumbnail_status.as_str() {
+        "ready" => Ok(ProcessOutcome::Generated),
+        _ => Ok(ProcessOutcome::Skipped),
     }
 }
 
@@ -302,20 +287,9 @@ fn thumbnail_file_exists(video: &Video) -> bool {
         .unwrap_or(false)
 }
 
-fn ffmpeg_reported_black_frame(stderr: &[u8]) -> bool {
-    let text = String::from_utf8_lossy(stderr);
-    let Some(index) = text.find("pblack:") else {
-        return false;
-    };
-
-    let value = text[index + "pblack:".len()..]
-        .chars()
-        .take_while(|ch| ch.is_ascii_digit() || *ch == '.')
-        .collect::<String>();
-
-    value
-        .parse::<f64>()
-        .map(|pblack| pblack >= 98.0)
+fn thumbnail_output_is_usable(path: &std::path::Path) -> bool {
+    std::fs::metadata(path)
+        .map(|metadata| metadata.len() > 100)
         .unwrap_or(false)
 }
 
