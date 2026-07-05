@@ -41,6 +41,6 @@ jobs:
           releaseName: ${{ github.event_name == 'workflow_dispatch' && format('Salafi Video Hub Beta v{0}', inputs.version) || format('Salafi Video Hub Beta {0}', github.ref_name) }}
           releaseBody: 'Signed beta build with in-app updater metadata.'
           releaseDraft: false
-          prerelease: true
+          prerelease: false
           includeUpdaterJson: true
           updaterJsonPreferNsis: true
