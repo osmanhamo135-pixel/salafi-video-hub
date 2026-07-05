@@ -1,6 +1,6 @@
 {
   "productName": "Salafi Video Hub",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "identifier": "com.salafivideohub.app",
   "build": {
     "frontendDist": "../dist",
@@ -35,6 +35,7 @@
   "bundle": {
     "active": true,
     "targets": ["nsis", "msi"],
+    "createUpdaterArtifacts": true,
     "category": "Video",
     "resources": ["resources/yt-dlp.exe"],
     "copyright": "",
