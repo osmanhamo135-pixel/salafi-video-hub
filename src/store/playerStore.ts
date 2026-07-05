@@ -343,7 +343,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   setPlaybackRate: (rate: number) => {
-    const allowedRates = [0.75, 1, 1.25, 1.5, 1.75, 2];
+    const allowedRates = [0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
     const closestRate = allowedRates.reduce((closest, candidate) => (
       Math.abs(candidate - rate) < Math.abs(closest - rate) ? candidate : closest
     ), 1);

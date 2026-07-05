@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Bell, Download, HardDrive, LayoutDashboard, Library, Settings, Video } from 'lucide-react';
+import { Bell, Download, HardDrive, LayoutDashboard, Library, Settings } from 'lucide-react';
+import appIcon from '@/assets/app-icon.png';
 import { APP_NAME, APP_STAGE } from '@/utils/constants';
 import { TranslationKey, useI18n } from '@/i18n';
 
@@ -30,8 +31,13 @@ export const Sidebar: React.FC = () => {
       {/* Logo */}
       <div className="relative flex items-center gap-3 border-b border-primary-blue/15 px-5 py-5">
         <div className="gold-thread absolute inset-x-5 bottom-0" />
-        <div className="icon-medallion h-10 w-10 shrink-0">
-          <Video className="relative z-10 h-5 w-5 text-primary-blue" />
+        <div className="icon-medallion h-11 w-11 shrink-0 overflow-hidden p-1">
+          <img
+            src={appIcon}
+            alt=""
+            className="relative z-10 h-full w-full rounded-md object-cover"
+            draggable={false}
+          />
         </div>
         <div className="flex flex-col">
           <div className="flex items-center gap-2">

@@ -66,7 +66,7 @@ export const PlayerControls: React.FC = () => {
   };
 
   const cyclePlaybackRate = () => {
-    const rates = [0.75, 1, 1.25, 1.5, 1.75, 2];
+    const rates = [0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
     const currentIndex = rates.indexOf(playbackRate);
     setPlaybackRate(rates[(currentIndex + 1) % rates.length]);
   };

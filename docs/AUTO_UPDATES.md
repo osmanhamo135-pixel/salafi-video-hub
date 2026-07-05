@@ -40,7 +40,7 @@ This local key was generated without a password, so no password secret is needed
 
 1. Bump the app version in `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
 2. Push to GitHub.
-3. Run the `Publish beta update` workflow from GitHub Actions, or push a tag like `v1.3.5`.
+3. Run the `Publish beta update` workflow from GitHub Actions, or push a tag like `v1.4.0`.
 4. GitHub will create a release with the installer and `latest.json`.
 
 Users who already installed the updater-enabled app will see the update prompt on next app launch.

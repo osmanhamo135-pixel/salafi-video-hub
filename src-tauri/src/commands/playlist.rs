@@ -93,7 +93,7 @@ pub fn rescan_playlist(db: State<'_, DbState>, id: String) -> Result<Playlist, S
 pub async fn get_playlist_stats(db: State<'_, DbState>) -> Result<serde_json::Value, String> {
     let db = db.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
-        let (total_playlists, total_videos, total_duration, completed_videos) =
+        let (total_playlists, total_videos, total_duration, completed_videos, total_storage_bytes) =
             crate::db::playlist::get_playlist_stats(&db).map_err(|e| e.to_string())?;
 
         Ok(serde_json::json!({
@@ -101,6 +101,7 @@ pub async fn get_playlist_stats(db: State<'_, DbState>) -> Result<serde_json::Va
             "totalVideos": total_videos,
             "totalDuration": total_duration,
             "completedVideos": completed_videos,
+            "totalStorageBytes": total_storage_bytes,
         }))
     })
     .await

@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::mpsc;
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -20,6 +20,7 @@ use crate::utils::process::hidden_command;
 const YT_DLP_URL: &str = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe";
 const YT_DLP_RESOURCE_NAME: &str = "yt-dlp.exe";
 const AUDIO_EXTENSIONS: &[&str] = &["mp3", "m4a", "opus", "ogg", "webm", "wav", "aac", "flac"];
+const HELPER_REFRESH_AFTER: Duration = Duration::from_secs(60 * 60 * 24 * 5);
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -73,7 +74,7 @@ fn download_youtube_video_blocking(
 ) -> Result<YoutubeDownloadResult, String> {
     let url = request.url.trim();
     if !(url.starts_with("https://") || url.starts_with("http://")) {
-        return Err("Enter a valid YouTube URL.".to_string());
+        return Err("Enter a valid video URL.".to_string());
     }
 
     let output_dir = resolve_output_dir(&app_handle, request.output_dir.as_deref())?;
@@ -133,12 +134,14 @@ fn ensure_ytdlp(app_handle: &AppHandle, job_id: &str) -> Result<PathBuf, String>
     let ytdlp_path = tools_dir.join(YT_DLP_RESOURCE_NAME);
 
     if ytdlp_path.exists() && validate_ytdlp(&ytdlp_path) {
+        refresh_ytdlp_if_stale(&ytdlp_path, false);
         return Ok(ytdlp_path);
     }
 
     if let Some(bundled_path) = bundled_ytdlp_path(app_handle) {
         if validate_ytdlp(&bundled_path) {
             if copy_helper(&bundled_path, &ytdlp_path).is_ok() && validate_ytdlp(&ytdlp_path) {
+                refresh_ytdlp_if_stale(&ytdlp_path, true);
                 return Ok(ytdlp_path);
             }
             return Ok(bundled_path);
@@ -156,14 +159,14 @@ fn ensure_ytdlp(app_handle: &AppHandle, job_id: &str) -> Result<PathBuf, String>
     if let Err(error) = download_ytdlp(&ytdlp_path) {
         let _ = fs::remove_file(&ytdlp_path);
         return Err(format!(
-            "Could not install the YouTube download helper. The bundled helper was not available and the online install failed: {}",
+            "Could not install the media download helper. The bundled helper was not available and the online install failed: {}",
             error
         ));
     }
 
     if !validate_ytdlp(&ytdlp_path) {
         let _ = fs::remove_file(&ytdlp_path);
-        return Err("The YouTube download helper was installed but could not start.".to_string());
+        return Err("The media download helper was installed but could not start.".to_string());
     }
 
     Ok(ytdlp_path)
@@ -306,6 +309,22 @@ fn validate_ytdlp(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
+fn refresh_ytdlp_if_stale(path: &Path, force: bool) {
+    let should_refresh = force
+        || fs::metadata(path)
+            .and_then(|metadata| metadata.modified())
+            .ok()
+            .and_then(|modified| SystemTime::now().duration_since(modified).ok())
+            .map(|age| age >= HELPER_REFRESH_AFTER)
+            .unwrap_or(false);
+
+    if !should_refresh {
+        return;
+    }
+
+    let _ = download_ytdlp(path);
+}
+
 fn run_ytdlp(
     app_handle: &AppHandle,
     request: &YoutubeDownloadRequest,
@@ -342,7 +361,7 @@ fn run_ytdlp(
                     app_handle,
                     &request.job_id,
                     "downloading",
-                    "YouTube broke a download chunk. Retrying with stable small chunks...",
+                    "The platform returned a broken chunk. Retrying with stable small chunks...",
                     Some(0.0),
                 );
             }
@@ -370,7 +389,7 @@ impl DownloadStrategy {
         match self {
             Self::Turbo => "Turbo download mode: 16 parallel fragments with fast chunking...",
             Self::StableChunkRetry => {
-                "Stable retry mode: smaller chunks for broken YouTube responses..."
+                "Stable retry mode: smaller chunks for broken platform responses..."
             }
         }
     }
@@ -429,11 +448,11 @@ fn run_ytdlp_once(
     let mut command = hidden_command(ytdlp);
     let output_dir_string = output_dir.to_string_lossy().to_string();
     let should_download_playlist =
-        request.download_playlist || looks_like_playlist_url(&request.url);
+        request.download_playlist || looks_like_collection_url(&request.url);
     let output_template = if should_download_playlist {
-        "%(playlist_title).180B/%(playlist_index)03d - %(title).180B [%(id)s].%(ext)s"
+        "%(extractor_key)s/%(playlist_title).180B/%(playlist_index)03d - %(title).180B [%(id)s].%(ext)s"
     } else {
-        "%(title).200B [%(id)s].%(ext)s"
+        "%(extractor_key)s/%(title).200B [%(id)s].%(ext)s"
     };
     let retry_sleep = strategy.retry_sleep();
 
@@ -639,7 +658,7 @@ fn run_ytdlp_once(
 
     if downloaded_files.is_empty() {
         return Err(sanitize_download_error(
-            "No files were downloaded. The video or playlist may be private, removed, blocked by YouTube, or require sign-in.",
+            "No files were downloaded. The video, reel, post, or playlist may be private, removed, blocked by the platform, or require sign-in.",
             request.cookies_path.as_deref().is_some(),
         ));
     }
@@ -663,15 +682,15 @@ fn sanitize_download_error(error: &str, used_cookies: bool) -> String {
         if used_cookies {
             return "This video needs account access, and the selected cookies do not have access or are expired.".to_string();
         }
-        return "This video needs account access. Select a cookies.txt file from an account that can open it, then retry.".to_string();
+        return "This item needs account access. Select a cookies.txt file from an account that can open it, then retry.".to_string();
     }
 
     if lower.contains("requested entity was not found") || lower.contains("404: not found") {
-        return "YouTube says this video or playlist was not found.".to_string();
+        return "The platform says this video, reel, post, or playlist was not found.".to_string();
     }
 
     if lower.contains("copyright") {
-        return "YouTube blocked this item because of a copyright restriction.".to_string();
+        return "The platform blocked this item because of a copyright restriction.".to_string();
     }
 
     let compact_lines = error
@@ -773,12 +792,31 @@ fn format_download_errors(errors: Vec<String>) -> String {
     )
 }
 
-fn looks_like_playlist_url(url: &str) -> bool {
+fn looks_like_collection_url(url: &str) -> bool {
     let lower = url.to_lowercase();
-    lower.contains("youtube.com/playlist")
+    if lower.contains("youtube.com/playlist")
         || lower.contains("music.youtube.com/playlist")
         || lower.contains("?list=")
         || lower.contains("&list=")
+    {
+        return true;
+    }
+
+    if lower.contains("instagram.com/")
+        && !lower.contains("/reel/")
+        && !lower.contains("/p/")
+        && !lower.contains("/tv/")
+    {
+        return true;
+    }
+
+    if lower.contains("tiktok.com/@") && !lower.contains("/video/") {
+        return true;
+    }
+
+    (lower.contains("twitter.com/") || lower.contains("x.com/"))
+        && !lower.contains("/status/")
+        && !lower.contains("/i/status/")
 }
 
 fn spawn_line_reader<R: std::io::Read + Send + 'static>(

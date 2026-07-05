@@ -180,7 +180,7 @@ pub fn search_playlists(db: &DbState, query: &str) -> Result<Vec<Playlist>> {
     rows.collect()
 }
 
-pub fn get_playlist_stats(db: &DbState) -> Result<(i64, i64, i64, i64)> {
+pub fn get_playlist_stats(db: &DbState) -> Result<(i64, i64, i64, i64, i64)> {
     let conn = db.lock().unwrap();
     let playlist_count: i64 =
         conn.query_row("SELECT COUNT(*) FROM playlists", [], |row| row.get(0))?;
@@ -195,6 +195,17 @@ pub fn get_playlist_stats(db: &DbState) -> Result<(i64, i64, i64, i64)> {
         [],
         |row| row.get(0),
     )?;
+    let total_storage: i64 = conn.query_row(
+        "SELECT COALESCE(SUM(file_size), 0) FROM videos",
+        [],
+        |row| row.get(0),
+    )?;
 
-    Ok((playlist_count, video_count, total_duration, completed))
+    Ok((
+        playlist_count,
+        video_count,
+        total_duration,
+        completed,
+        total_storage,
+    ))
 }

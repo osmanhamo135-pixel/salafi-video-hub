@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { useAppStore } from '@/store/appStore';
+import { DownloadProgressPayload, useDownloadStore } from '@/store/downloadStore';
 import { usePlayerStore } from '@/store/playerStore';
 
 interface ThumbnailPayload {
@@ -60,6 +61,9 @@ export function useAppEvents() {
       listen('import_finished', () => {
         useAppStore.getState().markImportFinished();
         scheduleLibraryRefresh();
+      }),
+      listen<DownloadProgressPayload>('youtube_download_progress', (event) => {
+        useDownloadStore.getState().applyProgress(event.payload);
       }),
       listen<ThumbnailBatchStarted>('thumbnail_batch_started', (event) => {
         useAppStore.getState().startThumbnailBatch(event.payload.total);

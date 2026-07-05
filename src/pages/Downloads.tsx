@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { listen } from '@tauri-apps/api/event';
+import React, { useEffect, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import {
@@ -12,26 +11,10 @@ import {
   Loader2,
   Music,
   ShieldCheck,
-  Video,
+  Smartphone,
 } from 'lucide-react';
-import { ImportResult } from '@/types';
-import { useAppStore } from '@/store/appStore';
+import { DownloadQuality, DownloadStage, isDownloadWorking, useDownloadStore } from '@/store/downloadStore';
 import { useI18n } from '@/i18n';
-
-type DownloadStage = 'idle' | 'preparing' | 'installing' | 'downloading' | 'importing' | 'finished' | 'error';
-
-interface DownloadProgressPayload {
-  jobId: string;
-  stage: DownloadStage;
-  message: string;
-  percent: number | null;
-}
-
-interface YoutubeDownloadResult {
-  outputDir: string;
-  downloadedFiles: string[];
-  importResult: ImportResult | null;
-}
 
 const qualityOptions = [
   { value: 'fast', labelKey: 'qualityFast' },
@@ -43,53 +26,36 @@ const qualityOptions = [
 
 export const Downloads: React.FC = () => {
   const { t } = useI18n();
-  const refreshPlaylists = useAppStore((state) => state.refreshPlaylists);
-  const [url, setUrl] = useState('');
-  const [outputDir, setOutputDir] = useState('');
-  const [cookiesPath, setCookiesPath] = useState('');
-  const [quality, setQuality] = useState<(typeof qualityOptions)[number]['value']>('fast');
-  const [audioOnly, setAudioOnly] = useState(false);
-  const [downloadPlaylist, setDownloadPlaylist] = useState(false);
-  const [importAfterDownload, setImportAfterDownload] = useState(true);
-  const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const activeJobRef = useRef<string | null>(null);
-  const [stage, setStage] = useState<DownloadStage>('idle');
-  const [message, setMessage] = useState<string>(t('noDownloadYet'));
-  const [percent, setPercent] = useState(0);
-  const [result, setResult] = useState<YoutubeDownloadResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const url = useDownloadStore((state) => state.url);
+  const setUrl = useDownloadStore((state) => state.setUrl);
+  const outputDir = useDownloadStore((state) => state.outputDir);
+  const setOutputDir = useDownloadStore((state) => state.setOutputDir);
+  const cookiesPath = useDownloadStore((state) => state.cookiesPath);
+  const setCookiesPath = useDownloadStore((state) => state.setCookiesPath);
+  const quality = useDownloadStore((state) => state.quality);
+  const setQuality = useDownloadStore((state) => state.setQuality);
+  const audioOnly = useDownloadStore((state) => state.audioOnly);
+  const setAudioOnly = useDownloadStore((state) => state.setAudioOnly);
+  const downloadPlaylist = useDownloadStore((state) => state.downloadPlaylist);
+  const setDownloadPlaylist = useDownloadStore((state) => state.setDownloadPlaylist);
+  const importAfterDownload = useDownloadStore((state) => state.importAfterDownload);
+  const setImportAfterDownload = useDownloadStore((state) => state.setImportAfterDownload);
+  const stage = useDownloadStore((state) => state.stage);
+  const message = useDownloadStore((state) => state.message);
+  const percent = useDownloadStore((state) => state.percent);
+  const result = useDownloadStore((state) => state.result);
+  const error = useDownloadStore((state) => state.error);
+  const startDownload = useDownloadStore((state) => state.startDownload);
 
-  const isWorking = stage === 'preparing' || stage === 'installing' || stage === 'downloading' || stage === 'importing';
+  const isWorking = isDownloadWorking(stage);
   const effectiveImport = importAfterDownload && !audioOnly;
+  const statusMessage = message ? localizeProgressMessage(stage, message, t) : t('noDownloadYet');
 
   useEffect(() => {
     if (isLikelyPlaylistUrl(url)) {
       setDownloadPlaylist(true);
     }
   }, [url]);
-
-  useEffect(() => {
-    activeJobRef.current = activeJobId;
-  }, [activeJobId]);
-
-  useEffect(() => {
-    let unlisten: (() => void) | null = null;
-
-    listen<DownloadProgressPayload>('youtube_download_progress', (event) => {
-      if (activeJobRef.current && event.payload.jobId !== activeJobRef.current) return;
-      setStage(event.payload.stage);
-      setMessage(localizeProgressMessage(event.payload.stage, event.payload.message, t));
-      if (typeof event.payload.percent === 'number') {
-        setPercent(Math.round(event.payload.percent));
-      }
-    }).then((handler) => {
-      unlisten = handler;
-    }).catch(console.error);
-
-    return () => {
-      unlisten?.();
-    };
-  }, [t]);
 
   const canDownload = useMemo(() => {
     const trimmed = url.trim();
@@ -121,38 +87,7 @@ export const Downloads: React.FC = () => {
   const handleStart = async () => {
     if (!canDownload) return;
 
-    const jobId = createJobId();
-    setActiveJobId(jobId);
-    setStage('preparing');
-    setMessage(t('preparingDownloader'));
-    setPercent(0);
-    setError(null);
-    setResult(null);
-
-    try {
-      const downloadResult = await invoke<YoutubeDownloadResult>('download_youtube_video', {
-        request: {
-          jobId,
-          url: url.trim(),
-          outputDir: outputDir.trim() || null,
-          cookiesPath: cookiesPath.trim() || null,
-          quality,
-          audioOnly,
-          downloadPlaylist,
-          importAfterDownload: effectiveImport,
-        },
-      });
-
-      setResult(downloadResult);
-      setStage('finished');
-      setMessage(t('downloadFinished'));
-      setPercent(100);
-      await refreshPlaylists();
-    } catch (downloadError) {
-      setStage('error');
-      setError(downloadError instanceof Error ? downloadError.message : String(downloadError));
-      setMessage(t('downloadFailed'));
-    }
+    await startDownload();
   };
 
   const handleOpenDownloadFolder = async () => {
@@ -177,6 +112,13 @@ export const Downloads: React.FC = () => {
             </div>
             <h1 className="text-3xl font-semibold tracking-normal text-text-primary">{t('downloadsTitle')}</h1>
             <p className="mt-1 max-w-2xl text-sm text-muted-text">{t('downloadsSubtitle')}</p>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              {['YouTube', 'TikTok', 'Instagram Reels', 'X / Twitter'].map((platform) => (
+                <span key={platform} className="rounded-md border border-primary-blue/20 bg-primary-blue/10 px-2.5 py-1 text-primary-blue">
+                  {platform}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -247,7 +189,7 @@ export const Downloads: React.FC = () => {
                   <label className="mb-1.5 block text-xs font-medium text-muted-text">{t('quality')}</label>
                   <select
                     value={quality}
-                    onChange={(event) => setQuality(event.target.value as typeof quality)}
+                    onChange={(event) => setQuality(event.target.value as DownloadQuality)}
                     disabled={audioOnly}
                     className="surface-input w-full"
                   >
@@ -270,7 +212,7 @@ export const Downloads: React.FC = () => {
                     }}
                   />
                   <ToggleRow
-                    icon={Video}
+                    icon={Smartphone}
                     label={t('downloadPlaylist')}
                     checked={downloadPlaylist}
                     onChange={setDownloadPlaylist}
@@ -310,7 +252,7 @@ export const Downloads: React.FC = () => {
                 )}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-text-primary">{message}</p>
+                <p className="text-sm font-semibold text-text-primary">{statusMessage}</p>
                 <p className="text-xs text-muted-text">{outputDir || t('defaultDownloadsFolder')}</p>
               </div>
             </div>
@@ -396,24 +338,25 @@ const ToggleRow: React.FC<{
   </label>
 );
 
-const createJobId = () => {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-};
-
 const isLikelyPlaylistUrl = (value: string) => {
   try {
     const parsed = new URL(value.trim());
     const host = parsed.hostname.toLowerCase();
+    const path = parsed.pathname.toLowerCase();
     return (
-      host.includes('youtube.com') &&
-      (parsed.pathname.toLowerCase().includes('/playlist') || parsed.searchParams.has('list'))
+      (host.includes('youtube.com') && (path.includes('/playlist') || parsed.searchParams.has('list'))) ||
+      (host.includes('instagram.com') && !path.includes('/reel/') && !path.includes('/p/')) ||
+      (host.includes('tiktok.com') && path.includes('/@') && !path.includes('/video/')) ||
+      ((host.includes('twitter.com') || host.includes('x.com')) && !path.includes('/status/'))
     );
   } catch {
     const lower = value.toLowerCase();
-    return lower.includes('youtube.com/playlist') || lower.includes('?list=') || lower.includes('&list=');
+    return lower.includes('youtube.com/playlist') ||
+      lower.includes('?list=') ||
+      lower.includes('&list=') ||
+      (lower.includes('instagram.com/') && !lower.includes('/reel/') && !lower.includes('/p/')) ||
+      (lower.includes('tiktok.com/@') && !lower.includes('/video/')) ||
+      ((lower.includes('twitter.com/') || lower.includes('x.com/')) && !lower.includes('/status/'));
   }
 };
 

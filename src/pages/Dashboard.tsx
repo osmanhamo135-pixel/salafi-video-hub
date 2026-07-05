@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Bell, BellOff, CheckCircle2, Clock, Image, Library, TimerReset, Video } from 'lucide-react';
+import { Bell, BellOff, CheckCircle2, Clock, HardDrive, Image, Library, TimerReset, Video } from 'lucide-react';
 import { Reminder } from '@/types';
 import { useAppStore } from '@/store/appStore';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { ContinueWatching } from '@/components/dashboard/ContinueWatching';
 import { RecentlyAdded } from '@/components/dashboard/RecentlyAdded';
 import { QuickActions } from '@/components/dashboard/QuickActions';
+import { formatBytes } from '@/utils/formatBytes';
 import { formatDurationLong } from '@/utils/formatTime';
 import { useI18n } from '@/i18n';
 
@@ -68,6 +69,12 @@ export const Dashboard: React.FC = () => {
       value: stats?.totalDuration ? formatDurationLong(stats.totalDuration, language) : formatDurationLong(0, language),
       color: 'text-accent-gold',
     },
+    {
+      icon: HardDrive,
+      label: t('libraryStorage'),
+      value: formatBytes(stats?.totalStorageBytes ?? 0),
+      color: 'text-primary-blue',
+    },
     { icon: CheckCircle2, label: t('completed'), value: stats?.completedVideos ?? 0, color: 'text-accent-blue' },
   ];
 
@@ -88,7 +95,7 @@ export const Dashboard: React.FC = () => {
       <div className="gold-thread mb-6" />
 
       <section className="premium-surface ornate-corner relative mb-6 overflow-hidden rounded-lg p-4">
-        <div className="grid gap-3 lg:grid-cols-4">
+        <div className="grid gap-3 lg:grid-cols-3 2xl:grid-cols-5">
           <OverviewMetric
             icon={CheckCircle2}
             label={t('libraryProgress')}
@@ -119,13 +126,19 @@ export const Dashboard: React.FC = () => {
             }
             progress={thumbnailJobsRunning ? thumbnailPercent : undefined}
           />
+          <OverviewMetric
+            icon={HardDrive}
+            label={t('libraryStorage')}
+            value={formatBytes(stats?.totalStorageBytes ?? 0)}
+            detail={`${(stats?.totalVideos ?? 0).toLocaleString()} ${t('localFiles')}`}
+          />
         </div>
       </section>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {isLoading ? (
-          Array.from({ length: 4 }).map((_, i) => (
+          Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="premium-card h-20 animate-pulse rounded-lg p-4" />
           ))
         ) : (

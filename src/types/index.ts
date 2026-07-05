@@ -82,6 +82,7 @@ export interface PlaylistStats {
   totalVideos: number;
   totalDuration: number;
   completedVideos: number;
+  totalStorageBytes: number;
 }
 
 export interface ImportResult {
