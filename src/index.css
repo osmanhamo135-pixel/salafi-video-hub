@@ -382,6 +382,20 @@
     pointer-events: none;
   }
 
+  .brand-mark {
+    @apply relative flex items-center justify-center rounded-full border border-accent-gold/35 bg-black text-accent-gold;
+    box-shadow: inset 0 0 0 1px rgba(255, 240, 180, 0.08), 0 10px 28px rgba(0, 0, 0, 0.28);
+  }
+
+  .brand-mark::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 9999px;
+    pointer-events: none;
+  }
+
   .gold-thread {
     height: 1px;
     background: linear-gradient(90deg, transparent, rgba(236, 195, 102, 0.5), rgba(28, 173, 111, 0.24), transparent);

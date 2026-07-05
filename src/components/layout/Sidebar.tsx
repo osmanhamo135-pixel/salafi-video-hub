@@ -31,11 +31,11 @@ export const Sidebar: React.FC = () => {
       {/* Logo */}
       <div className="relative flex items-center gap-3 border-b border-primary-blue/15 px-5 py-5">
         <div className="gold-thread absolute inset-x-5 bottom-0" />
-        <div className="icon-medallion h-14 w-14 shrink-0 overflow-hidden p-1">
+        <div className="brand-mark h-14 w-14 shrink-0 overflow-hidden p-1">
           <img
             src={appIcon}
             alt=""
-            className="relative z-10 h-full w-full rounded-lg object-cover"
+            className="relative z-10 h-full w-full rounded-full object-cover"
             draggable={false}
           />
         </div>
