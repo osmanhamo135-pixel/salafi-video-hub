@@ -4,17 +4,17 @@
 
 @layer base {
   :root {
-    --bg-main-rgb: 4 6 8;
-    --bg-sidebar-rgb: 7 16 20;
-    --bg-panel-rgb: 10 16 22;
-    --bg-card-rgb: 15 23 32;
-    --bg-card-hover-rgb: 18 32 42;
-    --border-subtle-rgb: 45 207 200;
-    --accent-teal-rgb: 15 185 177;
-    --accent-turquoise-rgb: 45 207 200;
-    --accent-emerald-rgb: 16 185 129;
-    --accent-blue-rgb: 79 125 255;
-    --accent-gold-rgb: 214 181 109;
+    --bg-main-rgb: 3 4 4;
+    --bg-sidebar-rgb: 6 9 8;
+    --bg-panel-rgb: 9 13 11;
+    --bg-card-rgb: 13 20 16;
+    --bg-card-hover-rgb: 18 28 23;
+    --border-subtle-rgb: 214 181 109;
+    --accent-teal-rgb: 219 177 83;
+    --accent-turquoise-rgb: 250 220 140;
+    --accent-emerald-rgb: 28 173 111;
+    --accent-blue-rgb: 57 199 162;
+    --accent-gold-rgb: 236 195 102;
     --text-main-rgb: 247 248 250;
     --text-soft-rgb: 215 221 232;
     --text-muted-rgb: 126 138 161;
@@ -27,8 +27,8 @@
     --bg-panel: rgb(var(--bg-panel-rgb));
     --bg-card: rgb(var(--bg-card-rgb));
     --bg-card-hover: rgb(var(--bg-card-hover-rgb));
-    --border-subtle: rgba(45, 207, 200, 0.12);
-    --border-strong: rgba(45, 207, 200, 0.28);
+    --border-subtle: rgba(214, 181, 109, 0.14);
+    --border-strong: rgba(236, 195, 102, 0.34);
     --accent-teal: rgb(var(--accent-teal-rgb));
     --accent-turquoise: rgb(var(--accent-turquoise-rgb));
     --accent-emerald: rgb(var(--accent-emerald-rgb));
@@ -41,10 +41,10 @@
     --danger: rgb(var(--danger-rgb));
     --warning: rgb(var(--warning-rgb));
     --success: rgb(var(--success-rgb));
-    --teal-glass: rgba(15, 185, 177, 0.1);
-    --gold-glass: rgba(214, 181, 109, 0.1);
-    --surface-wash: linear-gradient(180deg, rgba(15, 23, 32, 0.98), rgba(8, 13, 18, 0.98));
-    --card-wash: linear-gradient(180deg, rgba(17, 27, 37, 0.96), rgba(11, 17, 24, 0.98));
+    --teal-glass: rgba(28, 173, 111, 0.1);
+    --gold-glass: rgba(236, 195, 102, 0.12);
+    --surface-wash: linear-gradient(180deg, rgba(13, 18, 15, 0.98), rgba(5, 8, 7, 0.98));
+    --card-wash: linear-gradient(180deg, rgba(18, 28, 22, 0.96), rgba(8, 12, 10, 0.98));
   }
 
   html[data-theme='emerald'] {
@@ -133,8 +133,8 @@
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background:
-      radial-gradient(circle at top left, rgba(15, 185, 177, 0.075), transparent 32rem),
-      radial-gradient(circle at 82% 6%, rgba(214, 181, 109, 0.04), transparent 24rem),
+      radial-gradient(circle at top left, rgba(236, 195, 102, 0.08), transparent 32rem),
+      radial-gradient(circle at 82% 6%, rgba(28, 173, 111, 0.06), transparent 24rem),
       linear-gradient(180deg, var(--bg-sidebar) 0%, var(--bg-main) 28rem);
     color: var(--text-main);
     -webkit-font-smoothing: antialiased;
@@ -244,10 +244,10 @@
   .page-container {
     @apply relative h-full min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-6;
     background:
-      radial-gradient(circle at 88% 0%, rgba(15, 185, 177, 0.09), transparent 28rem),
-      radial-gradient(circle at 12% 18%, rgba(214, 181, 109, 0.045), transparent 22rem),
-      linear-gradient(90deg, rgba(45, 207, 200, 0.025) 1px, transparent 1px),
-      linear-gradient(180deg, rgba(45, 207, 200, 0.018) 1px, transparent 1px),
+      radial-gradient(circle at 88% 0%, rgba(236, 195, 102, 0.09), transparent 28rem),
+      radial-gradient(circle at 12% 18%, rgba(28, 173, 111, 0.055), transparent 22rem),
+      linear-gradient(90deg, rgba(214, 181, 109, 0.022) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(214, 181, 109, 0.016) 1px, transparent 1px),
       var(--bg-main);
     background-size: auto, auto, 42px 42px, 42px 42px, auto;
   }
@@ -273,7 +273,7 @@
   }
 
   .premium-card-hover:hover {
-    background: linear-gradient(180deg, rgba(20, 34, 45, 0.98), rgba(12, 20, 28, 0.98));
+    background: linear-gradient(180deg, rgba(24, 34, 27, 0.98), rgba(10, 15, 12, 0.98));
   }
 
   .premium-pill {
@@ -283,12 +283,12 @@
 
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-background transition-colors disabled:cursor-not-allowed disabled:opacity-60;
-    background: linear-gradient(135deg, var(--accent-teal), #22d3c5 62%, rgba(79, 125, 255, 0.92));
-    box-shadow: 0 10px 24px rgba(15, 185, 177, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+    background: linear-gradient(135deg, var(--accent-gold), #f6df8f 58%, rgba(28, 173, 111, 0.92));
+    box-shadow: 0 10px 24px rgba(236, 195, 102, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.24);
   }
 
   .btn-primary:hover {
-    background: linear-gradient(135deg, #22d3c5, var(--accent-teal) 62%, rgba(79, 125, 255, 0.96));
+    background: linear-gradient(135deg, #f8e7aa, var(--accent-gold) 62%, rgba(28, 173, 111, 0.96));
   }
 
   .btn-secondary {
@@ -384,7 +384,33 @@
 
   .gold-thread {
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(214, 181, 109, 0.42), rgba(15, 185, 177, 0.28), transparent);
+    background: linear-gradient(90deg, transparent, rgba(236, 195, 102, 0.5), rgba(28, 173, 111, 0.24), transparent);
+  }
+
+  .salafi-dashboard-hero {
+    border: 1px solid rgba(236, 195, 102, 0.2);
+    background:
+      radial-gradient(circle at 12% 12%, rgba(236, 195, 102, 0.15), transparent 18rem),
+      radial-gradient(circle at 88% 0%, rgba(28, 173, 111, 0.11), transparent 22rem),
+      linear-gradient(135deg, rgba(20, 24, 18, 0.98), rgba(5, 8, 7, 0.98));
+    box-shadow: inset 0 1px 0 rgba(255, 240, 180, 0.07), 0 22px 60px rgba(0, 0, 0, 0.28);
+  }
+
+  .salafi-dashboard-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.18;
+    pointer-events: none;
+    background-image:
+      linear-gradient(45deg, rgba(236, 195, 102, 0.12) 25%, transparent 25%, transparent 75%, rgba(236, 195, 102, 0.12) 75%),
+      linear-gradient(-45deg, rgba(28, 173, 111, 0.08) 25%, transparent 25%, transparent 75%, rgba(28, 173, 111, 0.08) 75%);
+    background-size: 34px 34px;
+    background-position: 0 0, 17px 17px;
+  }
+
+  .download-batch-card {
+    box-shadow: inset 0 1px 0 rgba(255, 240, 180, 0.04), 0 14px 34px rgba(0, 0, 0, 0.2);
   }
 
   .surface-input {

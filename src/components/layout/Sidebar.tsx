@@ -31,22 +31,22 @@ export const Sidebar: React.FC = () => {
       {/* Logo */}
       <div className="relative flex items-center gap-3 border-b border-primary-blue/15 px-5 py-5">
         <div className="gold-thread absolute inset-x-5 bottom-0" />
-        <div className="icon-medallion h-11 w-11 shrink-0 overflow-hidden p-1">
+        <div className="icon-medallion h-14 w-14 shrink-0 overflow-hidden p-1">
           <img
             src={appIcon}
             alt=""
-            className="relative z-10 h-full w-full rounded-md object-cover"
+            className="relative z-10 h-full w-full rounded-lg object-cover"
             draggable={false}
           />
         </div>
-        <div className="flex flex-col">
+        <div className="flex min-w-0 flex-col">
           <div className="flex items-center gap-2">
             <h1 className="text-sm font-semibold leading-tight text-text-primary">{APP_NAME}</h1>
-            <span className="rounded border border-primary-blue/25 bg-primary-blue/10 px-1.5 py-0.5 text-[9px] font-semibold leading-none text-primary-blue">
+            <span className="rounded border border-accent-gold/25 bg-accent-gold/10 px-1.5 py-0.5 text-[9px] font-semibold leading-none text-accent-gold">
               {APP_STAGE}
             </span>
           </div>
-          <span className="text-[10px] text-primary-blue/70">{t('privateLocalLibrary')}</span>
+          <span className="truncate text-[10px] text-accent-gold/80">{t('privateLocalLibrary')}</span>
         </div>
       </div>
 

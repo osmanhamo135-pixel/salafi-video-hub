@@ -101,66 +101,78 @@ export const ContinueWatching: React.FC = () => {
           {items.length} {t('videosLower')} {t('groupedInto')} {groups.length} {t('playlistsLower')}
         </p>
       </div>
-      <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4">
         {groups.map((group) => (
-          <div key={group.key}>
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-text-primary">
-              <FolderOpen className="h-4 w-4 text-primary-blue" />
-              <span className="truncate">{group.title}</span>
-              <span className="rounded-full border border-primary-blue/15 bg-primary-blue/10 px-2 py-0.5 text-xs text-primary-blue">
-                {group.items.length}
-              </span>
-            </div>
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-              {group.items.map((item) => {
-                const progressPercent = item.video.durationSeconds
-                  ? (item.video.progressSeconds / item.video.durationSeconds) * 100
-                  : 0;
-
-                return (
-                  <div
-                    key={item.video.id}
-                    className={`premium-card premium-card-hover group min-w-[260px] max-w-[260px] overflow-hidden rounded-lg ${item.playlist ? 'cursor-pointer' : 'cursor-default'}`}
-                    onClick={() => handlePlay(item)}
-                  >
-                    <div className="relative aspect-video overflow-hidden bg-elevated-panel">
-                      <LocalThumbnail
-                        path={item.video.thumbnailPath}
-                        label={item.video.title}
-                        className="w-full h-full object-cover"
-                        iconClassName="w-7 h-7 text-muted-text/60"
-                        fallbackClassName="thumbnail-fallback"
-                      />
-                      {item.playlist && (
-                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-blue/90 shadow-teal">
-                            <Play size={20} className="text-white ml-0.5" fill="white" />
-                          </div>
-                        </div>
-                      )}
-                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/60">
-                        <div
-                          className="h-full bg-primary-blue"
-                          style={{ width: `${Math.min(progressPercent, 100)}%` }}
-                        />
-                      </div>
-                      <div className="media-badge absolute bottom-2 right-2">
-                        {formatTime(item.video.durationSeconds)}
-                      </div>
-                    </div>
-                    <div className="p-3">
-                      <p className="truncate text-sm font-medium text-text-primary">{item.video.title}</p>
-                      <p className="mt-1 text-xs text-muted-text">
-                        {formatTime(item.video.progressSeconds)} / {formatTime(item.video.durationSeconds)}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <ContinueGroupCard
+            key={group.key}
+            title={group.title}
+            count={group.items.length}
+            item={group.items[0]}
+            onPlay={handlePlay}
+          />
         ))}
       </div>
     </section>
+  );
+};
+
+const ContinueGroupCard: React.FC<{
+  title: string;
+  count: number;
+  item: ContinueWatchingItem;
+  onPlay: (item: ContinueWatchingItem) => void;
+}> = ({ title, count, item, onPlay }) => {
+  const progressPercent = item.video.durationSeconds
+    ? (item.video.progressSeconds / item.video.durationSeconds) * 100
+    : 0;
+  const canPlay = !!item.playlist;
+
+  return (
+    <button
+      type="button"
+      onClick={() => canPlay && onPlay(item)}
+      disabled={!canPlay}
+      className="premium-card premium-card-hover group overflow-hidden rounded-lg text-left disabled:cursor-default"
+    >
+      <div className="relative aspect-video overflow-hidden bg-elevated-panel">
+        <LocalThumbnail
+          path={item.video.thumbnailPath}
+          label={item.video.title}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.025]"
+          iconClassName="h-7 w-7 text-muted-text/60"
+          fallbackClassName="thumbnail-fallback"
+        />
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 to-transparent" />
+        {canPlay && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity group-hover:opacity-100">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-blue/90 shadow-teal">
+              <Play size={20} className="ml-0.5 text-background" fill="currentColor" />
+            </div>
+          </div>
+        )}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/70">
+          <div
+            className="h-full bg-primary-blue"
+            style={{ width: `${Math.min(progressPercent, 100)}%` }}
+          />
+        </div>
+        <div className="media-badge absolute bottom-2 right-2">
+          {formatTime(item.video.durationSeconds)}
+        </div>
+      </div>
+      <div className="p-3">
+        <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-text">
+          <FolderOpen className="h-4 w-4 shrink-0 text-primary-blue" />
+          <span className="truncate">{title}</span>
+          <span className="ml-auto rounded-full border border-primary-blue/15 bg-primary-blue/10 px-2 py-0.5 text-[11px] text-primary-blue">
+            {count}
+          </span>
+        </div>
+        <p className="truncate text-sm font-semibold text-text-primary">{item.video.title}</p>
+        <p className="mt-1 text-xs text-muted-text">
+          {formatTime(item.video.progressSeconds)} / {formatTime(item.video.durationSeconds)}
+        </p>
+      </div>
+    </button>
   );
 };

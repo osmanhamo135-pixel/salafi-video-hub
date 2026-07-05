@@ -6,14 +6,18 @@ import {
   CheckCircle2,
   Cookie,
   Download,
+  FileVideo,
   FolderOpen,
+  Layers,
   Link,
   Loader2,
   Music,
   ShieldCheck,
   Smartphone,
+  X,
 } from 'lucide-react';
 import { DownloadQuality, DownloadStage, isDownloadWorking, useDownloadStore } from '@/store/downloadStore';
+import { LocalThumbnail } from '@/components/ui/LocalThumbnail';
 import { useI18n } from '@/i18n';
 
 const qualityOptions = [
@@ -46,10 +50,15 @@ export const Downloads: React.FC = () => {
   const result = useDownloadStore((state) => state.result);
   const error = useDownloadStore((state) => state.error);
   const startDownload = useDownloadStore((state) => state.startDownload);
+  const resetCompleted = useDownloadStore((state) => state.resetCompleted);
 
   const isWorking = isDownloadWorking(stage);
   const effectiveImport = importAfterDownload && !audioOnly;
-  const statusMessage = message ? localizeProgressMessage(stage, message, t) : t('noDownloadYet');
+  const statusMessage = stage === 'idle'
+    ? t('readyForNextDownload')
+    : message
+      ? localizeProgressMessage(stage, message, t)
+      : t('noDownloadYet');
 
   useEffect(() => {
     if (isLikelyPlaylistUrl(url)) {
@@ -273,39 +282,40 @@ export const Downloads: React.FC = () => {
 
             {result && (
               <div className="mt-5 space-y-3">
+                <DownloadBatchCard result={result} />
+
                 <div>
                   <p className="text-xs font-medium text-muted-text">{t('downloadedTo')}</p>
-                  <p className="mt-1 break-all text-xs text-text-primary">{result.outputDir}</p>
+                  <p className="mt-1 break-all text-xs text-text-primary" dir="ltr">{result.outputDir}</p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleOpenDownloadFolder}
-                  className="btn-secondary w-full justify-center px-3 py-2 text-xs"
-                >
-                  <FolderOpen className="h-4 w-4" />
-                  {t('openDownloadFolder')}
-                </button>
-
-                <div>
-                  <p className="text-xs font-medium text-muted-text">{t('downloadedFiles')}</p>
-                  {result.downloadedFiles.length > 0 ? (
-                    <ul className="mt-2 space-y-1">
-                      {result.downloadedFiles.slice(0, 8).map((file) => (
-                        <li key={file} className="truncate rounded border border-border bg-background px-2 py-1.5 text-xs text-text-primary" title={file}>
-                          {file}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-1 text-xs text-muted-text">{t('noDownloadYet')}</p>
-                  )}
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                  <button
+                    type="button"
+                    onClick={handleOpenDownloadFolder}
+                    className="btn-secondary w-full justify-center px-3 py-2 text-xs"
+                  >
+                    <FolderOpen className="h-4 w-4" />
+                    {t('openDownloadFolder')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetCompleted}
+                    className="btn-ghost w-full justify-center border border-border px-3 py-2 text-xs"
+                  >
+                    <X className="h-4 w-4" />
+                    {t('clearNow')}
+                  </button>
                 </div>
 
                 {result.importResult && (
                   <div className="rounded-md border border-success-green/25 bg-success-green/10 p-3 text-xs text-success-green">
                     {t('importFolder')}: {result.importResult.imported_count} / {t('skipped')}: {result.importResult.skipped_count} / {t('failed')}: {result.importResult.failed_count}
                   </div>
+                )}
+
+                {stage === 'finished' && (
+                  <p className="text-center text-[11px] text-muted-text">{t('clearsAutomatically')}</p>
                 )}
               </div>
             )}
@@ -314,6 +324,67 @@ export const Downloads: React.FC = () => {
       </div>
     </div>
   );
+};
+
+const DownloadBatchCard: React.FC<{
+  result: {
+    outputDir: string;
+    downloadedFiles: string[];
+    previewThumbnailPath: string | null;
+  };
+}> = ({ result }) => {
+  const { t } = useI18n();
+  const primaryFile = result.downloadedFiles[0] ?? result.outputDir;
+  const primaryName = getFileName(primaryFile);
+  const parentName = getParentName(primaryFile) || getParentName(result.outputDir);
+  const remaining = Math.max(result.downloadedFiles.length - 1, 0);
+
+  return (
+    <div className="download-batch-card overflow-hidden rounded-lg border border-accent-gold/25 bg-background/55">
+      <div className="relative aspect-video bg-elevated-panel">
+        <LocalThumbnail
+          path={result.previewThumbnailPath}
+          label={primaryName}
+          className="h-full w-full object-cover"
+          iconClassName="h-8 w-8 text-accent-gold/80"
+          fallbackClassName="thumbnail-fallback"
+        />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/85 to-transparent" />
+        <div className="media-badge absolute bottom-3 left-3 flex items-center gap-1.5">
+          <Layers className="h-3.5 w-3.5" />
+          {result.downloadedFiles.length} {t('filesSaved')}
+        </div>
+      </div>
+      <div className="p-3">
+        <div className="mb-2 flex items-center gap-2 text-xs text-muted-text">
+          <FileVideo className="h-4 w-4 text-primary-blue" />
+          <span>{t('savedMediaBatch')}</span>
+        </div>
+        <p className="truncate text-sm font-semibold text-text-primary" title={primaryName}>
+          {primaryName}
+        </p>
+        <p className="mt-1 truncate text-xs text-muted-text" title={parentName}>
+          {t('primaryDownload')} / {parentName}
+        </p>
+        {remaining > 0 && (
+          <p className="mt-2 text-xs text-accent-gold">
+            +{remaining} {t('moreFiles')}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const getFileName = (path: string) => {
+  const clean = path.replace(/[\\/]+$/, '');
+  return clean.split(/[\\/]/).filter(Boolean).pop() ?? clean;
+};
+
+const getParentName = (path: string) => {
+  const clean = path.replace(/[\\/]+$/, '');
+  const parts = clean.split(/[\\/]/).filter(Boolean);
+  return parts.length > 1 ? parts[parts.length - 2] : parts[0] ?? '';
 };
 
 const ToggleRow: React.FC<{

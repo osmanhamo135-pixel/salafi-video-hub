@@ -16,6 +16,7 @@ export interface DownloadProgressPayload {
 export interface MediaDownloadResult {
   outputDir: string;
   downloadedFiles: string[];
+  previewThumbnailPath: string | null;
   importResult: ImportResult | null;
 }
 
@@ -50,6 +51,15 @@ interface DownloadState {
 export const isDownloadWorking = (stage: DownloadStage) =>
   stage === 'preparing' || stage === 'installing' || stage === 'downloading' || stage === 'importing';
 
+let autoClearTimer: ReturnType<typeof setTimeout> | null = null;
+
+const clearAutoClearTimer = () => {
+  if (autoClearTimer) {
+    clearTimeout(autoClearTimer);
+    autoClearTimer = null;
+  }
+};
+
 export const useDownloadStore = create<DownloadState>((set, get) => ({
   url: '',
   outputDir: '',
@@ -76,15 +86,19 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
   })),
   setDownloadPlaylist: (downloadPlaylist) => set({ downloadPlaylist }),
   setImportAfterDownload: (importAfterDownload) => set({ importAfterDownload }),
-  resetCompleted: () => set({
-    activeJobId: null,
-    stage: 'idle',
-    message: '',
-    percent: 0,
-    result: null,
-    error: null,
-    startedAt: null,
-  }),
+  resetCompleted: () => {
+    clearAutoClearTimer();
+    set({
+      url: '',
+      activeJobId: null,
+      stage: 'idle',
+      message: '',
+      percent: 0,
+      result: null,
+      error: null,
+      startedAt: null,
+    });
+  },
 
   applyProgress: (payload) => {
     const { activeJobId } = get();
@@ -108,6 +122,7 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
     }
 
     const jobId = createJobId();
+    clearAutoClearTimer();
     set({
       activeJobId: jobId,
       stage: 'preparing',
@@ -139,8 +154,23 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
         percent: 100,
         error: null,
       });
+      autoClearTimer = setTimeout(() => {
+        const current = get();
+        if (current.stage !== 'finished') return;
+        set({
+          url: '',
+          activeJobId: null,
+          stage: 'idle',
+          message: '',
+          percent: 0,
+          result: null,
+          error: null,
+          startedAt: null,
+        });
+      }, 18000);
       await useAppStore.getState().refreshPlaylists();
     } catch (downloadError) {
+      clearAutoClearTimer();
       set({
         stage: 'error',
         error: downloadError instanceof Error ? downloadError.message : String(downloadError),

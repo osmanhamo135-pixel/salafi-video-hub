@@ -116,59 +116,77 @@ export const RecentlyAdded: React.FC = () => {
           {videos.length} {t('videosLower')} {t('groupedInto')} {groups.length} {t('playlistsLower')}
         </p>
       </div>
-      <div ref={scrollRef} className="space-y-4">
+      <div ref={scrollRef} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4">
         {groups.map((group) => (
-          <div key={group.key}>
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-text-primary">
-              <FolderOpen className="h-4 w-4 text-primary-blue" />
-              <span className="truncate">{group.title}</span>
-              <span className="rounded-full border border-primary-blue/15 bg-primary-blue/10 px-2 py-0.5 text-xs text-primary-blue">
-                {group.items.length}
-              </span>
-            </div>
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-              {group.items.map(({ video, playlist }) => (
-                <div
-                  key={video.id}
-                  onClick={() => handlePlay(video, playlist)}
-                  className={`premium-card premium-card-hover group min-w-[260px] max-w-[260px] overflow-hidden rounded-lg ${
-                    playlist ? 'cursor-pointer' : 'cursor-default'
-                  }`}
-                >
-                  <div className="relative aspect-video overflow-hidden bg-elevated-panel">
-                    <LocalThumbnail
-                      path={video.thumbnailPath}
-                      label={video.title}
-                      className="w-full h-full object-cover"
-                      iconClassName="w-7 h-7 text-muted-text/60"
-                      fallbackClassName="thumbnail-fallback"
-                    />
-                    {playlist && (
-                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity group-hover:opacity-100">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-blue/90 shadow-teal">
-                          <Play size={20} className="ml-0.5 text-white" fill="white" />
-                        </div>
-                      </div>
-                    )}
-                    <div className="media-badge absolute bottom-2 right-2">
-                      {formatDuration(video.durationSeconds)}
-                    </div>
-                  </div>
-                  <div className="p-3">
-                    <p className="truncate text-sm font-medium text-text-primary">{video.title}</p>
-                    <p className="mt-0.5 truncate text-xs text-muted-text">
-                      {video.speaker || video.category || t('uncategorized')}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-text">
-                      {t('added')} {new Date(video.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <RecentGroupCard
+            key={group.key}
+            title={group.title}
+            count={group.items.length}
+            item={group.items[0]}
+            onPlay={handlePlay}
+            uncategorizedLabel={t('uncategorized')}
+            addedLabel={t('added')}
+          />
         ))}
       </div>
     </section>
+  );
+};
+
+const RecentGroupCard: React.FC<{
+  title: string;
+  count: number;
+  item: { video: Video; playlist: Playlist | null };
+  onPlay: (video: Video, playlist: Playlist | null) => void;
+  uncategorizedLabel: string;
+  addedLabel: string;
+}> = ({ title, count, item, onPlay, uncategorizedLabel, addedLabel }) => {
+  const { video, playlist } = item;
+  const canPlay = !!playlist;
+
+  return (
+    <button
+      type="button"
+      onClick={() => canPlay && onPlay(video, playlist)}
+      disabled={!canPlay}
+      className="premium-card premium-card-hover group overflow-hidden rounded-lg text-left disabled:cursor-default"
+    >
+      <div className="relative aspect-video overflow-hidden bg-elevated-panel">
+        <LocalThumbnail
+          path={video.thumbnailPath}
+          label={video.title}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.025]"
+          iconClassName="h-7 w-7 text-muted-text/60"
+          fallbackClassName="thumbnail-fallback"
+        />
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 to-transparent" />
+        {canPlay && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity group-hover:opacity-100">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-blue/90 shadow-teal">
+              <Play size={20} className="ml-0.5 text-background" fill="currentColor" />
+            </div>
+          </div>
+        )}
+        <div className="media-badge absolute bottom-2 right-2">
+          {formatDuration(video.durationSeconds)}
+        </div>
+      </div>
+      <div className="p-3">
+        <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-text">
+          <FolderOpen className="h-4 w-4 shrink-0 text-primary-blue" />
+          <span className="truncate">{title}</span>
+          <span className="ml-auto rounded-full border border-primary-blue/15 bg-primary-blue/10 px-2 py-0.5 text-[11px] text-primary-blue">
+            {count}
+          </span>
+        </div>
+        <p className="truncate text-sm font-semibold text-text-primary">{video.title}</p>
+        <p className="mt-0.5 truncate text-xs text-muted-text">
+          {video.speaker || video.category || uncategorizedLabel}
+        </p>
+        <p className="mt-1 text-xs text-muted-text">
+          {addedLabel} {new Date(video.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+        </p>
+      </div>
+    </button>
   );
 };

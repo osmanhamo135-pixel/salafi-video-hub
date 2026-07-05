@@ -49,6 +49,7 @@ pub struct YoutubeDownloadProgress {
 pub struct YoutubeDownloadResult {
     pub output_dir: String,
     pub downloaded_files: Vec<String>,
+    pub preview_thumbnail_path: Option<String>,
     pub import_result: Option<scanner::ImportResult>,
 }
 
@@ -90,6 +91,7 @@ fn download_youtube_video_blocking(
 
     let ytdlp = ensure_ytdlp(&app_handle, &request.job_id)?;
     let downloaded_files = run_ytdlp(&app_handle, &request, &ytdlp, &output_dir)?;
+    let preview_thumbnail_path = create_download_preview_thumbnail(&app_handle, &downloaded_files);
 
     emit_progress(
         &app_handle,
@@ -116,6 +118,7 @@ fn download_youtube_video_blocking(
     Ok(YoutubeDownloadResult {
         output_dir: output_dir.to_string_lossy().to_string(),
         downloaded_files,
+        preview_thumbnail_path,
         import_result,
     })
 }
@@ -1012,6 +1015,17 @@ fn import_downloads(
     let result = outcome.result;
     let _ = app_handle.emit("import_finished", result.clone());
     Ok(Some(result))
+}
+
+fn create_download_preview_thumbnail(
+    app_handle: &AppHandle,
+    downloaded_files: &[String],
+) -> Option<String> {
+    downloaded_files
+        .iter()
+        .find(|path| scanner::is_video_file(Path::new(path)))
+        .and_then(|path| crate::services::thumbnail_gen::generate_thumbnail_for_video(app_handle, path).ok())
+        .flatten()
 }
 
 fn choose_import_root(output_dir: &Path, downloaded_videos: &[String]) -> PathBuf {
