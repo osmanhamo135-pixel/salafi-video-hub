@@ -340,7 +340,7 @@ export const Library: React.FC = () => {
                   {t('importSingleVideo')}
                 </button>
               </div>
-              <label className="ml-auto flex items-center gap-2 text-xs text-muted-text">
+              <label className="ms-auto flex items-center gap-2 text-xs text-muted-text">
                 <input
                   type="checkbox"
                   checked={includeSubfolders}
@@ -354,7 +354,7 @@ export const Library: React.FC = () => {
 
           <div className="premium-surface flex flex-col gap-3 rounded-lg p-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative max-w-xl flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
+              <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
               <input
                 type="text"
                 placeholder={t('searchLibrary')}
@@ -363,12 +363,12 @@ export const Library: React.FC = () => {
                   setSearchInput(event.target.value);
                   setSelectedPlaylist(null);
                 }}
-                className="surface-input w-full py-2.5 pl-10 pr-9"
+                className="surface-input w-full py-2.5 ps-10 pe-9"
               />
               {searchInput && (
                 <button
                   onClick={handleClearSearch}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-text hover:text-text-primary"
+                  className="absolute end-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-text hover:text-text-primary"
                 >
                   <X className="h-4 w-4" />
                 </button>

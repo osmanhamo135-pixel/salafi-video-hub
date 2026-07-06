@@ -67,7 +67,7 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
   url: '',
   outputDir: '',
   cookiesPath: '',
-  cookieMode: 'auto',
+  cookieMode: 'none',
   quality: 'fast',
   audioOnly: false,
   downloadPlaylist: false,
