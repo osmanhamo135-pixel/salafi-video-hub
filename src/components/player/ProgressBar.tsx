@@ -43,7 +43,7 @@ export const ProgressBar: React.FC = () => {
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
-      <span className="text-xs text-muted-text font-mono tabular-nums w-12 text-right shrink-0">
+      <span className="text-xs text-muted-text font-mono tabular-nums w-12 text-end shrink-0">
         {formatTime(currentTime)}
       </span>
 

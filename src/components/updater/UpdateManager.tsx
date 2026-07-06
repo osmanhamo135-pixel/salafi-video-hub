@@ -90,9 +90,9 @@ export const UpdateManager: React.FC = () => {
           {update && phase !== 'error' && (
             <div className="mt-3 grid grid-cols-2 gap-2 rounded-md border border-border bg-background/70 p-2 text-xs">
               <span className="text-muted-text">{t('currentVersion')}</span>
-              <span className="truncate text-right text-text-primary">{update.currentVersion}</span>
+              <span className="truncate text-end text-text-primary">{update.currentVersion}</span>
               <span className="text-muted-text">{t('latestVersion')}</span>
-              <span className="truncate text-right text-primary-blue">{update.version}</span>
+              <span className="truncate text-end text-primary-blue">{update.version}</span>
             </div>
           )}
 
@@ -108,7 +108,7 @@ export const UpdateManager: React.FC = () => {
               <div className="h-2 overflow-hidden rounded-full bg-background">
                 <div className="h-full rounded-full bg-primary-blue transition-all" style={{ width: `${Math.round(progress)}%` }} />
               </div>
-              <p className="mt-1 text-right text-xs tabular-nums text-muted-text">
+              <p className="mt-1 text-end text-xs tabular-nums text-muted-text">
                 {totalBytes ? `${Math.round(progress)}%` : formatBytes(downloadedBytes)}
               </p>
             </div>

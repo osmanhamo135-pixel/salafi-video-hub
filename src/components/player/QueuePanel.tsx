@@ -102,7 +102,7 @@ export const QueuePanel: React.FC = () => {
 
       <div className="border-b border-border px-3 py-2">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-text" />
+          <Search className="pointer-events-none absolute start-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-text" />
           <input
             type="text"
             value={query}
@@ -112,7 +112,7 @@ export const QueuePanel: React.FC = () => {
               if (listRef.current) listRef.current.scrollTop = 0;
             }}
             placeholder={t('searchQueue')}
-            className="surface-input w-full py-1.5 pl-8 pr-8 text-xs"
+            className="surface-input w-full py-1.5 ps-8 pe-8 text-xs"
           />
           {query && (
             <button
@@ -123,7 +123,7 @@ export const QueuePanel: React.FC = () => {
                 if (listRef.current) listRef.current.scrollTop = 0;
               }}
               title={t('clearQueueSearch')}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-text hover:text-text-primary"
+              className="absolute end-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-text hover:text-text-primary"
             >
               <X className="h-3.5 w-3.5" />
             </button>

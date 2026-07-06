@@ -125,7 +125,7 @@ export const PlayerControls: React.FC = () => {
             {isPlaying ? (
               <Pause className="w-7 h-7" />
             ) : (
-              <Play className="w-7 h-7 ml-0.5" />
+              <Play className="w-7 h-7 ms-0.5" />
             )}
           </button>
 

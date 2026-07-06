@@ -19,10 +19,14 @@ fn row_to_settings(row: &Row) -> Result<Settings> {
             }
         },
         theme: {
-            let theme: String = row.get(2)?;
-            match theme.as_str() {
-                "emerald" | "pearl" | "mushaf" => theme,
-                _ => "noor".to_string(),
+            // Persist whatever theme id was stored; the frontend validates the
+            // list. (A hard-coded allow-list here used to silently reset new
+            // themes like "blue"/"red" back to "noor" on every reload.)
+            let theme: String = row.get(2).unwrap_or_default();
+            if theme.trim().is_empty() {
+                "noor".to_string()
+            } else {
+                theme
             }
         },
         imported_folders,
