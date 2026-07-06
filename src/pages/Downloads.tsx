@@ -29,13 +29,13 @@ const qualityOptions = [
 ] as const;
 
 const cookieModeOptions: Array<{ value: CookieMode; labelKey: TranslationKey }> = [
+  { value: 'none', labelKey: 'accountNone' },
   { value: 'auto', labelKey: 'accountAuto' },
   { value: 'chrome', labelKey: 'accountChrome' },
   { value: 'edge', labelKey: 'accountEdge' },
   { value: 'firefox', labelKey: 'accountFirefox' },
   { value: 'brave', labelKey: 'accountBrave' },
   { value: 'opera', labelKey: 'accountOpera' },
-  { value: 'none', labelKey: 'accountNone' },
   { value: 'file', labelKey: 'accountCookiesFile' },
 ];
 
@@ -151,13 +151,13 @@ export const Downloads: React.FC = () => {
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-text">{t('youtubeUrl')}</label>
                 <div className="relative">
-                  <Link className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
+                  <Link className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
                   <input
                     type="url"
                     value={url}
                     onChange={(event) => setUrl(event.target.value)}
                     placeholder={t('youtubeUrlPlaceholder')}
-                    className="surface-input w-full py-2.5 pl-10"
+                    className="surface-input w-full py-2.5 ps-10"
                     dir="ltr"
                   />
                 </div>
@@ -183,11 +183,11 @@ export const Downloads: React.FC = () => {
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-text">{t('accountAccess')}</label>
                 <div className="relative">
-                  <Cookie className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
+                  <Cookie className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
                   <select
                     value={cookieMode}
                     onChange={(event) => setCookieMode(event.target.value as CookieMode)}
-                    className="surface-input w-full py-2.5 pl-10"
+                    className="surface-input w-full py-2.5 ps-10"
                   >
                     {cookieModeOptions.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -204,13 +204,13 @@ export const Downloads: React.FC = () => {
                 {cookieMode === 'file' && (
                   <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                     <div className="relative min-w-0 flex-1">
-                      <Cookie className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
+                      <Cookie className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
                       <input
                         type="text"
                         value={cookiesPath}
                         onChange={(event) => setCookiesPath(event.target.value)}
                         placeholder={t('noCookiesSet')}
-                        className="surface-input w-full py-2.5 pl-10"
+                        className="surface-input w-full py-2.5 ps-10"
                         dir="ltr"
                       />
                     </div>
@@ -306,7 +306,7 @@ export const Downloads: React.FC = () => {
                 style={{ width: `${Math.min(Math.max(percent, 0), 100)}%` }}
               />
             </div>
-            <p className="mt-2 text-right text-xs tabular-nums text-muted-text">{percent}%</p>
+            <p className="mt-2 text-end text-xs tabular-nums text-muted-text">{percent}%</p>
 
             {error && (
               <div className="mt-4 whitespace-pre-wrap rounded-md border border-danger-red/25 bg-danger-red/10 p-3 text-xs text-danger-red">

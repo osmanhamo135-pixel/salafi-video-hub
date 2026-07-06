@@ -192,20 +192,20 @@ export const PlaylistDetail: React.FC<PlaylistDetailProps> = ({
           <div className="border-b border-border bg-background/45 px-4 py-3">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
               <div className="relative max-w-lg flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
+                <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
                 <input
                   type="text"
                   value={videoQuery}
                   onChange={(event) => setVideoQuery(event.target.value)}
                   placeholder={t('searchVideosInPlaylist')}
-                  className="surface-input w-full py-2 pl-10 pr-9"
+                  className="surface-input w-full py-2 ps-10 pe-9"
                 />
                 {videoQuery && (
                   <button
                     type="button"
                     onClick={() => setVideoQuery('')}
                     title={t('clearSearch')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-text hover:text-text-primary"
+                    className="absolute end-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-text hover:text-text-primary"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -325,9 +325,9 @@ const PlaylistVideoRow: React.FC<{
   return (
     <button
       onClick={onPlay}
-      className="group mb-1 flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-panel-hover focus:outline-none focus:ring-1 focus:ring-primary-blue/40"
+      className="group mb-1 flex w-full items-center gap-3 rounded-md px-3 py-2 text-start transition-colors hover:bg-panel-hover focus:outline-none focus:ring-1 focus:ring-primary-blue/40"
     >
-      <div className="w-8 shrink-0 text-right text-xs tabular-nums text-muted-text">
+      <div className="w-8 shrink-0 text-end text-xs tabular-nums text-muted-text">
         {index + 1}
       </div>
 

@@ -439,7 +439,7 @@ export const Settings: React.FC = () => {
                     key={theme.id}
                     type="button"
                     onClick={() => updateSettings({ theme: theme.id as AppTheme })}
-                    className={`flex items-center gap-3 rounded-lg border px-3 py-3 text-left transition-colors ${
+                    className={`flex items-center gap-3 rounded-lg border px-3 py-3 text-start transition-colors ${
                       active
                         ? 'border-primary-blue/45 bg-primary-blue/10 text-text-primary'
                         : 'border-border bg-background/70 text-muted-text hover:border-border-strong hover:text-text-primary'
@@ -590,7 +590,7 @@ export const Settings: React.FC = () => {
                 onChange={(event) => updateSettings({ reminderVolume: Number(event.target.value) })}
                 className="h-1.5 flex-1 cursor-pointer appearance-none rounded-lg bg-border accent-primary-blue"
               />
-              <span className="w-10 text-right text-sm tabular-nums text-text-primary">{settings.reminderVolume}%</span>
+              <span className="w-10 text-end text-sm tabular-nums text-text-primary">{settings.reminderVolume}%</span>
             </div>
           </SettingRow>
           <div className="flex justify-end">

@@ -112,7 +112,8 @@ fn download_youtube_video_blocking(
     );
 
     let ytdlp = ensure_ytdlp(&app_handle, &request.job_id)?;
-    let downloaded_files = run_ytdlp(&app_handle, &request, &ytdlp, &output_dir)?;
+    let downloaded_files =
+        run_ytdlp_with_update_retry(&app_handle, &request, &ytdlp, &output_dir)?;
     let preview_thumbnail_path = create_download_preview_thumbnail(&app_handle, &downloaded_files);
 
     emit_progress(
@@ -349,6 +350,80 @@ fn refresh_ytdlp_if_stale(path: &Path, force: bool) {
     let _ = download_ytdlp(path);
 }
 
+/// Runs the download and, if it fails for a reason a fresh downloader could fix
+/// (stale platform extractors — the usual cause of Instagram/TikTok breakage),
+/// updates yt-dlp to the latest version and tries exactly once more.
+fn run_ytdlp_with_update_retry(
+    app_handle: &AppHandle,
+    request: &YoutubeDownloadRequest,
+    ytdlp: &Path,
+    output_dir: &Path,
+) -> Result<Vec<String>, String> {
+    match run_ytdlp(app_handle, request, ytdlp, output_dir) {
+        Ok(files) => Ok(files),
+        Err(error) => {
+            if !should_retry_after_update(&error) {
+                return Err(error);
+            }
+
+            emit_progress(
+                app_handle,
+                &request.job_id,
+                "downloading",
+                "Updating the downloader to the latest version and trying once more...",
+                Some(0.0),
+            );
+
+            // Prefer yt-dlp's own self-update; fall back to a fresh download.
+            if update_ytdlp_self(ytdlp).is_err() {
+                let _ = download_ytdlp(ytdlp);
+            }
+
+            run_ytdlp(app_handle, request, ytdlp, output_dir)
+        }
+    }
+}
+
+fn update_ytdlp_self(ytdlp: &Path) -> Result<(), String> {
+    let output = hidden_command(ytdlp)
+        .arg("-U")
+        .output()
+        .map_err(|e| e.to_string())?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err("yt-dlp self-update failed".to_string())
+    }
+}
+
+/// Whether a failed download is worth retrying after refreshing yt-dlp. Terminal
+/// problems (private, removed, not found, copyright, needs an account) are not.
+fn should_retry_after_update(error: &str) -> bool {
+    let lower = error.to_lowercase();
+    if lower.contains("private")
+        || lower.contains("account access")
+        || lower.contains("sign in")
+        || lower.contains("was not found")
+        || lower.contains("404")
+        || lower.contains("removed")
+        || lower.contains("copyright")
+    {
+        return false;
+    }
+
+    lower.contains("unable to extract")
+        || lower.contains("unsupported url")
+        || lower.contains("no video")
+        || lower.contains("could not")
+        || lower.contains("http error")
+        || lower.contains("unable to download")
+        || lower.contains("json")
+        || lower.contains("failed")
+        || lower.contains("rate-limit")
+        || lower.contains("empty")
+        || lower.contains("extractor")
+}
+
 fn run_ytdlp(
     app_handle: &AppHandle,
     request: &YoutubeDownloadRequest,
@@ -478,18 +553,17 @@ fn build_cookie_plan(request: &YoutubeDownloadRequest) -> Vec<CookieSource> {
     match mode.as_str() {
         "none" => vec![CookieSource::None],
         "" | "auto" => {
-            let browsers = detect_installed_browsers();
-            if browsers.is_empty() {
-                return vec![CookieSource::None];
-            }
-
-            if url_usually_needs_login(&request.url) {
-                browsers.into_iter().map(CookieSource::Browser).collect()
-            } else {
-                let mut plan = vec![CookieSource::None];
-                plan.extend(browsers.into_iter().map(CookieSource::Browser));
-                plan
-            }
+            // Always try cookie-free first so public videos — including Instagram
+            // reels and posts — download without any sign-in. Browser cookies are
+            // only used as a quiet last resort when the platform actually reports a
+            // sign-in requirement (e.g. a private account).
+            let mut plan = vec![CookieSource::None];
+            plan.extend(
+                detect_installed_browsers()
+                    .into_iter()
+                    .map(CookieSource::Browser),
+            );
+            plan
         }
         other => match normalize_browser(other) {
             Some(name) => vec![CookieSource::Browser(name)],
@@ -522,11 +596,6 @@ fn pretty_browser(name: &str) -> &'static str {
         "chromium" => "Chromium",
         _ => "browser",
     }
-}
-
-fn url_usually_needs_login(url: &str) -> bool {
-    let lower = url.to_lowercase();
-    lower.contains("instagram.com") || lower.contains("facebook.com") || lower.contains("fb.watch")
 }
 
 /// Detects which browsers are installed (have a user-data folder) so we can pull
