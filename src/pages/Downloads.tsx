@@ -16,9 +16,9 @@ import {
   Smartphone,
   X,
 } from 'lucide-react';
-import { DownloadQuality, DownloadStage, isDownloadWorking, useDownloadStore } from '@/store/downloadStore';
+import { CookieMode, DownloadQuality, DownloadStage, isDownloadWorking, useDownloadStore } from '@/store/downloadStore';
 import { LocalThumbnail } from '@/components/ui/LocalThumbnail';
-import { useI18n } from '@/i18n';
+import { TranslationKey, useI18n } from '@/i18n';
 
 const qualityOptions = [
   { value: 'fast', labelKey: 'qualityFast' },
@@ -28,6 +28,17 @@ const qualityOptions = [
   { value: '480', labelKey: 'quality480' },
 ] as const;
 
+const cookieModeOptions: Array<{ value: CookieMode; labelKey: TranslationKey }> = [
+  { value: 'auto', labelKey: 'accountAuto' },
+  { value: 'chrome', labelKey: 'accountChrome' },
+  { value: 'edge', labelKey: 'accountEdge' },
+  { value: 'firefox', labelKey: 'accountFirefox' },
+  { value: 'brave', labelKey: 'accountBrave' },
+  { value: 'opera', labelKey: 'accountOpera' },
+  { value: 'none', labelKey: 'accountNone' },
+  { value: 'file', labelKey: 'accountCookiesFile' },
+];
+
 export const Downloads: React.FC = () => {
   const { t } = useI18n();
   const url = useDownloadStore((state) => state.url);
@@ -36,6 +47,8 @@ export const Downloads: React.FC = () => {
   const setOutputDir = useDownloadStore((state) => state.setOutputDir);
   const cookiesPath = useDownloadStore((state) => state.cookiesPath);
   const setCookiesPath = useDownloadStore((state) => state.setCookiesPath);
+  const cookieMode = useDownloadStore((state) => state.cookieMode);
+  const setCookieMode = useDownloadStore((state) => state.setCookieMode);
   const quality = useDownloadStore((state) => state.quality);
   const setQuality = useDownloadStore((state) => state.setQuality);
   const audioOnly = useDownloadStore((state) => state.audioOnly);
@@ -168,29 +181,50 @@ export const Downloads: React.FC = () => {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-muted-text">{t('cookiesFile')}</label>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <div className="relative min-w-0 flex-1">
-                    <Cookie className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
-                    <input
-                      type="text"
-                      value={cookiesPath}
-                      onChange={(event) => setCookiesPath(event.target.value)}
-                      placeholder={t('noCookiesSet')}
-                      className="surface-input w-full py-2.5 pl-10"
-                      dir="ltr"
-                    />
-                  </div>
-                  <button type="button" onClick={handleChooseCookies} className="btn-secondary px-3 py-2">
-                    <Cookie className="h-4 w-4" />
-                    {t('chooseCookiesFile')}
-                  </button>
-                  {cookiesPath && (
-                    <button type="button" onClick={() => setCookiesPath('')} className="btn-ghost px-3 py-2">
-                      {t('clear')}
-                    </button>
-                  )}
+                <label className="mb-1.5 block text-xs font-medium text-muted-text">{t('accountAccess')}</label>
+                <div className="relative">
+                  <Cookie className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
+                  <select
+                    value={cookieMode}
+                    onChange={(event) => setCookieMode(event.target.value as CookieMode)}
+                    className="surface-input w-full py-2.5 pl-10"
+                  >
+                    {cookieModeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {t(option.labelKey)}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+                <p className="mt-1.5 flex items-start gap-1.5 text-[11px] text-muted-text">
+                  <ShieldCheck className="mt-0.5 h-3 w-3 shrink-0 text-accent-gold" />
+                  {t('accountAccessHint')}
+                </p>
+
+                {cookieMode === 'file' && (
+                  <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                    <div className="relative min-w-0 flex-1">
+                      <Cookie className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
+                      <input
+                        type="text"
+                        value={cookiesPath}
+                        onChange={(event) => setCookiesPath(event.target.value)}
+                        placeholder={t('noCookiesSet')}
+                        className="surface-input w-full py-2.5 pl-10"
+                        dir="ltr"
+                      />
+                    </div>
+                    <button type="button" onClick={handleChooseCookies} className="btn-secondary px-3 py-2">
+                      <Cookie className="h-4 w-4" />
+                      {t('chooseCookiesFile')}
+                    </button>
+                    {cookiesPath && (
+                      <button type="button" onClick={() => setCookiesPath('')} className="btn-ghost px-3 py-2">
+                        {t('clear')}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">

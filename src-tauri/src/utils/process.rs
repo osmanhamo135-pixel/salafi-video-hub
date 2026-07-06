@@ -15,3 +15,10 @@ pub fn hidden_command<S: AsRef<OsStr>>(program: S) -> Command {
 
     command
 }
+
+/// Wraps a value in a PowerShell single-quoted literal, escaping embedded single
+/// quotes. This lets us inline values directly into a `-Command` script instead of
+/// relying on `$args`, which PowerShell does NOT populate in `-Command` mode.
+pub fn ps_single_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "''"))
+}

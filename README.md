@@ -307,7 +307,7 @@ If FFmpeg is **missing**:
 4. **Ultrawide optimization**: The layout uses `max-w-content` (1600px) centering. On 5120×1440, the app will be centered with side margins rather than edge-to-edge.
 5. **Tray/background mode**: Not yet implemented. The app closes fully on window close.
 6. **Folder watching**: No automatic filesystem watching. Use "Rescan" button to detect new files.
-7. **Subfolder flattening**: Subfolder videos are imported into a single playlist, not nested playlists.
+7. **Per-folder playlists**: When you import a folder with subfolders, each folder that directly contains videos becomes its own playlist (a flat folder still produces exactly one playlist).
 8. **Build testing**: The app has been architected and code-reviewed but not fully compiled in a fresh environment due to sandbox build constraints. Minor TypeScript/Rust compile fixes may be needed on first build (see Troubleshooting).
 
 ---

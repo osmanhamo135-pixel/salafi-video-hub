@@ -90,16 +90,34 @@ pub async fn set_ffmpeg_path(db: State<'_, DbState>, path: String) -> Result<Set
     tauri::async_runtime::spawn_blocking(move || {
         let mut settings = crate::db::settings::get_settings(&db).map_err(|e| e.to_string())?;
         settings.ffmpeg_path = Some(path.clone());
-        settings.ffprobe_path = Some(
-            path.replace("ffmpeg", "ffprobe")
-                .replace("FFmpeg", "FFprobe"),
-        );
+        settings.ffprobe_path = Some(derive_ffprobe_path(&path));
         settings.ffmpeg_status = "system".to_string();
         crate::db::settings::update_settings(&db, &settings).map_err(|e| e.to_string())?;
         Ok(settings)
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+/// Derives the ffprobe path from a chosen ffmpeg path by swapping only the file
+/// name, so a folder such as `C:\ffmpeg\bin\ffmpeg.exe` correctly maps to
+/// `C:\ffmpeg\bin\ffprobe.exe` instead of rewriting the `ffmpeg` folder too.
+fn derive_ffprobe_path(ffmpeg_path: &str) -> String {
+    let path = std::path::Path::new(ffmpeg_path);
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("ffprobe.exe");
+    let ffprobe_name = file_name
+        .replace("ffmpeg", "ffprobe")
+        .replace("FFmpeg", "FFprobe");
+
+    match path.parent() {
+        Some(parent) if !parent.as_os_str().is_empty() => {
+            parent.join(ffprobe_name).to_string_lossy().to_string()
+        }
+        _ => ffprobe_name,
+    }
 }
 
 #[tauri::command]

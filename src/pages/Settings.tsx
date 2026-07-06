@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { getVersion } from '@tauri-apps/api/app';
 import { open } from '@tauri-apps/plugin-dialog';
 import {
   AlertCircle,
@@ -24,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useUpdateStore } from '@/store/updateStore';
 import { playReminderSound, stopReminderSound } from '@/utils/reminderAudio';
 import { AppLanguage, AppTheme } from '@/types';
 import { languageOptions, themeOptions, useI18n } from '@/i18n';
@@ -82,7 +84,12 @@ export const Settings: React.FC = () => {
   const thumbnailGeneratedCount = useAppStore((state) => state.thumbnailGeneratedCount);
   const thumbnailFailedCount = useAppStore((state) => state.thumbnailFailedCount);
   const thumbnailSkippedCount = useAppStore((state) => state.thumbnailSkippedCount);
+  const updatePhase = useUpdateStore((state) => state.phase);
+  const updateError = useUpdateStore((state) => state.error);
+  const checkForUpdates = useUpdateStore((state) => state.checkForUpdates);
   const { t } = useI18n();
+
+  const [appVersion, setAppVersion] = useState('');
 
   const [rescanning, setRescanning] = useState(false);
   const [repairing, setRepairing] = useState(false);
@@ -104,7 +111,27 @@ export const Settings: React.FC = () => {
   useEffect(() => {
     loadSettings();
     detectFfmpeg();
+    getVersion().then(setAppVersion).catch(() => setAppVersion(''));
   }, [detectFfmpeg, loadSettings]);
+
+  const updateStatusText = (() => {
+    switch (updatePhase) {
+      case 'checking':
+        return t('checkingForUpdates');
+      case 'available':
+      case 'downloading':
+      case 'installing':
+        return t('updateAvailable');
+      case 'installed':
+        return t('updateReady');
+      case 'upToDate':
+        return t('upToDate');
+      case 'error':
+        return updateError ?? t('updateCheckFailed');
+      default:
+        return '';
+    }
+  })();
 
   const handleRemoveFolder = async (path: string) => {
     if (!confirm(`Remove "${path}" from imported folders?\n\nThis will not delete any files.`)) return;
@@ -576,6 +603,24 @@ export const Settings: React.FC = () => {
             <ActionButton icon={Download} loading={exporting} label={t('exportBackup')} loadingLabel={t('exporting')} onClick={handleExportBackup} />
             <ActionButton icon={Upload} loading={importing} label={t('importBackup')} loadingLabel={t('importing')} onClick={handleImportBackup} />
             <ActionButton icon={ExternalLink} loading={openingFolder} label={t('openAppDataFolder')} loadingLabel={t('opening')} onClick={handleOpenAppDataFolder} />
+          </div>
+        </SettingsSection>
+
+        <SettingsSection icon={RefreshCw} title={t('updates')}>
+          <SettingRow label={t('appVersion')}>
+            <span className="text-sm font-medium tabular-nums text-text-primary">{appVersion || '—'}</span>
+          </SettingRow>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className={`text-xs ${updatePhase === 'error' ? 'text-warning-orange' : 'text-muted-text'}`}>
+              {updateStatusText}
+            </p>
+            <ActionButton
+              icon={RefreshCw}
+              loading={updatePhase === 'checking'}
+              label={t('checkForUpdates')}
+              loadingLabel={t('checkingForUpdates')}
+              onClick={() => checkForUpdates({ manual: true })}
+            />
           </div>
         </SettingsSection>
       </div>

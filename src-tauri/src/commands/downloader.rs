@@ -15,7 +15,7 @@ use crate::db::DbState;
 use crate::services::scanner;
 use crate::utils::ffmpeg_finder;
 use crate::utils::paths::get_app_data_dir;
-use crate::utils::process::hidden_command;
+use crate::utils::process::{hidden_command, ps_single_quote};
 
 const YT_DLP_URL: &str = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe";
 const YT_DLP_RESOURCE_NAME: &str = "yt-dlp.exe";
@@ -29,10 +29,32 @@ pub struct YoutubeDownloadRequest {
     pub url: String,
     pub output_dir: Option<String>,
     pub cookies_path: Option<String>,
+    /// Preferred browser to auto-import sign-in cookies from ("auto", "chrome",
+    /// "edge", "firefox", "brave", "opera", "vivaldi", "chromium" or "none").
+    /// Defaults to "auto" so users never have to export a cookies.txt file.
+    #[serde(default)]
+    pub cookies_from_browser: Option<String>,
     pub quality: String,
     pub audio_only: bool,
     pub download_playlist: bool,
     pub import_after_download: bool,
+}
+
+/// How yt-dlp should obtain the account sign-in for a single attempt.
+#[derive(Debug, Clone)]
+enum CookieSource {
+    /// No sign-in — public content only.
+    None,
+    /// A user-provided cookies.txt file (advanced).
+    File(String),
+    /// Cookies pulled straight from an installed browser the user is signed into.
+    Browser(&'static str),
+}
+
+impl CookieSource {
+    fn uses_account(&self) -> bool {
+        !matches!(self, CookieSource::None)
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -264,17 +286,16 @@ fn download_ytdlp_with_curl(temp_path: &Path) -> Result<(), String> {
 }
 
 fn download_ytdlp_with_powershell(temp_path: &Path) -> Result<(), String> {
-    let temp_string = temp_path.to_string_lossy().to_string();
+    // Inline the URL and destination directly into the script. PowerShell does NOT
+    // populate `$args` in `-Command` mode, so relying on `$args[0]`/`$args[1]` left
+    // the URI empty ("Cannot validate argument on parameter 'Uri'").
+    let script = format!(
+        "$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri {} -OutFile {}",
+        ps_single_quote(YT_DLP_URL),
+        ps_single_quote(&temp_path.to_string_lossy()),
+    );
     let output = hidden_command("powershell.exe")
-        .args([
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-            "$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri $args[0] -OutFile $args[1]",
-            YT_DLP_URL,
-            &temp_string,
-        ])
+        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &script])
         .output()
         .map_err(|e| format!("PowerShell unavailable: {}", e))?;
 
@@ -334,6 +355,62 @@ fn run_ytdlp(
     ytdlp: &Path,
     output_dir: &Path,
 ) -> Result<Vec<String>, String> {
+    let plan = build_cookie_plan(request);
+    let attempted_browsers: Vec<&'static str> = plan
+        .iter()
+        .filter_map(|source| match source {
+            CookieSource::Browser(name) => Some(*name),
+            _ => None,
+        })
+        .collect();
+
+    let mut errors = Vec::new();
+    let total = plan.len();
+
+    for (index, cookie) in plan.iter().enumerate() {
+        if let CookieSource::Browser(name) = cookie {
+            emit_progress(
+                app_handle,
+                &request.job_id,
+                "downloading",
+                &format!(
+                    "Signing in with your {} cookies to unlock this download...",
+                    pretty_browser(name)
+                ),
+                Some(0.0),
+            );
+        }
+
+        match run_ytdlp_strategies(app_handle, request, ytdlp, output_dir, cookie) {
+            Ok(files) => return Ok(files),
+            Err(error) => {
+                let auth_related = is_auth_error(&error);
+                errors.push(error);
+
+                // Only fall through to another sign-in source when the failure was
+                // clearly an account/sign-in problem and we have more options.
+                if !auth_related || index + 1 >= total {
+                    break;
+                }
+            }
+        }
+    }
+
+    let combined = format_download_errors(errors);
+    if is_auth_error(&combined) && !attempted_browsers.is_empty() {
+        return Err(browser_auth_failure_message(&attempted_browsers));
+    }
+
+    Err(combined)
+}
+
+fn run_ytdlp_strategies(
+    app_handle: &AppHandle,
+    request: &YoutubeDownloadRequest,
+    ytdlp: &Path,
+    output_dir: &Path,
+    cookie: &CookieSource,
+) -> Result<Vec<String>, String> {
     let strategies = [DownloadStrategy::Turbo, DownloadStrategy::StableChunkRetry];
     let mut errors = Vec::new();
 
@@ -346,14 +423,14 @@ fn run_ytdlp(
             Some(0.0),
         );
 
-        match run_ytdlp_once(app_handle, request, ytdlp, output_dir, strategy) {
+        match run_ytdlp_once(app_handle, request, ytdlp, output_dir, strategy, cookie) {
             Ok(files) => return Ok(files),
             Err(error) => {
                 let retryable = is_retryable_download_error(&error);
                 errors.push(format!(
                     "{}: {}",
                     strategy.name(),
-                    sanitize_download_error(&error, request.cookies_path.as_deref().is_some())
+                    sanitize_download_error(&error, cookie.uses_account())
                 ));
 
                 if index + 1 >= strategies.len() || !retryable {
@@ -372,6 +449,169 @@ fn run_ytdlp(
     }
 
     Err(format_download_errors(errors))
+}
+
+/// Builds the ordered list of sign-in sources to try for this download.
+///
+/// - An explicit cookies.txt file always wins and is used on its own.
+/// - "auto" (the default) detects browsers the user is signed into and, for sites
+///   that normally require login (Instagram/Facebook), uses them immediately;
+///   otherwise it tries public access first and only falls back to browser cookies
+///   if the platform reports a sign-in problem.
+fn build_cookie_plan(request: &YoutubeDownloadRequest) -> Vec<CookieSource> {
+    if let Some(path) = request
+        .cookies_path
+        .as_deref()
+        .map(str::trim)
+        .filter(|path| !path.is_empty())
+    {
+        return vec![CookieSource::File(path.to_string())];
+    }
+
+    let mode = request
+        .cookies_from_browser
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or("")
+        .to_lowercase();
+
+    match mode.as_str() {
+        "none" => vec![CookieSource::None],
+        "" | "auto" => {
+            let browsers = detect_installed_browsers();
+            if browsers.is_empty() {
+                return vec![CookieSource::None];
+            }
+
+            if url_usually_needs_login(&request.url) {
+                browsers.into_iter().map(CookieSource::Browser).collect()
+            } else {
+                let mut plan = vec![CookieSource::None];
+                plan.extend(browsers.into_iter().map(CookieSource::Browser));
+                plan
+            }
+        }
+        other => match normalize_browser(other) {
+            Some(name) => vec![CookieSource::Browser(name)],
+            None => vec![CookieSource::None],
+        },
+    }
+}
+
+fn normalize_browser(value: &str) -> Option<&'static str> {
+    match value.trim().to_lowercase().as_str() {
+        "chrome" | "google chrome" => Some("chrome"),
+        "edge" | "microsoft edge" | "msedge" => Some("edge"),
+        "firefox" | "mozilla firefox" => Some("firefox"),
+        "brave" => Some("brave"),
+        "opera" => Some("opera"),
+        "vivaldi" => Some("vivaldi"),
+        "chromium" => Some("chromium"),
+        _ => None,
+    }
+}
+
+fn pretty_browser(name: &str) -> &'static str {
+    match name {
+        "chrome" => "Chrome",
+        "edge" => "Edge",
+        "firefox" => "Firefox",
+        "brave" => "Brave",
+        "opera" => "Opera",
+        "vivaldi" => "Vivaldi",
+        "chromium" => "Chromium",
+        _ => "browser",
+    }
+}
+
+fn url_usually_needs_login(url: &str) -> bool {
+    let lower = url.to_lowercase();
+    lower.contains("instagram.com") || lower.contains("facebook.com") || lower.contains("fb.watch")
+}
+
+/// Detects which browsers are installed (have a user-data folder) so we can pull
+/// their sign-in cookies automatically. Ordered by how likely the user is signed in.
+/// On non-Windows machines the Windows-specific env vars are absent, so this simply
+/// returns an empty list.
+fn detect_installed_browsers() -> Vec<&'static str> {
+    let local = std::env::var("LOCALAPPDATA").ok().map(PathBuf::from);
+    let roaming = std::env::var("APPDATA").ok().map(PathBuf::from);
+
+    let candidates: [(&'static str, Option<PathBuf>); 7] = [
+        (
+            "chrome",
+            local.as_ref().map(|p| p.join("Google/Chrome/User Data")),
+        ),
+        (
+            "edge",
+            local.as_ref().map(|p| p.join("Microsoft/Edge/User Data")),
+        ),
+        (
+            "firefox",
+            roaming
+                .as_ref()
+                .map(|p| p.join("Mozilla/Firefox/Profiles")),
+        ),
+        (
+            "brave",
+            local
+                .as_ref()
+                .map(|p| p.join("BraveSoftware/Brave-Browser/User Data")),
+        ),
+        (
+            "opera",
+            roaming
+                .as_ref()
+                .map(|p| p.join("Opera Software/Opera Stable")),
+        ),
+        (
+            "vivaldi",
+            local.as_ref().map(|p| p.join("Vivaldi/User Data")),
+        ),
+        (
+            "chromium",
+            local.as_ref().map(|p| p.join("Chromium/User Data")),
+        ),
+    ];
+
+    candidates
+        .into_iter()
+        .filter_map(|(name, path)| match path {
+            Some(path) if path.exists() => Some(name),
+            _ => None,
+        })
+        .collect()
+}
+
+fn is_auth_error(error: &str) -> bool {
+    let lower = error.to_lowercase();
+    lower.contains("account access")
+        || lower.contains("sign in")
+        || lower.contains("sign-in")
+        || lower.contains("log in")
+        || lower.contains("login")
+        || lower.contains("private video")
+        || lower.contains("private account")
+        || lower.contains("this content isn")
+        || lower.contains("cookies")
+        || lower.contains("authentication")
+        || lower.contains("members-only")
+        || lower.contains("age-restricted")
+        || lower.contains("rate-limit")
+        || lower.contains("http error 429")
+}
+
+fn browser_auth_failure_message(browsers: &[&str]) -> String {
+    let list = browsers
+        .iter()
+        .map(|name| pretty_browser(name))
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    format!(
+        "This item needs you to be signed in. The app tried your browser sign-in ({}), but none had access.\n\nMake sure you are logged into the site in that browser and can open the link there, then try again. If it still fails, fully close the browser and retry, or add a cookies.txt file under Advanced sign-in.",
+        list
+    )
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -447,6 +687,7 @@ fn run_ytdlp_once(
     ytdlp: &Path,
     output_dir: &Path,
     strategy: DownloadStrategy,
+    cookie: &CookieSource,
 ) -> Result<Vec<String>, String> {
     let mut command = hidden_command(ytdlp);
     let output_dir_string = output_dir.to_string_lossy().to_string();
@@ -501,17 +742,18 @@ fn run_ytdlp_once(
             "after_move:filepath",
         ]);
 
-    if let Some(cookies_path) = request
-        .cookies_path
-        .as_deref()
-        .map(str::trim)
-        .filter(|path| !path.is_empty())
-    {
-        let path = Path::new(cookies_path);
-        if !path.exists() || !path.is_file() {
-            return Err(format!("Cookies file was not found: {}", cookies_path));
+    match cookie {
+        CookieSource::None => {}
+        CookieSource::File(cookies_path) => {
+            let path = Path::new(cookies_path);
+            if !path.exists() || !path.is_file() {
+                return Err(format!("Cookies file was not found: {}", cookies_path));
+            }
+            command.args(["--cookies", cookies_path]);
         }
-        command.args(["--cookies", cookies_path]);
+        CookieSource::Browser(name) => {
+            command.args(["--cookies-from-browser", name]);
+        }
     }
 
     let (ffmpeg_path, _, ffmpeg_status, _) = if request.audio_only || request.quality != "fast" {
@@ -670,7 +912,7 @@ fn run_ytdlp_once(
     if downloaded_files.is_empty() {
         return Err(sanitize_download_error(
             "No files were downloaded. The video, reel, post, or playlist may be private, removed, blocked by the platform, or require sign-in.",
-            request.cookies_path.as_deref().is_some(),
+            cookie.uses_account(),
         ));
     }
 
