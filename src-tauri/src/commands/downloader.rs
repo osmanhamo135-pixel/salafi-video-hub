@@ -514,7 +514,15 @@ fn run_ytdlp_once(
         command.args(["--cookies", cookies_path]);
     }
 
-    let (ffmpeg_path, _, ffmpeg_status, _) = ffmpeg_finder::detect_ffmpeg();
+    let (ffmpeg_path, _, ffmpeg_status, _) = if request.audio_only || request.quality != "fast" {
+        ffmpeg_finder::ensure_ffmpeg_for_app(app_handle)
+            .map(|(ffmpeg, ffprobe, status, version)| {
+                (Some(ffmpeg), Some(ffprobe), status, version)
+            })
+            .unwrap_or_else(|_| ffmpeg_finder::detect_ffmpeg_for_app(app_handle))
+    } else {
+        ffmpeg_finder::detect_ffmpeg_for_app(app_handle)
+    };
     if let Some(path) = ffmpeg_path {
         command.args(["--ffmpeg-location", &path]);
     }
@@ -1024,7 +1032,9 @@ fn create_download_preview_thumbnail(
     downloaded_files
         .iter()
         .find(|path| scanner::is_video_file(Path::new(path)))
-        .and_then(|path| crate::services::thumbnail_gen::generate_thumbnail_for_video(app_handle, path).ok())
+        .and_then(|path| {
+            crate::services::thumbnail_gen::generate_thumbnail_for_video(app_handle, path).ok()
+        })
         .flatten()
 }
 

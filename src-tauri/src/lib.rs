@@ -82,6 +82,7 @@ pub fn run() {
             commands::playback::get_continue_watching,
             commands::playback::get_recently_added,
             commands::ffmpeg::detect_ffmpeg,
+            commands::ffmpeg::install_ffmpeg_helper,
             commands::ffmpeg::generate_thumbnail,
             commands::ffmpeg::get_video_metadata,
             commands::ffmpeg::clear_thumbnail_cache,

@@ -7,7 +7,7 @@ interface SettingsState {
   settings: Settings | null;
   settingsLoading: boolean;
   settingsError: string | null;
-  ffmpegStatus: { status: string; path: string | null; version: string | null } | null;
+  ffmpegStatus: { status: string; path: string | null; ffprobePath: string | null; version: string | null } | null;
 
   loadSettings: () => Promise<void>;
   updateSettings: (partial: Partial<Settings>) => Promise<void>;
@@ -108,7 +108,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   detectFfmpeg: async () => {
     try {
       const status = await withTimeout(
-        invoke<{ status: string; ffmpegPath: string | null; version: string | null }>('get_ffmpeg_status'),
+        invoke<{ status: string; ffmpegPath: string | null; ffprobePath: string | null; version: string | null }>('get_ffmpeg_status'),
         10000,
         'Detecting FFmpeg',
       );
@@ -116,6 +116,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         ffmpegStatus: { 
           status: status.status, 
           path: status.ffmpegPath, 
+          ffprobePath: status.ffprobePath,
           version: status.version 
         } 
       });

@@ -67,7 +67,7 @@ export interface Settings {
   thumbnailCachePath: string | null;
   ffmpegPath: string | null;
   ffprobePath: string | null;
-  ffmpegStatus: 'bundled' | 'system' | 'missing';
+  ffmpegStatus: 'app' | 'bundled' | 'system' | 'missing';
   automaticThumbnailsMode: 'automatic' | 'visible-only' | 'idle-only' | 'disabled';
   performanceMode: boolean;
   reminderSoundPath: string | null;

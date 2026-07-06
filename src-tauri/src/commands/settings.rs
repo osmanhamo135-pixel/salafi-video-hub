@@ -69,9 +69,10 @@ pub async fn remove_imported_folder(
 }
 
 #[tauri::command]
-pub async fn get_ffmpeg_status() -> Result<serde_json::Value, String> {
+pub async fn get_ffmpeg_status(app_handle: tauri::AppHandle) -> Result<serde_json::Value, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        let (ffmpeg_path, ffprobe_path, status, version) = ffmpeg_finder::detect_ffmpeg();
+        let (ffmpeg_path, ffprobe_path, status, version) =
+            ffmpeg_finder::detect_ffmpeg_for_app(&app_handle);
         Ok(serde_json::json!({
             "ffmpegPath": ffmpeg_path,
             "ffprobePath": ffprobe_path,

@@ -1,5 +1,6 @@
 use crate::utils::ffmpeg_finder;
 use crate::utils::process::hidden_command;
+use tauri::AppHandle;
 
 pub fn extract_metadata(video_path: &str) -> Result<serde_json::Value, String> {
     let (_, ffprobe_path, status, _) = ffmpeg_finder::detect_ffmpeg();
@@ -10,6 +11,22 @@ pub fn extract_metadata(video_path: &str) -> Result<serde_json::Value, String> {
 
     let ffprobe = ffprobe_path.ok_or("FFprobe path not available")?;
 
+    extract_metadata_with_ffprobe(&ffprobe, video_path)
+}
+
+pub fn extract_metadata_with_app(
+    app_handle: &AppHandle,
+    video_path: &str,
+) -> Result<serde_json::Value, String> {
+    let (_, ffprobe, _, _) = ffmpeg_finder::ensure_ffmpeg_for_app(app_handle)?;
+
+    extract_metadata_with_ffprobe(&ffprobe, video_path)
+}
+
+fn extract_metadata_with_ffprobe(
+    ffprobe: &str,
+    video_path: &str,
+) -> Result<serde_json::Value, String> {
     let output = hidden_command(&ffprobe)
         .args([
             "-v",

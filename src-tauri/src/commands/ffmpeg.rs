@@ -7,8 +7,9 @@ use sha2::{Digest, Sha256};
 use tauri::State;
 
 #[tauri::command]
-pub fn detect_ffmpeg() -> Result<serde_json::Value, String> {
-    let (ffmpeg_path, ffprobe_path, status, version) = ffmpeg_finder::detect_ffmpeg();
+pub fn detect_ffmpeg(app_handle: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    let (ffmpeg_path, ffprobe_path, status, version) =
+        ffmpeg_finder::detect_ffmpeg_for_app(&app_handle);
     Ok(serde_json::json!({
         "ffmpegPath": ffmpeg_path,
         "ffprobePath": ffprobe_path,
@@ -18,19 +19,32 @@ pub fn detect_ffmpeg() -> Result<serde_json::Value, String> {
 }
 
 #[tauri::command]
+pub async fn install_ffmpeg_helper(
+    app_handle: tauri::AppHandle,
+) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let (ffmpeg_path, ffprobe_path, status, version) =
+            ffmpeg_finder::ensure_ffmpeg_for_app(&app_handle)?;
+
+        Ok(serde_json::json!({
+            "ffmpegPath": ffmpeg_path,
+            "ffprobePath": ffprobe_path,
+            "status": status,
+            "version": version,
+        }))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
 pub fn generate_thumbnail(
     app_handle: tauri::AppHandle,
     video_path: String,
     _output_path: Option<String>,
     timestamp: f64,
 ) -> Result<String, String> {
-    let (ffmpeg_path, _, status, _) = ffmpeg_finder::detect_ffmpeg();
-
-    if status == "missing" {
-        return Err("FFmpeg not found".to_string());
-    }
-
-    let ffmpeg = ffmpeg_path.ok_or("FFmpeg path not available")?;
+    let (ffmpeg, _, _, _) = ffmpeg_finder::ensure_ffmpeg_for_app(&app_handle)?;
     let cache_dir = get_thumbnail_cache_dir(&app_handle);
     std::fs::create_dir_all(&cache_dir).map_err(|e| e.to_string())?;
 
@@ -101,20 +115,22 @@ fn thumbnail_output_is_usable(path: &std::path::Path) -> bool {
 }
 
 #[tauri::command]
-pub async fn get_video_metadata(video_path: String) -> Result<serde_json::Value, String> {
-    tauri::async_runtime::spawn_blocking(move || get_video_metadata_blocking(video_path))
-        .await
-        .map_err(|e| e.to_string())?
+pub async fn get_video_metadata(
+    app_handle: tauri::AppHandle,
+    video_path: String,
+) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        get_video_metadata_blocking(app_handle, video_path)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
-fn get_video_metadata_blocking(video_path: String) -> Result<serde_json::Value, String> {
-    let (_, ffprobe_path, status, _) = ffmpeg_finder::detect_ffmpeg();
-
-    if status == "missing" {
-        return Err("FFprobe not found".to_string());
-    }
-
-    let ffprobe = ffprobe_path.ok_or("FFprobe path not available")?;
+fn get_video_metadata_blocking(
+    app_handle: tauri::AppHandle,
+    video_path: String,
+) -> Result<serde_json::Value, String> {
+    let (_, ffprobe, _, _) = ffmpeg_finder::ensure_ffmpeg_for_app(&app_handle)?;
 
     let output = hidden_command(&ffprobe)
         .args([

@@ -88,6 +88,7 @@ export const Settings: React.FC = () => {
   const [repairing, setRepairing] = useState(false);
   const [removingOrphans, setRemovingOrphans] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
+  const [installingFfmpeg, setInstallingFfmpeg] = useState(false);
   const [regeneratingThumbs, setRegeneratingThumbs] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -170,9 +171,26 @@ export const Settings: React.FC = () => {
     }
   };
 
+  const handleInstallFfmpeg = async () => {
+    setInstallingFfmpeg(true);
+    try {
+      await invoke('install_ffmpeg_helper');
+      await detectFfmpeg();
+      showToast(t('ffmpegInstalled'));
+    } catch (error) {
+      showToast(getErrorMessage(error), 'error');
+    } finally {
+      setInstallingFfmpeg(false);
+    }
+  };
+
   const handleRegenerateMissingThumbnails = async () => {
     setRegeneratingThumbs(true);
     try {
+      if (ffmpegStatus?.status === 'missing') {
+        await invoke('install_ffmpeg_helper');
+        await detectFfmpeg();
+      }
       const result = await invoke<ThumbnailBatchResult>('regenerate_missing_thumbnails');
       await refreshPlaylists();
       showToast(
@@ -460,8 +478,13 @@ export const Settings: React.FC = () => {
               </button>
             </div>
           </SettingRow>
-          <TextSetting label={t('ffmpegPath')} value={settings.ffmpegPath ?? ''} onChange={(value) => updateSettings({ ffmpegPath: value || null })} />
-          <TextSetting label={t('ffprobePath')} value={settings.ffprobePath ?? ''} onChange={(value) => updateSettings({ ffprobePath: value || null })} />
+          {ffmpegStatus?.status === 'missing' && (
+            <div className="mb-3 rounded-lg border border-warning-orange/25 bg-warning-orange/10 px-4 py-3 text-xs text-warning-orange">
+              {t('ffmpegInstallHelp')}
+            </div>
+          )}
+          <TextSetting label={t('ffmpegPath')} value={settings.ffmpegPath ?? ffmpegStatus?.path ?? ''} onChange={(value) => updateSettings({ ffmpegPath: value || null })} />
+          <TextSetting label={t('ffprobePath')} value={settings.ffprobePath ?? ffmpegStatus?.ffprobePath ?? ''} onChange={(value) => updateSettings({ ffprobePath: value || null })} />
           <SettingRow label={t('thumbnailCache')}>
             <input
               type="text"
@@ -486,6 +509,9 @@ export const Settings: React.FC = () => {
           </SettingRow>
           <p className="mb-3 text-xs text-muted-text">{t('thumbnailHelp')}</p>
           <div className="flex flex-wrap gap-2">
+            {ffmpegStatus?.status === 'missing' && (
+              <ActionButton icon={Download} loading={installingFfmpeg} label={t('installFfmpeg')} loadingLabel={t('installingFfmpeg')} onClick={handleInstallFfmpeg} />
+            )}
             <ActionButton danger icon={Trash2} loading={clearingCache} label={t('clearThumbnailCache')} loadingLabel={t('clearing')} onClick={handleClearThumbnailCache} />
             <ActionButton icon={Image} loading={regeneratingThumbs} label={t('regenerateMissingThumbnails')} loadingLabel={t('generating')} onClick={handleRegenerateMissingThumbnails} />
           </div>

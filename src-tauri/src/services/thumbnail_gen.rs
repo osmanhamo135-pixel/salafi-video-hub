@@ -49,13 +49,7 @@ pub fn generate_thumbnail_for_video(
     app_handle: &AppHandle,
     video_path: &str,
 ) -> Result<Option<String>, String> {
-    let (ffmpeg_path, _, status, _) = ffmpeg_finder::detect_ffmpeg();
-
-    if status == "missing" {
-        return Ok(None);
-    }
-
-    let ffmpeg = ffmpeg_path.ok_or("FFmpeg path not available")?;
+    let (ffmpeg, _, _, _) = ffmpeg_finder::ensure_ffmpeg_for_app(app_handle)?;
     let cache_dir = get_thumbnail_cache_dir(app_handle);
     std::fs::create_dir_all(&cache_dir).map_err(|e| e.to_string())?;
 
@@ -113,7 +107,7 @@ pub fn generate_thumbnail_for_video(
         let _ = std::fs::remove_file(&thumb_path);
     }
 
-    Ok(None)
+    Err("No usable thumbnail frame was extracted".to_string())
 }
 
 pub fn get_thumbnail_path(
@@ -194,6 +188,15 @@ pub fn generate_thumbnails_for_ids(
         },
     );
 
+    if !unique_video_ids.is_empty() {
+        if let Err(error) = ffmpeg_finder::ensure_ffmpeg_for_app(&app_handle) {
+            result.failed_count = unique_video_ids.len();
+            result.errors.push(error);
+            let _ = app_handle.emit("thumbnail_batch_finished", result.clone());
+            return result;
+        }
+    }
+
     for video_id in unique_video_ids {
         while THUMBNAIL_PAUSED.load(Ordering::Relaxed) {
             thread::sleep(Duration::from_millis(1000));
@@ -250,7 +253,7 @@ fn process_thumbnail_video(
     video.updated_at = chrono::Utc::now().timestamp_millis();
     db::video::update_video(db, &video).map_err(|e| e.to_string())?;
 
-    apply_metadata(&mut video);
+    apply_metadata(app_handle, &mut video);
 
     match generate_thumbnail_for_video(app_handle, &video.file_path) {
         Ok(Some(thumbnail_path)) => {
@@ -258,10 +261,19 @@ fn process_thumbnail_video(
             video.thumbnail_status = "ready".to_string();
             video.last_playback_error = None;
         }
-        Ok(None) | Err(_) => {
+        Ok(None) => {
             video.thumbnail_path = None;
             video.thumbnail_status = "fallback".to_string();
             video.last_playback_error = None;
+        }
+        Err(error) => {
+            video.thumbnail_path = None;
+            video.thumbnail_status = "fallback".to_string();
+            video.last_playback_error = Some(error.clone());
+            video.updated_at = chrono::Utc::now().timestamp_millis();
+            db::video::update_video(db, &video).map_err(|e| e.to_string())?;
+            refresh_playlists_containing_video(db, &video.id)?;
+            return Err(error);
         }
     }
 
@@ -293,8 +305,10 @@ fn thumbnail_output_is_usable(path: &std::path::Path) -> bool {
         .unwrap_or(false)
 }
 
-fn apply_metadata(video: &mut Video) {
-    let Ok(metadata) = crate::services::metadata::extract_metadata(&video.file_path) else {
+fn apply_metadata(app_handle: &AppHandle, video: &mut Video) {
+    let Ok(metadata) =
+        crate::services::metadata::extract_metadata_with_app(app_handle, &video.file_path)
+    else {
         return;
     };
 
