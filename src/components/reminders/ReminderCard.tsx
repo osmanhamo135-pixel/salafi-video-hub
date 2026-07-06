@@ -72,7 +72,7 @@ export const ReminderCard: React.FC<ReminderCardProps> = ({
             <Repeat className="w-3 h-3" />
             {repeatLabel}
             {reminder.repeat === 'custom' && reminder.customDays && reminder.customDays.length > 0 && (
-              <span className="text-[10px] ml-0.5">
+              <span className="text-[10px] ms-0.5">
                 ({reminder.customDays.map((day) => shortDays[day]).join(', ')})
               </span>
             )}

@@ -92,21 +92,21 @@ export const PlaylistMenu: React.FC<PlaylistMenuProps> = ({
     >
       <button
         onClick={() => handleAction(onOpen)}
-        className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-text-primary transition-colors hover:bg-panel-hover"
+        className="flex w-full items-center gap-2.5 px-3 py-2 text-start text-sm text-text-primary transition-colors hover:bg-panel-hover"
       >
         <FolderOpen className="w-4 h-4 text-muted-text" />
         {t('open')}
       </button>
       <button
         onClick={() => handleAction(onRescan)}
-        className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-text-primary transition-colors hover:bg-panel-hover"
+        className="flex w-full items-center gap-2.5 px-3 py-2 text-start text-sm text-text-primary transition-colors hover:bg-panel-hover"
       >
         <RefreshCw className="w-4 h-4 text-muted-text" />
         {t('rescan')}
       </button>
       <button
         onClick={() => handleAction(onRegenerateThumbnails)}
-        className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-text-primary transition-colors hover:bg-panel-hover"
+        className="flex w-full items-center gap-2.5 px-3 py-2 text-start text-sm text-text-primary transition-colors hover:bg-panel-hover"
       >
         <Image className="w-4 h-4 text-muted-text" />
         {t('regenerateThumbnails')}
@@ -114,7 +114,7 @@ export const PlaylistMenu: React.FC<PlaylistMenuProps> = ({
       <div className="border-t border-border" />
       <button
         onClick={() => handleAction(onRemove)}
-        className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-danger-red transition-colors hover:bg-danger-red/10"
+        className="flex w-full items-center gap-2.5 px-3 py-2 text-start text-sm text-danger-red transition-colors hover:bg-danger-red/10"
       >
         <Trash2 className="w-4 h-4" />
         {t('removeFromLibrary')}

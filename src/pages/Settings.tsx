@@ -473,7 +473,7 @@ export const Settings: React.FC = () => {
               <div className="space-y-1.5">
                 {settings.importedFolders.map((path) => (
                   <div key={path} className="group flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2.5">
-                    <span className="truncate text-sm text-text-primary" title={path}>{path}</span>
+                    <span dir="ltr" className="truncate text-start text-sm text-text-primary" title={path}>{path}</span>
                     <button
                       onClick={() => handleRemoveFolder(path)}
                       className="shrink-0 rounded px-2 py-1 text-xs font-medium text-danger-red opacity-0 transition-colors hover:bg-danger-red/10 group-hover:opacity-100 focus:opacity-100"

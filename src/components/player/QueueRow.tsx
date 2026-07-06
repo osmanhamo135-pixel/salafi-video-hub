@@ -23,7 +23,7 @@ export const QueueRow: React.FC<QueueRowProps> = React.memo(({ video, index, isC
     <button
       onClick={onPlay}
       className={`
-        group flex w-full items-center gap-3 rounded-md border px-3 py-2 text-left transition-colors
+        group flex w-full items-center gap-3 rounded-md border px-3 py-2 text-start transition-colors
         hover:bg-panel-hover
         ${isCurrent ? 'border-primary-blue/25 bg-primary-blue/10 shadow-[inset_3px_0_0_rgba(15,185,177,0.8)] hover:bg-primary-blue/15' : 'border-transparent'}
       `}

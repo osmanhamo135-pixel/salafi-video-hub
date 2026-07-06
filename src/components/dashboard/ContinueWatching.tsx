@@ -132,7 +132,7 @@ const ContinueGroupCard: React.FC<{
       type="button"
       onClick={() => canPlay && onPlay(item)}
       disabled={!canPlay}
-      className="premium-card premium-card-hover group overflow-hidden rounded-lg text-left disabled:cursor-default"
+      className="premium-card premium-card-hover group overflow-hidden rounded-lg text-start disabled:cursor-default"
     >
       <div className="relative aspect-video overflow-hidden bg-elevated-panel">
         <LocalThumbnail
@@ -146,7 +146,7 @@ const ContinueGroupCard: React.FC<{
         {canPlay && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity group-hover:opacity-100">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-blue/90 shadow-teal">
-              <Play size={20} className="ml-0.5 text-background" fill="currentColor" />
+              <Play size={20} className="ms-0.5 text-background" fill="currentColor" />
             </div>
           </div>
         )}
@@ -164,7 +164,7 @@ const ContinueGroupCard: React.FC<{
         <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-text">
           <FolderOpen className="h-4 w-4 shrink-0 text-primary-blue" />
           <span className="truncate">{title}</span>
-          <span className="ml-auto rounded-full border border-primary-blue/15 bg-primary-blue/10 px-2 py-0.5 text-[11px] text-primary-blue">
+          <span className="ms-auto rounded-full border border-primary-blue/15 bg-primary-blue/10 px-2 py-0.5 text-[11px] text-primary-blue">
             {count}
           </span>
         </div>

@@ -310,7 +310,7 @@ export const VideoPlayer: React.FC = () => {
 
     return (
       <div className="flex flex-1 items-center justify-center rounded-lg bg-black p-8">
-        <div className="premium-surface max-w-2xl rounded-lg p-6 text-left">
+        <div className="premium-surface max-w-2xl rounded-lg p-6 text-start">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-danger-red/20 bg-danger-red/10">
               <AlertTriangle className="h-6 w-6 text-danger-red" />
@@ -414,7 +414,7 @@ export const VideoPlayer: React.FC = () => {
       {status === 'paused' && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
           <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-black/55">
-            <PlayIcon className="w-8 h-8 text-white/80 ml-1" />
+            <PlayIcon className="w-8 h-8 text-white/80 ms-1" />
           </div>
         </div>
       )}

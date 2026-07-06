@@ -62,7 +62,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
         <button
           type="button"
           onClick={() => onOpen(playlist)}
-          className="min-w-0 flex-1 text-left"
+          className="min-w-0 flex-1 text-start"
         >
           <h3 className="truncate text-sm font-semibold text-text-primary" title={playlist.name}>
             {playlist.name}
@@ -87,7 +87,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
           </div>
         </button>
 
-        <div className="flex shrink-0 items-center gap-2 pr-1">
+        <div className="flex shrink-0 items-center gap-2 pe-1">
           <button
             onClick={() => onContinue(playlist)}
             className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary-blue px-3 text-xs font-semibold text-[#03110f] transition-colors hover:bg-primary-blue-hover"
