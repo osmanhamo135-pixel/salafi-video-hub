@@ -1,124 +1,66 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { check, DownloadEvent, Update } from '@tauri-apps/plugin-updater';
-import { relaunch } from '@tauri-apps/plugin-process';
+import React, { useEffect } from 'react';
 import { AlertTriangle, CheckCircle2, Download, Loader2, RefreshCw, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
+import { useUpdateStore } from '@/store/updateStore';
 
-type UpdateState = 'idle' | 'available' | 'downloading' | 'installing' | 'installed' | 'error';
+const INITIAL_CHECK_DELAY = 6000;
+const PERIODIC_CHECK_INTERVAL = 3 * 60 * 60 * 1000; // re-check every 3 hours
 
 export const UpdateManager: React.FC = () => {
   const { t } = useI18n();
-  const [state, setState] = useState<UpdateState>('idle');
-  const [update, setUpdate] = useState<Update | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [downloadedBytes, setDownloadedBytes] = useState(0);
-  const [totalBytes, setTotalBytes] = useState<number | null>(null);
-  const totalBytesRef = useRef<number | null>(null);
-
-  const checkForUpdates = useCallback(async (manual = false) => {
-    try {
-      if (manual) {
-        setState('idle');
-        setError(null);
-      }
-
-      const availableUpdate = await check({ timeout: 12000 });
-      if (!availableUpdate) return;
-
-      setUpdate(availableUpdate);
-      setState('available');
-      setError(null);
-      setProgress(0);
-      setDownloadedBytes(0);
-      setTotalBytes(null);
-      totalBytesRef.current = null;
-    } catch (checkError) {
-      const message = getUpdateErrorMessage(checkError, t('updateServerNotReady'));
-      if (manual) {
-        setState('error');
-        setError(message);
-      } else {
-        console.info('[Salafi Video Hub] updater check skipped:', message);
-      }
-    }
-  }, [t]);
+  const phase = useUpdateStore((state) => state.phase);
+  const update = useUpdateStore((state) => state.update);
+  const error = useUpdateStore((state) => state.error);
+  const progress = useUpdateStore((state) => state.progress);
+  const downloadedBytes = useUpdateStore((state) => state.downloadedBytes);
+  const totalBytes = useUpdateStore((state) => state.totalBytes);
+  const dismissed = useUpdateStore((state) => state.dismissed);
+  const checkForUpdates = useUpdateStore((state) => state.checkForUpdates);
+  const installUpdate = useUpdateStore((state) => state.installUpdate);
+  const restart = useUpdateStore((state) => state.restart);
+  const dismiss = useUpdateStore((state) => state.dismiss);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      checkForUpdates(false);
-    }, 6000);
-
-    return () => window.clearTimeout(timer);
+    const initialTimer = window.setTimeout(() => checkForUpdates(), INITIAL_CHECK_DELAY);
+    const interval = window.setInterval(() => checkForUpdates(), PERIODIC_CHECK_INTERVAL);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(interval);
+    };
   }, [checkForUpdates]);
 
-  const installUpdate = async () => {
-    if (!update || state === 'downloading' || state === 'installing') return;
+  const isBusy = phase === 'downloading' || phase === 'installing';
+  const showCard =
+    (phase === 'installed') ||
+    (!dismissed &&
+      (phase === 'available' ||
+        phase === 'downloading' ||
+        phase === 'installing' ||
+        (phase === 'error' && Boolean(update))));
 
-    try {
-      setState('downloading');
-      setError(null);
-      setProgress(0);
-      setDownloadedBytes(0);
-      setTotalBytes(null);
-      totalBytesRef.current = null;
+  if (!showCard) return null;
 
-      await update.downloadAndInstall((event: DownloadEvent) => {
-        if (event.event === 'Started') {
-          const contentLength = event.data.contentLength ?? null;
-          totalBytesRef.current = contentLength;
-          setTotalBytes(contentLength);
-          setDownloadedBytes(0);
-          setProgress(0);
-          return;
-        }
-
-        if (event.event === 'Progress') {
-          setDownloadedBytes((previous) => {
-            const next = previous + event.data.chunkLength;
-            const total = totalBytesRef.current;
-            if (total && total > 0) {
-              setProgress(Math.min((next / total) * 100, 100));
-            }
-            return next;
-          });
-          return;
-        }
-
-        setState('installing');
-        setProgress(100);
-      }, { timeout: 600000 });
-
-      setState('installed');
-      setProgress(100);
-    } catch (installError) {
-      setState('error');
-      setError(getUpdateErrorMessage(installError, t('updateCheckFailed')));
-    }
-  };
-
-  if (state === 'idle') return null;
-
-  const isBusy = state === 'downloading' || state === 'installing';
-  const title = state === 'installed'
+  const title = phase === 'installed'
     ? t('updateReady')
-    : state === 'error'
+    : phase === 'error'
       ? t('updateCheckFailed')
       : t('updateAvailable');
 
-  const body = state === 'installed'
+  const body = phase === 'installed'
     ? t('updateReadyBody')
-    : state === 'error'
+    : phase === 'error'
       ? error ?? t('updateServerNotReady')
       : t('updateAvailableBody');
+
+  const releaseNotes = phase === 'available' ? cleanReleaseNotes(update?.body) : null;
 
   return (
     <div className="fixed bottom-5 right-5 z-50 w-[360px] max-w-[calc(100vw-2.5rem)] rounded-lg border border-border bg-panel/95 p-4 shadow-2xl backdrop-blur">
       <div className="flex items-start gap-3">
         <div className="icon-medallion h-10 w-10 shrink-0">
-          {state === 'installed' ? (
+          {phase === 'installed' ? (
             <CheckCircle2 className="h-5 w-5 text-success-green" />
-          ) : state === 'error' ? (
+          ) : phase === 'error' ? (
             <AlertTriangle className="h-5 w-5 text-warning-orange" />
           ) : isBusy ? (
             <Loader2 className="h-5 w-5 animate-spin text-primary-blue" />
@@ -133,10 +75,10 @@ export const UpdateManager: React.FC = () => {
               <p className="text-sm font-semibold text-text-primary">{title}</p>
               <p className="mt-1 text-xs text-muted-text">{body}</p>
             </div>
-            {!isBusy && (
+            {!isBusy && phase !== 'installed' && (
               <button
                 type="button"
-                onClick={() => setState('idle')}
+                onClick={dismiss}
                 className="rounded p-1 text-muted-text hover:bg-panel-hover hover:text-text-primary"
                 title={t('updateLater')}
               >
@@ -145,12 +87,19 @@ export const UpdateManager: React.FC = () => {
             )}
           </div>
 
-          {update && state !== 'error' && (
+          {update && phase !== 'error' && (
             <div className="mt-3 grid grid-cols-2 gap-2 rounded-md border border-border bg-background/70 p-2 text-xs">
               <span className="text-muted-text">{t('currentVersion')}</span>
               <span className="truncate text-right text-text-primary">{update.currentVersion}</span>
               <span className="text-muted-text">{t('latestVersion')}</span>
               <span className="truncate text-right text-primary-blue">{update.version}</span>
+            </div>
+          )}
+
+          {releaseNotes && (
+            <div className="mt-3 rounded-md border border-border bg-background/70 p-2">
+              <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-text">{t('updateWhatsNew')}</p>
+              <p className="max-h-24 overflow-y-auto whitespace-pre-wrap text-xs text-text-primary">{releaseNotes}</p>
             </div>
           )}
 
@@ -166,36 +115,36 @@ export const UpdateManager: React.FC = () => {
           )}
 
           <div className="mt-3 flex flex-wrap justify-end gap-2">
-            {state === 'error' && (
-              <button type="button" onClick={() => checkForUpdates(true)} className="btn-secondary px-3 py-2 text-xs">
+            {phase === 'error' && (
+              <button type="button" onClick={() => checkForUpdates({ manual: true })} className="btn-secondary px-3 py-2 text-xs">
                 <RefreshCw className="h-3.5 w-3.5" />
                 {t('retry')}
               </button>
             )}
 
-            {state === 'available' && (
+            {phase === 'available' && (
               <button type="button" onClick={installUpdate} className="btn-primary px-3 py-2 text-xs">
                 <Download className="h-3.5 w-3.5" />
                 {t('downloadUpdate')}
               </button>
             )}
 
-            {state === 'downloading' && (
+            {phase === 'downloading' && (
               <button type="button" disabled className="btn-primary px-3 py-2 text-xs">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 {t('downloadingUpdate')}
               </button>
             )}
 
-            {state === 'installing' && (
+            {phase === 'installing' && (
               <button type="button" disabled className="btn-primary px-3 py-2 text-xs">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 {t('installingUpdate')}
               </button>
             )}
 
-            {state === 'installed' && (
-              <button type="button" onClick={() => relaunch()} className="btn-primary px-3 py-2 text-xs">
+            {phase === 'installed' && (
+              <button type="button" onClick={restart} className="btn-primary px-3 py-2 text-xs">
                 <RefreshCw className="h-3.5 w-3.5" />
                 {t('restartNow')}
               </button>
@@ -207,10 +156,14 @@ export const UpdateManager: React.FC = () => {
   );
 };
 
-const getUpdateErrorMessage = (error: unknown, fallback: string) => {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  return fallback;
+const cleanReleaseNotes = (body: string | undefined) => {
+  if (!body) return null;
+  const trimmed = body.trim();
+  if (!trimmed) return null;
+  if (trimmed.length > 600) {
+    return `${trimmed.slice(0, 600).trimEnd()}...`;
+  }
+  return trimmed;
 };
 
 const formatBytes = (bytes: number) => {

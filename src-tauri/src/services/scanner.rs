@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use regex::Regex;
@@ -293,14 +293,6 @@ pub fn import_folder(
         return Err(format!("Selected path is not a folder: {}", folder_path));
     }
 
-    let folder_name = folder
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("Imported Videos")
-        .to_string();
-    let category = guess_category(&folder_name);
-    let existing =
-        db::playlist::get_playlist_by_folder(db, folder_path).map_err(|e| e.to_string())?;
     let now = chrono::Utc::now().timestamp_millis();
     let scan = scan_folder(folder_path, include_subfolders);
 
@@ -308,38 +300,98 @@ pub fn import_folder(
     let mut skipped_count = scan.skipped_count;
     let mut failed_count = scan.failed_count;
     let mut errors = scan.errors;
-    let mut playlist_video_ids = Vec::new();
     let mut background_video_ids = Vec::new();
 
+    // Group scanned files by the folder that directly contains them so that each
+    // real folder becomes its own playlist (subfolders no longer flatten into the
+    // top folder). A flat folder still produces exactly one playlist as before.
+    let mut groups: BTreeMap<PathBuf, Vec<ScannedFile>> = BTreeMap::new();
     for scanned in scan.files {
-        let path_str = path_to_string(&scanned.path);
+        let parent = scanned
+            .path
+            .parent()
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| folder.to_path_buf());
+        groups.entry(parent).or_default().push(scanned);
+    }
 
-        match db::video::get_video_by_path(db, &path_str).map_err(|e| e.to_string())? {
-            Some(existing_video) => {
-                skipped_count += 1;
-                playlist_video_ids.push(existing_video.id.clone());
-                if thumbnail_needs_background_generation(&existing_video.thumbnail_status) {
-                    background_video_ids.push(existing_video.id);
-                }
-            }
-            None => {
-                let video = build_video_from_scanned_file(&scanned, category.clone(), now);
-                match db::video::insert_video(db, &video) {
-                    Ok(()) => {
-                        imported_count += 1;
-                        playlist_video_ids.push(video.id.clone());
-                        background_video_ids.push(video.id);
+    let top_folder = folder.to_path_buf();
+    let mut created_playlists: Vec<(PathBuf, String, usize)> = Vec::new();
+
+    for (dir, files) in groups {
+        let dir_str = path_to_string(&dir);
+        let folder_name = dir
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("Imported Videos")
+            .to_string();
+        let category = guess_category(&folder_name);
+        let existing =
+            db::playlist::get_playlist_by_folder(db, &dir_str).map_err(|e| e.to_string())?;
+
+        let mut playlist_video_ids = Vec::new();
+        for scanned in &files {
+            let path_str = path_to_string(&scanned.path);
+            match db::video::get_video_by_path(db, &path_str).map_err(|e| e.to_string())? {
+                Some(existing_video) => {
+                    skipped_count += 1;
+                    playlist_video_ids.push(existing_video.id.clone());
+                    if thumbnail_needs_background_generation(&existing_video.thumbnail_status) {
+                        background_video_ids.push(existing_video.id);
                     }
-                    Err(error) => {
-                        failed_count += 1;
-                        errors.push(format!("Could not import {}: {}", path_str, error));
+                }
+                None => {
+                    let video = build_video_from_scanned_file(scanned, category.clone(), now);
+                    match db::video::insert_video(db, &video) {
+                        Ok(()) => {
+                            imported_count += 1;
+                            playlist_video_ids.push(video.id.clone());
+                            background_video_ids.push(video.id);
+                        }
+                        Err(error) => {
+                            failed_count += 1;
+                            errors.push(format!("Could not import {}: {}", path_str, error));
+                        }
                     }
                 }
             }
         }
+
+        if playlist_video_ids.is_empty() {
+            continue;
+        }
+
+        let video_count = playlist_video_ids.len();
+        let playlist = save_playlist_for_ids(
+            db,
+            existing,
+            &dir_str,
+            folder_name,
+            playlist_video_ids,
+            category,
+            now,
+        )?;
+        created_playlists.push((dir, playlist.id, video_count));
     }
 
-    if playlist_video_ids.is_empty() && existing.is_none() {
+    if created_playlists.is_empty() {
+        // Nothing playable was found. Fall back to any existing playlist for the
+        // chosen folder so the caller still has something to open.
+        let existing_top =
+            db::playlist::get_playlist_by_folder(db, folder_path).map_err(|e| e.to_string())?;
+        if let Some(playlist) = existing_top {
+            return Ok(ImportOutcome {
+                result: ImportResult {
+                    imported_count,
+                    skipped_count,
+                    failed_count,
+                    playlist_id: Some(playlist.id),
+                    errors,
+                },
+                video_ids_for_background: unique_video_ids(background_video_ids),
+            });
+        }
+
         errors.push(format!(
             "No supported video files found. Supported extensions: {}",
             VIDEO_EXTENSIONS
@@ -360,15 +412,12 @@ pub fn import_folder(
         });
     }
 
-    let playlist = save_playlist_for_ids(
-        db,
-        existing,
-        folder_path,
-        folder_name,
-        playlist_video_ids,
-        category,
-        now,
-    )?;
+    // If the chosen top folder used to hold a flattened playlist but now only has
+    // videos inside subfolders, retire that stale playlist so it does not duplicate
+    // the freshly created per-folder playlists.
+    cleanup_stale_top_playlist(db, &top_folder, &created_playlists);
+
+    let primary_playlist_id = pick_primary_playlist(&created_playlists, &top_folder);
     db::settings::add_imported_folder(db, folder_path).map_err(|e| e.to_string())?;
 
     Ok(ImportOutcome {
@@ -376,11 +425,46 @@ pub fn import_folder(
             imported_count,
             skipped_count,
             failed_count,
-            playlist_id: Some(playlist.id),
+            playlist_id: primary_playlist_id,
             errors,
         },
         video_ids_for_background: unique_video_ids(background_video_ids),
     })
+}
+
+/// Chooses which playlist the UI should open after an import: the one for the
+/// folder the user actually picked when it has videos, otherwise the largest one.
+fn pick_primary_playlist(
+    created: &[(PathBuf, String, usize)],
+    top_folder: &Path,
+) -> Option<String> {
+    created
+        .iter()
+        .find(|(dir, _, _)| dir == top_folder)
+        .map(|(_, id, _)| id.clone())
+        .or_else(|| {
+            created
+                .iter()
+                .max_by_key(|(_, _, count)| *count)
+                .map(|(_, id, _)| id.clone())
+        })
+}
+
+fn cleanup_stale_top_playlist(
+    db: &DbState,
+    top_folder: &Path,
+    created: &[(PathBuf, String, usize)],
+) {
+    // Only clean up when the top folder itself did not become a playlist this run
+    // (i.e. it has no direct videos) but child folders did.
+    if created.iter().any(|(dir, _, _)| dir == top_folder) {
+        return;
+    }
+
+    let top_str = path_to_string(top_folder);
+    if let Ok(Some(stale)) = db::playlist::get_playlist_by_folder(db, &top_str) {
+        let _ = db::playlist::delete_playlist(db, &stale.id);
+    }
 }
 
 pub fn import_single_video(db: &DbState, video_path: &str) -> Result<ImportOutcome, String> {

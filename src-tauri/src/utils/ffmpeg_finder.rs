@@ -1,9 +1,11 @@
 use crate::utils::paths::get_app_data_dir;
-use crate::utils::process::hidden_command;
+use crate::utils::process::{hidden_command, ps_single_quote};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager};
+use uuid::Uuid;
+use walkdir::WalkDir;
 
 const FFMPEG_ZIP_URL: &str =
     "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip";
@@ -180,63 +182,163 @@ fn install_app_ffmpeg(app_handle: &AppHandle) -> Result<(), String> {
     let target_dir = app_ffmpeg_dir(app_handle)?;
     fs::create_dir_all(&target_dir).map_err(|e| e.to_string())?;
 
-    let script = r#"
-$ErrorActionPreference = 'Stop'
-$ProgressPreference = 'SilentlyContinue'
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-$url = $args[0]
-$target = $args[1]
-$tmp = Join-Path ([IO.Path]::GetTempPath()) ('salafi-ffmpeg-' + [Guid]::NewGuid().ToString('N'))
-New-Item -ItemType Directory -Force -Path $tmp | Out-Null
-try {
-  $zip = Join-Path $tmp 'ffmpeg.zip'
-  Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $zip
-  Expand-Archive -LiteralPath $zip -DestinationPath $tmp -Force
-  New-Item -ItemType Directory -Force -Path $target | Out-Null
-  $ffmpeg = Get-ChildItem -LiteralPath $tmp -Recurse -Filter 'ffmpeg.exe' | Select-Object -First 1
-  $ffprobe = Get-ChildItem -LiteralPath $tmp -Recurse -Filter 'ffprobe.exe' | Select-Object -First 1
-  if ($null -eq $ffmpeg -or $null -eq $ffprobe) {
-    throw 'The downloaded FFmpeg archive did not contain ffmpeg.exe and ffprobe.exe.'
-  }
-  Copy-Item -LiteralPath $ffmpeg.FullName -Destination (Join-Path $target 'ffmpeg.exe') -Force
-  Copy-Item -LiteralPath $ffprobe.FullName -Destination (Join-Path $target 'ffprobe.exe') -Force
-} finally {
-  if (Test-Path -LiteralPath $tmp) {
-    Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
-  }
-}
-"#;
+    let temp_root = std::env::temp_dir().join(format!("salafi-ffmpeg-{}", Uuid::new_v4()));
+    fs::create_dir_all(&temp_root).map_err(|e| e.to_string())?;
 
-    let target_string = target_dir.to_string_lossy().to_string();
-    let output = hidden_command("powershell.exe")
+    // Do the work inside a closure so the temp folder is always cleaned up afterwards.
+    let outcome = (|| {
+        let zip_path = temp_root.join("ffmpeg.zip");
+        download_ffmpeg_zip(&zip_path)?;
+        extract_zip(&zip_path, &temp_root)?;
+
+        let (ffmpeg_src, ffprobe_src) = locate_ffmpeg_binaries(&temp_root)?;
+        let ffmpeg_dest = target_dir.join("ffmpeg.exe");
+        let ffprobe_dest = target_dir.join("ffprobe.exe");
+        copy_file(&ffmpeg_src, &ffmpeg_dest)?;
+        copy_file(&ffprobe_src, &ffprobe_dest)?;
+
+        if validate_ffmpeg_pair(&ffmpeg_dest, &ffprobe_dest) {
+            Ok(())
+        } else {
+            let _ = fs::remove_file(&ffmpeg_dest);
+            let _ = fs::remove_file(&ffprobe_dest);
+            Err("The downloaded FFmpeg helper could not be validated.".to_string())
+        }
+    })();
+
+    let _ = fs::remove_dir_all(&temp_root);
+    outcome
+}
+
+fn copy_file(src: &Path, dest: &Path) -> Result<(), String> {
+    fs::copy(src, dest)
+        .map(|_| ())
+        .map_err(|e| format!("Could not copy {}: {}", src.display(), e))
+}
+
+fn download_ffmpeg_zip(zip_path: &Path) -> Result<(), String> {
+    let mut errors = Vec::new();
+
+    match download_url_with_curl(FFMPEG_ZIP_URL, zip_path) {
+        Ok(()) if zip_looks_complete(zip_path) => return Ok(()),
+        Ok(()) => errors.push("curl produced an incomplete archive".to_string()),
+        Err(error) => errors.push(error),
+    }
+    let _ = fs::remove_file(zip_path);
+
+    match download_url_with_powershell(FFMPEG_ZIP_URL, zip_path) {
+        Ok(()) if zip_looks_complete(zip_path) => return Ok(()),
+        Ok(()) => errors.push("PowerShell produced an incomplete archive".to_string()),
+        Err(error) => errors.push(error),
+    }
+    let _ = fs::remove_file(zip_path);
+
+    Err(format!(
+        "Could not download FFmpeg. Check your internet connection and try again. Details: {}",
+        errors.join(" | ")
+    ))
+}
+
+fn zip_looks_complete(zip_path: &Path) -> bool {
+    fs::metadata(zip_path)
+        .map(|metadata| metadata.len() > 1_000_000)
+        .unwrap_or(false)
+}
+
+fn download_url_with_curl(url: &str, dest: &Path) -> Result<(), String> {
+    let dest_string = dest.to_string_lossy().to_string();
+    let output = hidden_command("curl.exe")
         .args([
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-            script,
-            FFMPEG_ZIP_URL,
-            &target_string,
+            "-L",
+            "--fail",
+            "--retry",
+            "3",
+            "--retry-delay",
+            "2",
+            "--connect-timeout",
+            "30",
+            "-o",
+            &dest_string,
+            url,
         ])
+        .output()
+        .map_err(|e| format!("curl unavailable: {}", e))?;
+
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(format_process_error(
+            "curl download failed",
+            &output.stderr,
+            &[],
+        ))
+    }
+}
+
+fn download_url_with_powershell(url: &str, dest: &Path) -> Result<(), String> {
+    let script = format!(
+        "$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri {} -OutFile {}",
+        ps_single_quote(url),
+        ps_single_quote(&dest.to_string_lossy()),
+    );
+    run_powershell_script(&script).map_err(|error| format!("PowerShell download failed: {}", error))
+}
+
+fn extract_zip(zip_path: &Path, dest_dir: &Path) -> Result<(), String> {
+    let script = format!(
+        "$ErrorActionPreference='Stop'; Expand-Archive -LiteralPath {} -DestinationPath {} -Force",
+        ps_single_quote(&zip_path.to_string_lossy()),
+        ps_single_quote(&dest_dir.to_string_lossy()),
+    );
+    run_powershell_script(&script)
+        .map_err(|error| format!("Could not extract the FFmpeg archive: {}", error))
+}
+
+fn locate_ffmpeg_binaries(root: &Path) -> Result<(PathBuf, PathBuf), String> {
+    let mut ffmpeg = None;
+    let mut ffprobe = None;
+
+    for entry in WalkDir::new(root).into_iter().filter_map(Result::ok) {
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        match entry
+            .file_name()
+            .to_str()
+            .map(|name| name.to_lowercase())
+            .as_deref()
+        {
+            Some("ffmpeg.exe") if ffmpeg.is_none() => ffmpeg = Some(entry.path().to_path_buf()),
+            Some("ffprobe.exe") if ffprobe.is_none() => ffprobe = Some(entry.path().to_path_buf()),
+            _ => {}
+        }
+        if ffmpeg.is_some() && ffprobe.is_some() {
+            break;
+        }
+    }
+
+    match (ffmpeg, ffprobe) {
+        (Some(ffmpeg), Some(ffprobe)) => Ok((ffmpeg, ffprobe)),
+        _ => Err(
+            "The downloaded FFmpeg archive did not contain ffmpeg.exe and ffprobe.exe.".to_string(),
+        ),
+    }
+}
+
+fn run_powershell_script(script: &str) -> Result<(), String> {
+    let output = hidden_command("powershell.exe")
+        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script])
         .output()
         .map_err(|e| format!("PowerShell unavailable: {}", e))?;
 
-    if !output.status.success() {
-        return Err(format_process_error(
-            "Could not install FFmpeg helper",
-            &output.stderr,
-            &output.stdout,
-        ));
-    }
-
-    let ffmpeg_path = target_dir.join("ffmpeg.exe");
-    let ffprobe_path = target_dir.join("ffprobe.exe");
-    if validate_ffmpeg_pair(&ffmpeg_path, &ffprobe_path) {
+    if output.status.success() {
         Ok(())
     } else {
-        let _ = fs::remove_file(ffmpeg_path);
-        let _ = fs::remove_file(ffprobe_path);
-        Err("Downloaded FFmpeg helper could not be validated.".to_string())
+        Err(format_process_error(
+            "PowerShell failed",
+            &output.stderr,
+            &output.stdout,
+        ))
     }
 }
 

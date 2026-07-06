@@ -5,6 +5,7 @@ import { useAppStore } from '@/store/appStore';
 
 export type DownloadStage = 'idle' | 'preparing' | 'installing' | 'downloading' | 'importing' | 'finished' | 'error';
 export type DownloadQuality = 'fast' | 'best' | '1080' | '720' | '480';
+export type CookieMode = 'auto' | 'chrome' | 'edge' | 'firefox' | 'brave' | 'opera' | 'none' | 'file';
 
 export interface DownloadProgressPayload {
   jobId: string;
@@ -24,6 +25,7 @@ interface DownloadState {
   url: string;
   outputDir: string;
   cookiesPath: string;
+  cookieMode: CookieMode;
   quality: DownloadQuality;
   audioOnly: boolean;
   downloadPlaylist: boolean;
@@ -39,6 +41,7 @@ interface DownloadState {
   setUrl: (url: string) => void;
   setOutputDir: (outputDir: string) => void;
   setCookiesPath: (cookiesPath: string) => void;
+  setCookieMode: (cookieMode: CookieMode) => void;
   setQuality: (quality: DownloadQuality) => void;
   setAudioOnly: (audioOnly: boolean) => void;
   setDownloadPlaylist: (downloadPlaylist: boolean) => void;
@@ -64,6 +67,7 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
   url: '',
   outputDir: '',
   cookiesPath: '',
+  cookieMode: 'auto',
   quality: 'fast',
   audioOnly: false,
   downloadPlaylist: false,
@@ -79,6 +83,7 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
   setUrl: (url) => set({ url }),
   setOutputDir: (outputDir) => set({ outputDir }),
   setCookiesPath: (cookiesPath) => set({ cookiesPath }),
+  setCookieMode: (cookieMode) => set({ cookieMode }),
   setQuality: (quality) => set({ quality }),
   setAudioOnly: (audioOnly) => set((state) => ({
     audioOnly,
@@ -134,12 +139,14 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
     });
 
     try {
+      const usingCookiesFile = state.cookieMode === 'file';
       const downloadResult = await invoke<MediaDownloadResult>('download_youtube_video', {
         request: {
           jobId,
           url: trimmedUrl,
           outputDir: state.outputDir.trim() || null,
-          cookiesPath: state.cookiesPath.trim() || null,
+          cookiesPath: usingCookiesFile ? state.cookiesPath.trim() || null : null,
+          cookiesFromBrowser: usingCookiesFile ? null : state.cookieMode,
           quality: state.quality,
           audioOnly: state.audioOnly,
           downloadPlaylist: state.downloadPlaylist,
