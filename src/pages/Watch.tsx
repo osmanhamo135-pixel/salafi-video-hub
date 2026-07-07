@@ -1,17 +1,19 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
   Download,
+  History,
   Loader2,
   MonitorPlay,
   Play,
   Search,
   ShieldCheck,
+  Trash2,
   X,
   Youtube,
 } from 'lucide-react';
-import { useWatchStore, YoutubeSearchItem } from '@/store/watchStore';
+import { useWatchStore, WatchHistoryItem, YoutubeSearchItem } from '@/store/watchStore';
 import { useDownloadStore } from '@/store/downloadStore';
 import { formatTime } from '@/utils/formatTime';
 import { useI18n } from '@/i18n';
@@ -28,6 +30,7 @@ export const Watch: React.FC = () => {
   const resolving = useWatchStore((state) => state.resolving);
   const resolvingTitle = useWatchStore((state) => state.resolvingTitle);
   const resolveError = useWatchStore((state) => state.resolveError);
+  const history = useWatchStore((state) => state.history);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -89,6 +92,8 @@ export const Watch: React.FC = () => {
           </div>
         )}
 
+        <WatchHistoryRow />
+
         {results.length > 0 && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4">
             {results.map((item) => (
@@ -104,7 +109,7 @@ export const Watch: React.FC = () => {
           </div>
         )}
 
-        {!hasSearched && !searching && results.length === 0 && (
+        {!hasSearched && !searching && results.length === 0 && history.length === 0 && (
           <div className="premium-surface ornate-corner relative rounded-lg p-10 text-center">
             <MonitorPlay className="mx-auto mb-3 h-10 w-10 text-primary-blue" />
             <p className="text-base font-semibold text-text-primary">{t('watchEmptyTitle')}</p>
@@ -120,6 +125,8 @@ export const Watch: React.FC = () => {
   );
 };
 
+const PROGRESS_SAVE_MS = 5000;
+
 const WatchPlayer: React.FC = () => {
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -128,6 +135,21 @@ const WatchPlayer: React.FC = () => {
   const closePlayer = useWatchStore((state) => state.closePlayer);
   const enableEmbedFallback = useWatchStore((state) => state.enableEmbedFallback);
   const setDownloadUrl = useDownloadStore((state) => state.setUrl);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const lastSaveRef = useRef(0);
+
+  // Save the position when leaving the page (or switching videos) so coming
+  // back resumes exactly where the user stopped.
+  useEffect(() => {
+    const videoId = current?.videoId;
+    return () => {
+      const element = videoRef.current;
+      if (!videoId || !element || !element.currentTime) return;
+      useWatchStore
+        .getState()
+        .recordProgress(videoId, element.currentTime, element.duration || 0);
+    };
+  }, [current?.videoId]);
 
   const embedSrc = useMemo(
     () => (current ? `https://www.youtube-nocookie.com/embed/${current.videoId}?autoplay=1&rel=0` : ''),
@@ -135,6 +157,26 @@ const WatchPlayer: React.FC = () => {
   );
 
   if (!current) return null;
+
+  const saveProgress = (force = false) => {
+    const element = videoRef.current;
+    if (!element) return;
+    const now = Date.now();
+    if (!force && now - lastSaveRef.current < PROGRESS_SAVE_MS) return;
+    lastSaveRef.current = now;
+    useWatchStore
+      .getState()
+      .recordProgress(current.videoId, element.currentTime, element.duration || current.durationSeconds);
+  };
+
+  const handleLoadedMetadata = () => {
+    const element = videoRef.current;
+    if (!element) return;
+    const resume = useWatchStore.getState().getResumePosition(current.videoId);
+    if (resume > 5 && resume < (element.duration || Infinity) - 10) {
+      element.currentTime = resume;
+    }
+  };
 
   const handleDownload = () => {
     setDownloadUrl(current.sourceUrl);
@@ -156,6 +198,7 @@ const WatchPlayer: React.FC = () => {
           />
         ) : (
           <video
+            ref={videoRef}
             key={`stream-${current.videoId}`}
             src={current.videoUrl}
             poster={current.thumbnail}
@@ -164,6 +207,10 @@ const WatchPlayer: React.FC = () => {
             playsInline
             className="h-full w-full"
             onError={enableEmbedFallback}
+            onLoadedMetadata={handleLoadedMetadata}
+            onTimeUpdate={() => saveProgress()}
+            onPause={() => saveProgress(true)}
+            onEnded={() => saveProgress(true)}
           />
         )}
       </div>
@@ -206,6 +253,101 @@ const WatchPlayer: React.FC = () => {
     </section>
   );
 };
+
+const WatchHistoryRow: React.FC = () => {
+  const { t } = useI18n();
+  const history = useWatchStore((state) => state.history);
+  const clearHistory = useWatchStore((state) => state.clearHistory);
+
+  if (history.length === 0) return null;
+
+  return (
+    <section className="mb-5">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-text-primary">
+          <History className="h-4 w-4 text-primary-blue" />
+          {t('continueWatching')}
+        </h2>
+        <button
+          type="button"
+          onClick={clearHistory}
+          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-text transition-colors hover:bg-danger-red/10 hover:text-danger-red"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          {t('watchClearHistory')}
+        </button>
+      </div>
+      <div className="flex gap-3 overflow-x-auto pb-2">
+        {history.map((item) => (
+          <HistoryCard key={item.id} item={item} />
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const HistoryCard: React.FC<{ item: WatchHistoryItem }> = React.memo(({ item }) => {
+  const { t } = useI18n();
+  const playUrl = useWatchStore((state) => state.playUrl);
+  const removeFromHistory = useWatchStore((state) => state.removeFromHistory);
+  const resolving = useWatchStore((state) => state.resolving);
+  const progressPercent = item.durationSeconds > 0
+    ? Math.min((item.positionSeconds / item.durationSeconds) * 100, 100)
+    : 0;
+
+  return (
+    <div className="premium-card premium-card-hover group relative w-56 shrink-0 overflow-hidden rounded-lg">
+      <button
+        type="button"
+        onClick={() => void playUrl(item.url)}
+        disabled={resolving}
+        className="block w-full text-start disabled:opacity-60"
+      >
+        <div className="relative aspect-video w-full overflow-hidden bg-elevated-panel">
+          <img
+            src={item.thumbnail}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover"
+            draggable={false}
+          />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/35">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-blue/90 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+              <Play className="h-4 w-4 text-white" fill="currentColor" />
+            </span>
+          </div>
+          {item.positionSeconds > 0 && (
+            <span className="media-badge absolute bottom-1.5 end-1.5" dir="ltr">
+              {formatTime(item.positionSeconds)} / {formatTime(item.durationSeconds)}
+            </span>
+          )}
+          {progressPercent > 0 && (
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-black/50">
+              <div className="h-full bg-primary-blue" style={{ width: `${progressPercent}%` }} />
+            </div>
+          )}
+        </div>
+        <div className="p-2.5">
+          <p className="line-clamp-2 text-xs font-medium leading-snug text-text-primary" title={item.title}>
+            {item.title}
+          </p>
+          {item.channel && <p className="mt-0.5 truncate text-[11px] text-muted-text">{item.channel}</p>}
+        </div>
+      </button>
+      <button
+        type="button"
+        onClick={() => removeFromHistory(item.id)}
+        title={t('remove')}
+        className="absolute end-1.5 top-1.5 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity hover:bg-danger-red group-hover:opacity-100 focus:opacity-100"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+});
+
+HistoryCard.displayName = 'HistoryCard';
 
 const ResultCard: React.FC<{ item: YoutubeSearchItem }> = React.memo(({ item }) => {
   const { t } = useI18n();
