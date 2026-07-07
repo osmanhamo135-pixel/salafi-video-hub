@@ -35,7 +35,10 @@ export default function App() {
     const root = document.documentElement;
 
     root.lang = language;
-    root.dir = language === 'ar' ? 'rtl' : 'ltr';
+    // Keep the layout direction fixed in both languages: switching to Arabic
+    // translates the text but never moves sidebars, buttons, or alignment.
+    // Arabic text itself still renders right-to-left inside each label.
+    root.dir = 'ltr';
     root.dataset.language = language;
     root.dataset.theme = theme;
   }, [settings?.language, settings?.theme]);

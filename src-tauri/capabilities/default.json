@@ -25,6 +25,7 @@
     "os:default",
     "process:default",
     "updater:default",
+    "window-state:default",
     "shell:allow-open"
   ]
 }
