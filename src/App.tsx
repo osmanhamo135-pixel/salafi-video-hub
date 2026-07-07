@@ -6,6 +6,7 @@ import { Library } from './pages/Library';
 import { PlayerPage } from './pages/PlayerPage';
 import { Reminders } from './pages/Reminders';
 import { Downloads } from './pages/Downloads';
+import { Watch } from './pages/Watch';
 import { Settings } from './pages/Settings';
 import { ReminderAlarm } from './components/reminders/ReminderAlarm';
 import { UpdateManager } from './components/updater/UpdateManager';
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="/player" element={<PlayerPage />} />
           <Route path="/reminders" element={<Reminders />} />
           <Route path="/downloads" element={<Downloads />} />
+          <Route path="/watch" element={<Watch />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </AppShell>

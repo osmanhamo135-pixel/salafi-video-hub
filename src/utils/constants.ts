@@ -1,4 +1,4 @@
-export const APP_NAME = 'Salafi Video Hub';
+export const APP_NAME = 'Salafi Hub';
 export const APP_STAGE = 'BETA';
 
 export const VIDEO_EXTENSIONS = ['mp4', 'mkv', 'webm', 'mov', 'avi', 'm4v'];

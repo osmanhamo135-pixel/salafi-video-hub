@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Bell, Download, HardDrive, LayoutDashboard, Library, Settings } from 'lucide-react';
+import { Bell, Download, LayoutDashboard, Library, MonitorPlay, Settings, Sparkles } from 'lucide-react';
 import appIcon from '@/assets/app-icon.png';
 import { APP_NAME, APP_STAGE } from '@/utils/constants';
 import { TranslationKey, useI18n } from '@/i18n';
@@ -8,6 +8,7 @@ import { TranslationKey, useI18n } from '@/i18n';
 const navItems = [
   { path: '/', labelKey: 'navDashboard', icon: LayoutDashboard },
   { path: '/library', labelKey: 'navLibrary', icon: Library },
+  { path: '/watch', labelKey: 'navWatch', icon: MonitorPlay },
   { path: '/reminders', labelKey: 'navReminders', icon: Bell },
   { path: '/downloads', labelKey: 'navDownloads', icon: Download },
   { path: '/settings', labelKey: 'navSettings', icon: Settings },
@@ -79,7 +80,7 @@ export const Sidebar: React.FC = () => {
       {/* Footer */}
       <div className="border-t border-primary-blue/15 px-5 py-4">
         <div className="ornate-corner islamic-pattern relative flex items-center gap-2 overflow-hidden rounded-md border border-primary-blue/15 bg-background/80 px-3 py-2">
-          <HardDrive className="h-4 w-4 text-primary-blue" />
+          <Sparkles className="h-4 w-4 text-primary-blue" />
           <div>
             <p className="text-[11px] font-medium text-text-primary">{t('offlineStorage')}</p>
             <p className="text-[10px] text-muted-text">{t('offlineStorageDetail')}</p>
