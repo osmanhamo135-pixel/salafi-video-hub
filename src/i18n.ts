@@ -28,6 +28,7 @@ const dictionaries = {
     watchUseEmbed: 'HD player',
     watchSaveToLibrary: 'Save to library',
     watchViews: 'views',
+    watchClearHistory: 'Clear all',
 
     settingsTitle: 'Settings',
     settingsSubtitle: 'Library, thumbnails, reminders, language, and data tools',
@@ -436,6 +437,7 @@ const dictionaries = {
     watchUseEmbed: 'مشغل HD',
     watchSaveToLibrary: 'حفظ في المكتبة',
     watchViews: 'مشاهدة',
+    watchClearHistory: 'مسح الكل',
 
     settingsTitle: 'الإعدادات',
     settingsSubtitle: 'المكتبة، الصور المصغرة، التذكيرات، اللغة، وأدوات البيانات',
