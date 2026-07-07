@@ -257,9 +257,14 @@ const WatchPlayer: React.FC = () => {
 const WatchHistoryRow: React.FC = () => {
   const { t } = useI18n();
   const history = useWatchStore((state) => state.history);
+  const current = useWatchStore((state) => state.current);
   const clearHistory = useWatchStore((state) => state.clearHistory);
 
-  if (history.length === 0) return null;
+  // Hide the video that is playing right now — showing it again directly
+  // under the player reads as a duplicate.
+  const visible = history.filter((item) => item.id !== current?.videoId);
+
+  if (visible.length === 0) return null;
 
   return (
     <section className="mb-5">
@@ -278,7 +283,7 @@ const WatchHistoryRow: React.FC = () => {
         </button>
       </div>
       <div className="flex gap-3 overflow-x-auto pb-2">
-        {history.map((item) => (
+        {visible.map((item) => (
           <HistoryCard key={item.id} item={item} />
         ))}
       </div>
@@ -385,9 +390,16 @@ const ResultCard: React.FC<{ item: YoutubeSearchItem }> = React.memo(({ item }) 
         <p className="line-clamp-2 text-sm font-medium leading-snug text-text-primary" title={item.title}>
           {item.title}
         </p>
+        {/* <bdi> isolates each segment so Arabic channel names never scramble
+            the "8.2K views" part (mixed RTL/LTR text reordering). */}
         <p className="mt-1 truncate text-xs text-muted-text">
-          {item.channel}
-          {item.viewCount ? ` · ${formatViews(item.viewCount)} ${t('watchViews')}` : ''}
+          <bdi>{item.channel}</bdi>
+          {item.viewCount ? (
+            <>
+              {' · '}
+              <bdi>{`${formatViews(item.viewCount)} ${t('watchViews')}`}</bdi>
+            </>
+          ) : null}
         </p>
       </div>
     </button>
