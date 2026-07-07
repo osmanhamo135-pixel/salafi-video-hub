@@ -561,10 +561,9 @@ export const Settings: React.FC = () => {
         <SettingsSection icon={Bell} title={t('reminderDefaults')}>
           <SettingRow label={t('defaultReminderSound')}>
             <div className="flex w-full max-w-2xl flex-col gap-2 sm:flex-row">
-              <input
-                type="text"
+              <DraftInput
                 value={settings.reminderSoundPath ?? ''}
-                onChange={(event) => updateSettings({ reminderSoundPath: event.target.value || null })}
+                onCommit={(next) => updateSettings({ reminderSoundPath: next || null })}
                 placeholder={t('noSoundSet')}
                 className="surface-input min-w-0 flex-1 py-1.5"
               />
@@ -580,18 +579,7 @@ export const Settings: React.FC = () => {
             </div>
           </SettingRow>
           <SettingRow label={t('reminderVolume')}>
-            <div className="flex w-full max-w-xs items-center gap-3">
-              <Volume2 className="h-4 w-4 text-muted-text" />
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={settings.reminderVolume}
-                onChange={(event) => updateSettings({ reminderVolume: Number(event.target.value) })}
-                className="h-1.5 flex-1 cursor-pointer appearance-none rounded-lg bg-border accent-primary-blue"
-              />
-              <span className="w-10 text-end text-sm tabular-nums text-text-primary">{settings.reminderVolume}%</span>
-            </div>
+            <VolumeSlider value={settings.reminderVolume} onCommit={(next) => updateSettings({ reminderVolume: next })} />
           </SettingRow>
           <div className="flex justify-end">
             <ActionButton icon={Volume2} loading={testingSound} label={t('testSound')} loadingLabel={t('testing')} onClick={handleTestSound} />
@@ -661,17 +649,107 @@ const TextSetting: React.FC<{
   value: string;
   placeholder?: string;
   onChange: (value: string) => void;
-}> = ({ label, value, placeholder = 'Auto-detect', onChange }) => (
-  <SettingRow label={label}>
+}> = ({ label, value, placeholder = 'Auto-detect', onChange }) => {
+  // Edit locally and commit on blur/Enter so typing never triggers a database
+  // write per keystroke (which made these inputs feel laggy).
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  const commit = () => {
+    if (draft !== value) onChange(draft);
+  };
+
+  return (
+    <SettingRow label={label}>
+      <input
+        type="text"
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            commit();
+            event.currentTarget.blur();
+          }
+        }}
+        placeholder={placeholder}
+        className="surface-input w-full max-w-md py-1.5"
+      />
+    </SettingRow>
+  );
+};
+
+/** Text input that edits locally and only saves when the user finishes (blur/Enter). */
+const DraftInput: React.FC<{
+  value: string;
+  onCommit: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+}> = ({ value, onCommit, placeholder, className }) => {
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  const commit = () => {
+    if (draft !== value) onCommit(draft);
+  };
+
+  return (
     <input
       type="text"
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') {
+          commit();
+          event.currentTarget.blur();
+        }
+      }}
       placeholder={placeholder}
-      className="surface-input w-full max-w-md py-1.5"
+      className={className}
     />
-  </SettingRow>
-);
+  );
+};
+
+/** Volume slider that follows the pointer smoothly and saves once on release. */
+const VolumeSlider: React.FC<{
+  value: number;
+  onCommit: (value: number) => void;
+}> = ({ value, onCommit }) => {
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  const commit = () => {
+    if (draft !== value) onCommit(draft);
+  };
+
+  return (
+    <div className="flex w-full max-w-xs items-center gap-3">
+      <Volume2 className="h-4 w-4 text-muted-text" />
+      <input
+        type="range"
+        min={0}
+        max={100}
+        value={draft}
+        onChange={(event) => setDraft(Number(event.target.value))}
+        onPointerUp={commit}
+        onKeyUp={commit}
+        onBlur={commit}
+        className="h-1.5 flex-1 cursor-pointer appearance-none rounded-lg bg-border accent-primary-blue"
+      />
+      <span className="w-10 text-end text-sm tabular-nums text-text-primary">{draft}%</span>
+    </div>
+  );
+};
 
 const ActionButton: React.FC<{
   icon: React.ComponentType<{ className?: string }>;
