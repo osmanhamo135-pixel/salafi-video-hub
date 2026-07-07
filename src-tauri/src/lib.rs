@@ -63,6 +63,8 @@ pub fn run() {
             commands::reminder::allow_reminder_sound_path,
             commands::reminder::test_reminder_sound,
             commands::downloader::download_youtube_video,
+            commands::youtube::youtube_search,
+            commands::youtube::youtube_resolve,
             commands::settings::get_settings,
             commands::settings::update_settings,
             commands::settings::add_imported_folder,

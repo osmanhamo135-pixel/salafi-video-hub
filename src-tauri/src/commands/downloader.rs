@@ -111,7 +111,7 @@ fn download_youtube_video_blocking(
         None,
     );
 
-    let ytdlp = ensure_ytdlp(&app_handle, &request.job_id)?;
+    let ytdlp = ensure_ytdlp(&app_handle, Some(&request.job_id))?;
     let downloaded_files =
         run_ytdlp_with_update_retry(&app_handle, &request, &ytdlp, &output_dir)?;
     let preview_thumbnail_path = create_download_preview_thumbnail(&app_handle, &downloaded_files);
@@ -154,7 +154,13 @@ fn resolve_output_dir(app_handle: &AppHandle, requested: Option<&str>) -> Result
     Ok(get_app_data_dir(app_handle)?.join("downloads"))
 }
 
-fn ensure_ytdlp(app_handle: &AppHandle, job_id: &str) -> Result<PathBuf, String> {
+/// Ensures the yt-dlp helper is available. Pass a `job_id` to emit download-page
+/// progress while installing; pass `None` for quiet callers (e.g. the Watch page)
+/// so they never hijack the Downloads UI state.
+pub(crate) fn ensure_ytdlp(
+    app_handle: &AppHandle,
+    job_id: Option<&str>,
+) -> Result<PathBuf, String> {
     let tools_dir = get_app_data_dir(app_handle)?.join("tools");
     fs::create_dir_all(&tools_dir).map_err(|e| e.to_string())?;
     let ytdlp_path = tools_dir.join(YT_DLP_RESOURCE_NAME);
@@ -174,13 +180,15 @@ fn ensure_ytdlp(app_handle: &AppHandle, job_id: &str) -> Result<PathBuf, String>
         }
     }
 
-    emit_progress(
-        app_handle,
-        job_id,
-        "installing",
-        "Installing download helper...",
-        None,
-    );
+    if let Some(job_id) = job_id {
+        emit_progress(
+            app_handle,
+            job_id,
+            "installing",
+            "Installing download helper...",
+            None,
+        );
+    }
 
     if let Err(error) = download_ytdlp(&ytdlp_path) {
         let _ = fs::remove_file(&ytdlp_path);
