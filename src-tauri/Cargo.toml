@@ -1,6 +1,6 @@
 [package]
 name = "salafi-video-hub"
-version = "1.10.0"
+version = "1.10.1"
 description = "Salafi Hub - a polished, fast desktop Islamic video hub and player"
 authors = ["Salafi Video Hub"]
 license = "MIT"
