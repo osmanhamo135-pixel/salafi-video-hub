@@ -49,6 +49,7 @@ const dictionaries = {
     quranSyncBadge: 'Following the reciter',
     quranSyncUnavailable: 'Sync unavailable for this surah',
     quranFollowAyah: 'Return to current ayah',
+    quranBookmarkHint: 'Click: set last read · Right-click: bookmark',
     quranAttribution: 'Quran text: Tanzil (Uthmani script), included verbatim without modification. Audio & timing: MP3Quran.',
 
     navRadio: 'Radio',
@@ -64,6 +65,8 @@ const dictionaries = {
     radioBuffering: 'Connecting...',
     radioStreamProblem: 'Stream problem — press to retry.',
     radioSleepTimer: 'Sleep timer',
+    playerCollapse: 'Minimize player',
+    playerExpand: 'Expand player',
 
     diagnostics: 'Diagnostics',
     runDiagnostics: 'Run Diagnostics',
@@ -523,6 +526,7 @@ const dictionaries = {
     quranSyncBadge: 'يتابع القارئ',
     quranSyncUnavailable: 'التزامن غير متاح لهذه السورة',
     quranFollowAyah: 'العودة إلى الآية الحالية',
+    quranBookmarkHint: 'نقرة: تحديد موضع القراءة · زر أيمن: علامة مرجعية',
     quranAttribution: 'نص القرآن: تنزيل (الرسم العثماني)، مدرج كما هو دون أي تعديل. الصوت والتوقيت: MP3Quran.',
 
     navRadio: 'الإذاعة',
@@ -538,6 +542,8 @@ const dictionaries = {
     radioBuffering: 'جارٍ الاتصال...',
     radioStreamProblem: 'مشكلة في البث — اضغط لإعادة المحاولة.',
     radioSleepTimer: 'مؤقت النوم',
+    playerCollapse: 'تصغير المشغّل',
+    playerExpand: 'توسيع المشغّل',
 
     diagnostics: 'التشخيصات',
     runDiagnostics: 'تشغيل التشخيصات',

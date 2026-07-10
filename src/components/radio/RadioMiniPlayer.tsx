@@ -1,5 +1,17 @@
 import React, { useEffect, useRef } from 'react';
-import { AlertTriangle, Loader2, Moon, Pause, Play, RadioTower, RefreshCw, Volume2, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  Moon,
+  Pause,
+  Play,
+  RadioTower,
+  RefreshCw,
+  Volume2,
+  X,
+} from 'lucide-react';
 import { audioElementHolder, SleepMinutes, useRadioStore } from '@/store/radioStore';
 import { formatTime } from '@/utils/formatTime';
 import { useI18n } from '@/i18n';
@@ -28,7 +40,15 @@ export const RadioMiniPlayer: React.FC = () => {
   const [buffering, setBuffering] = React.useState(false);
   const [position, setPosition] = React.useState(0);
   const [duration, setDuration] = React.useState(0);
+  const [collapsed, setCollapsed] = React.useState(
+    () => localStorage.getItem('salafi-hub.player-collapsed') === '1',
+  );
   const seekable = Number.isFinite(duration) && duration > 0;
+
+  const setCollapsedPersisted = (value: boolean) => {
+    setCollapsed(value);
+    localStorage.setItem('salafi-hub.player-collapsed', value ? '1' : '0');
+  };
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -54,9 +74,8 @@ export const RadioMiniPlayer: React.FC = () => {
 
   if (!current) return null;
 
-  return (
-    <div className="fixed bottom-4 end-4 z-40 w-[400px] max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-panel/95 p-3 shadow-2xl backdrop-blur">
-      <audio
+  const audioElement = (
+    <audio
         ref={(element) => {
           audioRef.current = element;
           audioElementHolder.current = element;
@@ -78,6 +97,44 @@ export const RadioMiniPlayer: React.FC = () => {
         onDurationChange={(event) => setDuration(event.currentTarget.duration)}
         onEnded={() => setPosition(0)}
       />
+  );
+
+  // Collapsed: a tiny floating pill so nothing blocks the page while listening.
+  if (collapsed) {
+    return (
+      <div className="fixed bottom-4 end-4 z-40 flex items-center gap-1 rounded-full border border-border bg-panel/85 p-1 shadow-xl backdrop-blur">
+        {audioElement}
+        <button
+          type="button"
+          onClick={playbackError ? retry : togglePlay}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-blue text-white shadow transition-transform hover:scale-105"
+          title={playbackError ? t('retry') : playing ? t('pause') : t('play')}
+        >
+          {playbackError ? (
+            <RefreshCw className="h-4 w-4" />
+          ) : buffering && playing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : playing ? (
+            <Pause className="h-4 w-4" fill="currentColor" />
+          ) : (
+            <Play className="h-4 w-4" fill="currentColor" />
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setCollapsedPersisted(false)}
+          className="flex h-7 w-7 items-center justify-center rounded-full text-muted-text hover:bg-panel-hover hover:text-text-primary"
+          title={t('playerExpand')}
+        >
+          <ChevronUp className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed bottom-4 end-4 z-40 w-[400px] max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-panel/90 p-3 shadow-2xl backdrop-blur">
+      {audioElement}
 
       <div className="flex items-center gap-3">
         <button
@@ -152,6 +209,15 @@ export const RadioMiniPlayer: React.FC = () => {
               ))}
             </select>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setCollapsedPersisted(true)}
+            className="rounded p-1 text-muted-text hover:bg-panel-hover hover:text-text-primary"
+            title={t('playerCollapse')}
+          >
+            <ChevronDown className="h-4 w-4" />
+          </button>
 
           <button
             type="button"
