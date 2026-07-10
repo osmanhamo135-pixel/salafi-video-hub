@@ -196,7 +196,7 @@ const SurahRow: React.FC<{ surah: SurahMeta; active: boolean; onOpen: () => void
             {surah.totalVerses} {t('quranVerses')}
           </span>
         </span>
-        <span className="arabic-text shrink-0 text-base text-accent-gold">{surah.name}</span>
+        <span className="quran-script arabic-text shrink-0 text-base text-accent-gold">{surah.name}</span>
       </button>
     );
   },
@@ -204,23 +204,21 @@ const SurahRow: React.FC<{ surah: SurahMeta; active: boolean; onOpen: () => void
 
 SurahRow.displayName = 'SurahRow';
 
-/** Binary search: last timing segment whose start is <= the clock, or null. */
-const findActiveAyah = (timings: AyahTiming[], ms: number): number | null => {
+/** Binary search: index of the last timing segment whose start is <= the clock. */
+const findActiveIndex = (timings: AyahTiming[], clock: number): number => {
   let lo = 0;
   let hi = timings.length - 1;
   let found = -1;
   while (lo <= hi) {
     const mid = (lo + hi) >> 1;
-    if (timings[mid].startMs <= ms) {
+    if (timings[mid].startMs <= clock) {
       found = mid;
       lo = mid + 1;
     } else {
       hi = mid - 1;
     }
   }
-  if (found < 0) return null;
-  const ayah = timings[found].ayah;
-  return ayah >= 1 ? ayah : null; // segment 0 = intro/basmala
+  return found;
 };
 
 /**
@@ -228,7 +226,7 @@ const findActiveAyah = (timings: AyahTiming[], ms: number): number | null => {
  * every animation frame directly from the media element and updates React
  * state only when the active ayah actually changes.
  */
-const useAyahSync = (syncActive: boolean, timings: AyahTiming[] | null) => {
+const useAyahSync = (syncActive: boolean, timings: AyahTiming[] | null, surahId: number | null) => {
   const [activeAyah, setActiveAyah] = useState<number | null>(null);
   const lastAyahRef = useRef<number | null>(null);
   // Milliseconds multiplier for the timing values; 0 = not yet detected.
@@ -238,7 +236,7 @@ const useAyahSync = (syncActive: boolean, timings: AyahTiming[] | null) => {
     lastAyahRef.current = null;
     scaleRef.current = 0;
     setActiveAyah(null);
-    if (!syncActive || !timings || timings.length === 0) return;
+    if (!syncActive || !timings || timings.length === 0 || surahId === null) return;
 
     let frame = 0;
     const tick = () => {
@@ -254,10 +252,23 @@ const useAyahSync = (syncActive: boolean, timings: AyahTiming[] | null) => {
         if (scaleRef.current !== 0 && !element.paused) {
           // Convert the audio clock into the timing values' native unit.
           const clock = (element.currentTime * 1000) / scaleRef.current;
-          const next = findActiveAyah(timings, clock);
+          const index = findActiveIndex(timings, clock);
+          const segment = index >= 0 ? timings[index] : null;
+          const next = segment && segment.ayah >= 1 ? segment.ayah : null;
+
           if (next !== lastAyahRef.current) {
             lastAyahRef.current = next;
             setActiveAyah(next);
+          }
+
+          // Drive the green sweep across the ayah text with a direct CSS
+          // variable update — the reading direction fill follows the voice.
+          if (next !== null && segment) {
+            const span = segment.endMs - segment.startMs;
+            const progress = span > 0 ? Math.min(Math.max((clock - segment.startMs) / span, 0), 1) : 1;
+            document
+              .getElementById(`quran-verse-${surahId}-${next}`)
+              ?.style.setProperty('--ayah-progress', `${(progress * 100).toFixed(1)}%`);
           }
         }
       }
@@ -265,7 +276,7 @@ const useAyahSync = (syncActive: boolean, timings: AyahTiming[] | null) => {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [syncActive, timings]);
+  }, [syncActive, timings, surahId]);
 
   return activeAyah;
 };
@@ -300,7 +311,7 @@ const SurahReader: React.FC = () => {
   const syncStationId = surah && read ? `quran-sync-${read.id}-${surah.id}` : null;
   const syncActive = Boolean(syncStationId && currentStation?.id === syncStationId);
   const timings = surah && read ? storeTimings[`${read.id}:${surah.id}`] ?? null : null;
-  const activeAyah = useAyahSync(syncActive, timings);
+  const activeAyah = useAyahSync(syncActive, timings, surah?.id ?? null);
 
   // Follow the recitation: gently keep the active ayah visible, but never
   // fight the user — manual scrolling pauses auto-follow until they return.
@@ -375,7 +386,7 @@ const SurahReader: React.FC = () => {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
         <div>
-          <h2 className="arabic-text text-2xl font-semibold text-text-primary">{surah.name}</h2>
+          <h2 className="quran-script arabic-text text-2xl font-semibold text-text-primary">{surah.name}</h2>
           <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-text">
             <span>
               {surah.id}. {surah.transliteration} — {surah.translation} · {surah.total_verses} {t('quranVerses')}
@@ -447,7 +458,7 @@ const SurahReader: React.FC = () => {
       </div>
 
       {surah.id !== 1 && surah.id !== 9 && (
-        <p className="arabic-text mb-6 text-center text-2xl text-accent-gold" style={{ fontSize: fontSize * 0.85 }}>
+        <p className="quran-script arabic-text mb-6 text-center text-2xl text-accent-gold" style={{ fontSize: fontSize * 0.85 }}>
           {BASMALA}
         </p>
       )}
@@ -485,16 +496,16 @@ const SurahReader: React.FC = () => {
             >
               <p
                 dir="rtl"
-                className="quran-ayah-text arabic-text text-text-primary"
-                style={{ fontSize, lineHeight: 2 }}
+                className="quran-ayah-text quran-script arabic-text text-text-primary"
+                style={{ fontSize, lineHeight: 2.25 }}
               >
                 {verse.text}
-                <span className="mx-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-accent-gold/40 align-middle text-[11px] tabular-nums text-accent-gold">
+                <span className="quran-verse-num mx-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-accent-gold/40 align-middle text-[11px] tabular-nums text-accent-gold">
                   {verse.id}
                 </span>
               </p>
               {showTranslation && (
-                <p dir="ltr" className="mt-1.5 text-sm leading-relaxed text-muted-text">
+                <p dir="ltr" className="quran-translation mt-2 text-sm leading-relaxed">
                   {verse.translation}
                 </p>
               )}
