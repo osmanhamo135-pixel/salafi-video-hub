@@ -13,6 +13,7 @@ import { Settings } from './pages/Settings';
 import { ReminderAlarm } from './components/reminders/ReminderAlarm';
 import { UpdateManager } from './components/updater/UpdateManager';
 import { RadioMiniPlayer } from './components/radio/RadioMiniPlayer';
+import { TitleBar } from './components/layout/TitleBar';
 import { usePlayerStore } from './store/playerStore';
 import { useSettingsStore } from './store/settingsStore';
 import { useAppEvents } from './hooks/useAppEvents';
@@ -57,20 +58,23 @@ export default function App() {
   }, [isPlayerOpen, playerOpenRequestId, navigate, location.pathname]);
 
   return (
-    <div className="app-container">
-      <AppShell>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/library" element={<Library />} />
-          <Route path="/player" element={<PlayerPage />} />
-          <Route path="/reminders" element={<Reminders />} />
-          <Route path="/downloads" element={<Downloads />} />
-          <Route path="/watch" element={<Watch />} />
-          <Route path="/radio" element={<Radio />} />
-          <Route path="/quran" element={<Quran />} />
-          <Route path="/settings" element={<Settings />} />
-        </Routes>
-      </AppShell>
+    <div className="app-container flex-col">
+      <TitleBar />
+      <div className="min-h-0 w-full flex-1">
+        <AppShell>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/library" element={<Library />} />
+            <Route path="/player" element={<PlayerPage />} />
+            <Route path="/reminders" element={<Reminders />} />
+            <Route path="/downloads" element={<Downloads />} />
+            <Route path="/watch" element={<Watch />} />
+            <Route path="/radio" element={<Radio />} />
+            <Route path="/quran" element={<Quran />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </AppShell>
+      </div>
       <ReminderAlarm />
       <UpdateManager />
       <RadioMiniPlayer />
