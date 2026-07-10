@@ -109,11 +109,14 @@ export const RadioMiniPlayer: React.FC = () => {
             </p>
           ) : (
             <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-text">
-              {playing && !buffering && (
+              {playing && !buffering && !seekable && (
                 <span className="inline-flex items-center gap-1 font-medium text-success-green">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success-green" />
                   {t('radioLive')}
                 </span>
+              )}
+              {playing && !buffering && seekable && (
+                <span className="font-medium text-primary-blue">{t('playingNow')}</span>
               )}
               {buffering && playing && <span>{t('radioBuffering')}</span>}
               {!playing && <span>{t('pause')}</span>}

@@ -231,22 +231,34 @@ const findActiveAyah = (timings: AyahTiming[], ms: number): number | null => {
 const useAyahSync = (syncActive: boolean, timings: AyahTiming[] | null) => {
   const [activeAyah, setActiveAyah] = useState<number | null>(null);
   const lastAyahRef = useRef<number | null>(null);
+  // Milliseconds multiplier for the timing values; 0 = not yet detected.
+  const scaleRef = useRef(0);
 
   useEffect(() => {
-    if (!syncActive || !timings || timings.length === 0) {
-      lastAyahRef.current = null;
-      setActiveAyah(null);
-      return;
-    }
+    lastAyahRef.current = null;
+    scaleRef.current = 0;
+    setActiveAyah(null);
+    if (!syncActive || !timings || timings.length === 0) return;
 
     let frame = 0;
     const tick = () => {
       const element = audioElementHolder.current;
-      if (element && !element.paused) {
-        const ayah = findActiveAyah(timings, element.currentTime * 1000);
-        if (ayah !== lastAyahRef.current) {
-          lastAyahRef.current = ayah;
-          setActiveAyah(ayah);
+      if (element) {
+        // Some timing sources report seconds instead of milliseconds. Detect
+        // the unit once against the real audio duration: if the last segment
+        // ends far below duration*10, the values are seconds.
+        if (scaleRef.current === 0 && Number.isFinite(element.duration) && element.duration > 0) {
+          const lastEnd = timings[timings.length - 1].endMs;
+          scaleRef.current = lastEnd < element.duration * 10 ? 1000 : 1;
+        }
+        if (scaleRef.current !== 0 && !element.paused) {
+          // Convert the audio clock into the timing values' native unit.
+          const clock = (element.currentTime * 1000) / scaleRef.current;
+          const next = findActiveAyah(timings, clock);
+          if (next !== lastAyahRef.current) {
+            lastAyahRef.current = next;
+            setActiveAyah(next);
+          }
         }
       }
       frame = requestAnimationFrame(tick);
@@ -337,10 +349,16 @@ const SurahReader: React.FC = () => {
 
   const handleAyahClick = (verseId: number) => {
     setLastRead({ surahId: surah.id, verseId });
-    if (syncActive && timings) {
+    if (syncActive && timings && timings.length > 0) {
       const segment = timings.find((timing) => timing.ayah === verseId);
       if (segment) {
-        seekToSeconds(segment.startMs / 1000);
+        const element = audioElementHolder.current;
+        const lastEnd = timings[timings.length - 1].endMs;
+        const valuesAreSeconds =
+          element && Number.isFinite(element.duration) && element.duration > 0
+            ? lastEnd < element.duration * 10
+            : false;
+        seekToSeconds(valuesAreSeconds ? segment.startMs : segment.startMs / 1000);
         setFollowPaused(false);
       }
     }
@@ -366,6 +384,7 @@ const SurahReader: React.FC = () => {
               <span className="inline-flex items-center gap-1 rounded-full bg-success-green/15 px-2 py-0.5 font-medium text-success-green">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success-green" />
                 {t('quranSyncBadge')}
+                {activeAyah !== null && <span className="tabular-nums" dir="ltr"> · {activeAyah}</span>}
               </span>
             )}
             {syncActive && !timings && (
