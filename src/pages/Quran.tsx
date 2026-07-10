@@ -12,8 +12,8 @@ import {
   Plus,
   Search,
 } from 'lucide-react';
-import { QuranBookmark, SurahMeta, surahAudioUrl, useQuranStore } from '@/store/quranStore';
-import { useRadioStore } from '@/store/radioStore';
+import { AyahTiming, QuranBookmark, SurahMeta, surahAudioUrl, useQuranStore } from '@/store/quranStore';
+import { audioElementHolder, seekToSeconds, useRadioStore } from '@/store/radioStore';
 import { useI18n } from '@/i18n';
 
 const BASMALA = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
@@ -204,8 +204,62 @@ const SurahRow: React.FC<{ surah: SurahMeta; active: boolean; onOpen: () => void
 
 SurahRow.displayName = 'SurahRow';
 
+/** Binary search: last timing segment whose start is <= the clock, or null. */
+const findActiveAyah = (timings: AyahTiming[], ms: number): number | null => {
+  let lo = 0;
+  let hi = timings.length - 1;
+  let found = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (timings[mid].startMs <= ms) {
+      found = mid;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  if (found < 0) return null;
+  const ayah = timings[found].ayah;
+  return ayah >= 1 ? ayah : null; // segment 0 = intro/basmala
+};
+
+/**
+ * Ayah synchronization engine (Level B — ayah sync). Reads the audio clock
+ * every animation frame directly from the media element and updates React
+ * state only when the active ayah actually changes.
+ */
+const useAyahSync = (syncActive: boolean, timings: AyahTiming[] | null) => {
+  const [activeAyah, setActiveAyah] = useState<number | null>(null);
+  const lastAyahRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!syncActive || !timings || timings.length === 0) {
+      lastAyahRef.current = null;
+      setActiveAyah(null);
+      return;
+    }
+
+    let frame = 0;
+    const tick = () => {
+      const element = audioElementHolder.current;
+      if (element && !element.paused) {
+        const ayah = findActiveAyah(timings, element.currentTime * 1000);
+        if (ayah !== lastAyahRef.current) {
+          lastAyahRef.current = ayah;
+          setActiveAyah(ayah);
+        }
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [syncActive, timings]);
+
+  return activeAyah;
+};
+
 const SurahReader: React.FC = () => {
-  const { t, language } = useI18n();
+  const { t } = useI18n();
   const surah = useQuranStore((state) => state.currentSurah);
   const fontSize = useQuranStore((state) => state.fontSize);
   const showTranslation = useQuranStore((state) => state.showTranslation);
@@ -215,29 +269,85 @@ const SurahReader: React.FC = () => {
   const setLastRead = useQuranStore((state) => state.setLastRead);
   const toggleBookmark = useQuranStore((state) => state.toggleBookmark);
   const bookmarks = useQuranStore((state) => state.bookmarks);
-  const reciters = useQuranStore((state) => state.reciters);
-  const selectedReciterId = useQuranStore((state) => state.selectedReciterId);
-  const loadReciters = useQuranStore((state) => state.loadReciters);
+  const timingReads = useQuranStore((state) => state.timingReads);
+  const selectedTimingReadId = useQuranStore((state) => state.selectedTimingReadId);
+  const loadTimingReads = useQuranStore((state) => state.loadTimingReads);
+  const selectTimingRead = useQuranStore((state) => state.selectTimingRead);
+  const loadTimings = useQuranStore((state) => state.loadTimings);
+  const storeTimings = useQuranStore((state) => state.timings);
   const playStation = useRadioStore((state) => state.play);
+  const currentStation = useRadioStore((state) => state.current);
+  const [followPaused, setFollowPaused] = useState(false);
+  const programmaticScrollRef = useRef(false);
 
   useEffect(() => {
-    void loadReciters(language === 'ar' ? 'ar' : 'eng');
-  }, [language, loadReciters]);
+    void loadTimingReads();
+  }, [loadTimingReads]);
+
+  const read = timingReads.find((entry) => entry.id === selectedTimingReadId) ?? timingReads[0];
+  const syncStationId = surah && read ? `quran-sync-${read.id}-${surah.id}` : null;
+  const syncActive = Boolean(syncStationId && currentStation?.id === syncStationId);
+  const timings = surah && read ? storeTimings[`${read.id}:${surah.id}`] ?? null : null;
+  const activeAyah = useAyahSync(syncActive, timings);
+
+  // Follow the recitation: gently keep the active ayah visible, but never
+  // fight the user — manual scrolling pauses auto-follow until they return.
+  useEffect(() => {
+    if (!syncActive || followPaused || activeAyah === null || !surah) return;
+    const element = document.getElementById(`quran-verse-${surah.id}-${activeAyah}`);
+    if (!element) return;
+    programmaticScrollRef.current = true;
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const timer = window.setTimeout(() => {
+      programmaticScrollRef.current = false;
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [activeAyah, syncActive, followPaused, surah]);
+
+  useEffect(() => {
+    if (!syncActive) {
+      setFollowPaused(false);
+      return;
+    }
+    const pauseFollow = () => {
+      if (!programmaticScrollRef.current) setFollowPaused(true);
+    };
+    window.addEventListener('wheel', pauseFollow, { passive: true });
+    window.addEventListener('touchmove', pauseFollow, { passive: true });
+    return () => {
+      window.removeEventListener('wheel', pauseFollow);
+      window.removeEventListener('touchmove', pauseFollow);
+    };
+  }, [syncActive]);
 
   if (!surah) return null;
 
-  const reciter = reciters.find((entry) => entry.id === selectedReciterId) ?? reciters[0];
-  const canPlay = Boolean(
-    reciter && (reciter.availableSurahs.length === 0 || reciter.availableSurahs.includes(surah.id)),
-  );
-
-  const handlePlaySurah = () => {
-    if (!reciter || !canPlay) return;
+  const handlePlaySurah = async () => {
+    if (!read) return;
+    // Load this reciter's own timing for this surah first (cached after once),
+    // then start playback through the global player.
+    void loadTimings(read.id, surah.id);
     playStation({
-      id: `quran-${reciter.id}-${surah.id}`,
-      name: `${surah.transliteration} · ${reciter.name}`,
-      url: surahAudioUrl(reciter.server, surah.id),
+      id: `quran-sync-${read.id}-${surah.id}`,
+      name: `${surah.transliteration} · ${read.name}`,
+      url: surahAudioUrl(read.folderUrl, surah.id),
     });
+    setFollowPaused(false);
+  };
+
+  const handleAyahClick = (verseId: number) => {
+    setLastRead({ surahId: surah.id, verseId });
+    if (syncActive && timings) {
+      const segment = timings.find((timing) => timing.ayah === verseId);
+      if (segment) {
+        seekToSeconds(segment.startMs / 1000);
+        setFollowPaused(false);
+      }
+    }
+  };
+
+  const handleReturnToAyah = () => {
+    setFollowPaused(false);
   };
 
   const isBookmarked = (bookmark: QuranBookmark) =>
@@ -248,13 +358,40 @@ const SurahReader: React.FC = () => {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
         <div>
           <h2 className="arabic-text text-2xl font-semibold text-text-primary">{surah.name}</h2>
-          <p className="mt-0.5 text-xs text-muted-text">
-            {surah.id}. {surah.transliteration} — {surah.translation} · {surah.total_verses} {t('quranVerses')}
+          <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-text">
+            <span>
+              {surah.id}. {surah.transliteration} — {surah.translation} · {surah.total_verses} {t('quranVerses')}
+            </span>
+            {syncActive && timings && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-success-green/15 px-2 py-0.5 font-medium text-success-green">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success-green" />
+                {t('quranSyncBadge')}
+              </span>
+            )}
+            {syncActive && !timings && (
+              <span className="rounded-full bg-muted-text/15 px-2 py-0.5 font-medium text-muted-text">
+                {t('quranSyncUnavailable')}
+              </span>
+            )}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {canPlay && (
-            <button type="button" onClick={handlePlaySurah} className="btn-secondary px-3 py-1.5 text-xs">
+          {timingReads.length > 0 && (
+            <select
+              value={read?.id ?? ''}
+              onChange={(event) => selectTimingRead(event.target.value)}
+              className="surface-input max-w-[220px] py-1.5 text-xs"
+              title={t('quranSyncedReciter')}
+            >
+              {timingReads.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.name}
+                </option>
+              ))}
+            </select>
+          )}
+          {read && (
+            <button type="button" onClick={() => void handlePlaySurah()} className="btn-secondary px-3 py-1.5 text-xs">
               <Play className="h-3.5 w-3.5" />
               {t('quranPlaySurah')}
             </button>
@@ -296,24 +433,40 @@ const SurahReader: React.FC = () => {
         </p>
       )}
 
+      {syncActive && followPaused && (
+        <button
+          type="button"
+          onClick={handleReturnToAyah}
+          className="btn-primary fixed bottom-24 left-1/2 z-30 -translate-x-1/2 px-4 py-2 text-xs shadow-2xl"
+        >
+          <BookOpen className="h-3.5 w-3.5" />
+          {t('quranFollowAyah')}
+        </button>
+      )}
+
       <div className="space-y-1">
         {surah.verses.map((verse) => {
           const bookmark = { surahId: surah.id, verseId: verse.id };
           const marked = isBookmarked(bookmark);
           const isLastRead = lastRead?.surahId === surah.id && lastRead?.verseId === verse.id;
+          const isActive = syncActive && activeAyah === verse.id;
 
           return (
             <div
               key={verse.id}
               id={`quran-verse-${surah.id}-${verse.id}`}
-              onClick={() => setLastRead(bookmark)}
-              className={`group cursor-pointer rounded-lg px-4 py-3 transition-colors ${
-                isLastRead ? 'bg-primary-blue/[0.07] ring-1 ring-primary-blue/25' : 'hover:bg-panel-hover/60'
+              onClick={() => handleAyahClick(verse.id)}
+              className={`quran-ayah group cursor-pointer rounded-lg px-4 py-3 ${
+                isActive
+                  ? 'quran-ayah-active'
+                  : isLastRead
+                    ? 'bg-primary-blue/[0.07] ring-1 ring-primary-blue/25'
+                    : 'hover:bg-panel-hover/60'
               }`}
             >
               <p
                 dir="rtl"
-                className="arabic-text text-text-primary"
+                className="quran-ayah-text arabic-text text-text-primary"
                 style={{ fontSize, lineHeight: 2 }}
               >
                 {verse.text}

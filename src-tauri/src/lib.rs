@@ -71,6 +71,8 @@ pub fn run() {
             commands::quran::get_quran_surahs,
             commands::quran::get_quran_surah,
             commands::quran::get_quran_reciters,
+            commands::quran::get_quran_timing_reads,
+            commands::quran::get_quran_ayah_timings,
             commands::settings::get_settings,
             commands::settings::update_settings,
             commands::settings::add_imported_folder,

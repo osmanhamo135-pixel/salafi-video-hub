@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { AlertTriangle, Loader2, Moon, Pause, Play, RadioTower, RefreshCw, Volume2, X } from 'lucide-react';
-import { SleepMinutes, useRadioStore } from '@/store/radioStore';
+import { audioElementHolder, SleepMinutes, useRadioStore } from '@/store/radioStore';
+import { formatTime } from '@/utils/formatTime';
 import { useI18n } from '@/i18n';
 
 const sleepOptions: SleepMinutes[] = [0, 15, 30, 60, 90];
@@ -23,8 +24,11 @@ export const RadioMiniPlayer: React.FC = () => {
   const markPlaying = useRadioStore((state) => state.markPlaying);
   const setVolume = useRadioStore((state) => state.setVolume);
   const setSleepMinutes = useRadioStore((state) => state.setSleepMinutes);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [buffering, setBuffering] = React.useState(false);
+  const [position, setPosition] = React.useState(0);
+  const [duration, setDuration] = React.useState(0);
+  const seekable = Number.isFinite(duration) && duration > 0;
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -53,7 +57,10 @@ export const RadioMiniPlayer: React.FC = () => {
   return (
     <div className="fixed bottom-4 end-4 z-40 w-[400px] max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-panel/95 p-3 shadow-2xl backdrop-blur">
       <audio
-        ref={audioRef}
+        ref={(element) => {
+          audioRef.current = element;
+          audioElementHolder.current = element;
+        }}
         key={`${current.id}-${current.url}`}
         src={current.url}
         preload="none"
@@ -67,6 +74,9 @@ export const RadioMiniPlayer: React.FC = () => {
           markPlaybackError();
         }}
         onStalled={() => setBuffering(true)}
+        onTimeUpdate={(event) => setPosition(event.currentTarget.currentTime)}
+        onDurationChange={(event) => setDuration(event.currentTarget.duration)}
+        onEnded={() => setPosition(0)}
       />
 
       <div className="flex items-center gap-3">
@@ -150,6 +160,29 @@ export const RadioMiniPlayer: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {seekable && (
+        <div className="mt-2 flex items-center gap-2">
+          <span className="w-10 text-end text-[10px] tabular-nums text-muted-text" dir="ltr">
+            {formatTime(position)}
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={duration}
+            step={1}
+            value={Math.min(position, duration)}
+            onChange={(event) => {
+              const audio = audioRef.current;
+              if (audio) audio.currentTime = Number(event.target.value);
+            }}
+            className="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-lg bg-border accent-primary-blue"
+          />
+          <span className="w-10 text-[10px] tabular-nums text-muted-text" dir="ltr">
+            {formatTime(duration)}
+          </span>
+        </div>
+      )}
     </div>
   );
 };

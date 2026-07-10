@@ -15,6 +15,21 @@ interface RadioCatalog {
 
 export type SleepMinutes = 0 | 15 | 30 | 60 | 90;
 
+/**
+ * Direct handle to the single global <audio> element (set by the mini-player).
+ * The Quran sync engine reads the audio clock from here every animation frame
+ * without touching React state — per the performance rules.
+ */
+export const audioElementHolder: { current: HTMLAudioElement | null } = { current: null };
+
+/** Seeks the global audio element (recordings only — live streams can't seek). */
+export const seekToSeconds = (seconds: number) => {
+  const element = audioElementHolder.current;
+  if (element && Number.isFinite(element.duration)) {
+    element.currentTime = Math.max(0, Math.min(seconds, element.duration));
+  }
+};
+
 interface RadioState {
   stations: RadioStation[];
   loading: boolean;
