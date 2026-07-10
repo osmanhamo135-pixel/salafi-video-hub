@@ -8,6 +8,7 @@ import { Reminders } from './pages/Reminders';
 import { Downloads } from './pages/Downloads';
 import { Watch } from './pages/Watch';
 import { Radio } from './pages/Radio';
+import { Quran } from './pages/Quran';
 import { Settings } from './pages/Settings';
 import { ReminderAlarm } from './components/reminders/ReminderAlarm';
 import { UpdateManager } from './components/updater/UpdateManager';
@@ -66,6 +67,7 @@ export default function App() {
           <Route path="/downloads" element={<Downloads />} />
           <Route path="/watch" element={<Watch />} />
           <Route path="/radio" element={<Radio />} />
+          <Route path="/quran" element={<Quran />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </AppShell>

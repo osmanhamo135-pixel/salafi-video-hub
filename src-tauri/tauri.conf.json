@@ -1,6 +1,6 @@
 {
   "productName": "Salafi Video Hub",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "identifier": "com.salafivideohub.app",
   "build": {
     "frontendDist": "../dist",
@@ -37,7 +37,7 @@
     "targets": ["nsis", "msi"],
     "createUpdaterArtifacts": true,
     "category": "Video",
-    "resources": ["resources/yt-dlp.exe"],
+    "resources": ["resources/yt-dlp.exe", "resources/quran.json", "resources/QURAN_TEXT_NOTICE.txt"],
     "copyright": "",
     "windows": {
       "webviewInstallMode": {

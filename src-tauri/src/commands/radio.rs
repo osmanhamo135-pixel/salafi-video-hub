@@ -130,7 +130,7 @@ fn fetch_catalog(language: &str) -> Result<Vec<RadioStation>, String> {
 }
 
 /// Fetches a URL body with the system curl (curl.exe ships with Windows 10+).
-fn fetch_url(url: &str) -> Result<String, String> {
+pub(crate) fn fetch_url(url: &str) -> Result<String, String> {
     let mut errors = Vec::new();
 
     for program in ["curl.exe", "curl"] {

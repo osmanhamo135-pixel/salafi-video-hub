@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Bell, Download, LayoutDashboard, Library, MonitorPlay, RadioTower, Settings, Sparkles } from 'lucide-react';
+import { Bell, BookOpen, Download, LayoutDashboard, Library, MonitorPlay, RadioTower, Settings, Sparkles } from 'lucide-react';
 import appIcon from '@/assets/app-icon.png';
 import { APP_NAME, APP_STAGE } from '@/utils/constants';
 import { TranslationKey, useI18n } from '@/i18n';
@@ -8,6 +8,7 @@ import { TranslationKey, useI18n } from '@/i18n';
 const navItems = [
   { path: '/', labelKey: 'navDashboard', icon: LayoutDashboard },
   { path: '/library', labelKey: 'navLibrary', icon: Library },
+  { path: '/quran', labelKey: 'navQuran', icon: BookOpen },
   { path: '/watch', labelKey: 'navWatch', icon: MonitorPlay },
   { path: '/radio', labelKey: 'navRadio', icon: RadioTower },
   { path: '/reminders', labelKey: 'navReminders', icon: Bell },
