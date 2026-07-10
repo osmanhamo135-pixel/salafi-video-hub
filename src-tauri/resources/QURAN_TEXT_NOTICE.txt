@@ -1,0 +1,12 @@
+Quran Text Attribution
+======================
+
+The Arabic Quran text bundled with this application (quran.json) is the
+Uthmani text originating from the Tanzil project (https://tanzil.net),
+distributed via the quran-json dataset (https://github.com/risan/quran-json).
+
+Per the Tanzil terms, the Quran text is included verbatim and has not been
+modified in any way. The English translation included alongside it is the
+Saheeh International translation as distributed in the same dataset.
+
+This notice must be kept with the application.

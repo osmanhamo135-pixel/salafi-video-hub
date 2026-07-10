@@ -5,6 +5,7 @@ pub mod radio;
 pub mod file_ops;
 pub mod playback;
 pub mod playlist;
+pub mod quran;
 pub mod reminder;
 pub mod settings;
 pub mod video;
