@@ -386,8 +386,7 @@ const SurahReader: React.FC = () => {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
         <div>
-          <h2 className="quran-script arabic-text text-2xl font-semibold text-text-primary">{surah.name}</h2>
-          <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-text">
+          <p className="flex flex-wrap items-center gap-2 text-xs text-muted-text">
             <span>
               {surah.id}. {surah.transliteration} — {surah.translation} · {surah.total_verses} {t('quranVerses')}
             </span>
@@ -457,12 +456,6 @@ const SurahReader: React.FC = () => {
         </div>
       </div>
 
-      {surah.id !== 1 && surah.id !== 9 && (
-        <p className="quran-script arabic-text mb-6 text-center text-2xl text-accent-gold" style={{ fontSize: fontSize * 0.85 }}>
-          {BASMALA}
-        </p>
-      )}
-
       {syncActive && followPaused && (
         <button
           type="button"
@@ -474,60 +467,89 @@ const SurahReader: React.FC = () => {
         </button>
       )}
 
-      <div className="space-y-1">
-        {surah.verses.map((verse) => {
-          const bookmark = { surahId: surah.id, verseId: verse.id };
-          const marked = isBookmarked(bookmark);
-          const isLastRead = lastRead?.surahId === surah.id && lastRead?.verseId === verse.id;
-          const isActive = syncActive && activeAyah === verse.id;
+      <div className="quran-reading-surface mx-auto mt-3 max-w-[54rem]">
+        <div className="quran-ornament">
+          <span className="quran-ornament-line" />
+          <h2
+            className="quran-ornament-name quran-script arabic-text font-semibold"
+            style={{ fontSize: Math.max(fontSize * 0.95, 24), lineHeight: 1.8 }}
+          >
+            ﴿ {surah.name} ﴾
+          </h2>
+          <span className="quran-ornament-line" />
+        </div>
 
-          return (
-            <div
-              key={verse.id}
-              id={`quran-verse-${surah.id}-${verse.id}`}
-              onClick={() => handleAyahClick(verse.id)}
-              className={`quran-ayah group cursor-pointer rounded-lg px-4 py-3 ${
-                isActive
-                  ? 'quran-ayah-active'
-                  : isLastRead
-                    ? 'bg-primary-blue/[0.07] ring-1 ring-primary-blue/25'
-                    : 'hover:bg-panel-hover/60'
-              }`}
-            >
-              <p
-                dir="rtl"
-                className="quran-ayah-text quran-script arabic-text text-text-primary"
-                style={{ fontSize, lineHeight: 2.25 }}
-              >
-                {verse.text}
-                <span className="quran-verse-num mx-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-accent-gold/40 align-middle text-[11px] tabular-nums text-accent-gold">
-                  {verse.id}
-                </span>
-              </p>
-              {showTranslation && (
-                <p dir="ltr" className="quran-translation mt-2 text-sm leading-relaxed">
-                  {verse.translation}
-                </p>
-              )}
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  toggleBookmark(bookmark);
-                }}
-                title={t('quranBookmark')}
-                className={`mt-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] transition-opacity ${
-                  marked
-                    ? 'text-accent-gold opacity-100'
-                    : 'text-muted-text opacity-0 hover:text-accent-gold group-hover:opacity-100'
+        {surah.id !== 1 && surah.id !== 9 && (
+          <p
+            className="quran-script arabic-text mb-8 text-center text-accent-gold"
+            style={{ fontSize: fontSize * 0.85, lineHeight: 2 }}
+          >
+            {BASMALA}
+          </p>
+        )}
+
+        <div className="space-y-2">
+          {surah.verses.map((verse) => {
+            const bookmark = { surahId: surah.id, verseId: verse.id };
+            const marked = isBookmarked(bookmark);
+            const isLastRead = lastRead?.surahId === surah.id && lastRead?.verseId === verse.id;
+            const isActive = syncActive && activeAyah === verse.id;
+
+            return (
+              <div
+                key={verse.id}
+                id={`quran-verse-${surah.id}-${verse.id}`}
+                onClick={() => handleAyahClick(verse.id)}
+                className={`quran-ayah group cursor-pointer rounded-xl px-4 py-3.5 ${
+                  isActive
+                    ? 'quran-ayah-active'
+                    : isLastRead
+                      ? 'bg-primary-blue/[0.07] ring-1 ring-primary-blue/25'
+                      : 'hover:bg-panel-hover/60'
                 }`}
               >
-                <Bookmark className="h-3.5 w-3.5" fill={marked ? 'currentColor' : 'none'} />
-                {t('quranBookmark')}
-              </button>
-            </div>
-          );
-        })}
+                <p
+                  dir="rtl"
+                  className="quran-ayah-text quran-script arabic-text text-text-primary"
+                  style={{ fontSize, lineHeight: 2.35 }}
+                >
+                  {verse.text}
+                  <span
+                    className="quran-verse-num"
+                    style={{
+                      width: Math.round(fontSize * 1.3),
+                      height: Math.round(fontSize * 1.3),
+                      fontSize: Math.max(Math.round(fontSize * 0.34), 10),
+                    }}
+                  >
+                    {verse.id}
+                  </span>
+                </p>
+                {showTranslation && (
+                  <p dir="ltr" className="quran-translation mt-2 text-sm leading-relaxed">
+                    {verse.translation}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    toggleBookmark(bookmark);
+                  }}
+                  title={t('quranBookmark')}
+                  className={`mt-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] transition-opacity ${
+                    marked
+                      ? 'text-accent-gold opacity-100'
+                      : 'text-muted-text opacity-0 hover:text-accent-gold group-hover:opacity-100'
+                  }`}
+                >
+                  <Bookmark className="h-3.5 w-3.5" fill={marked ? 'currentColor' : 'none'} />
+                  {t('quranBookmark')}
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
