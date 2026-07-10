@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { getVersion } from '@tauri-apps/api/app';
 import { open } from '@tauri-apps/plugin-dialog';
 import {
+  Activity,
   AlertCircle,
   Bell,
   CheckCircle,
@@ -26,6 +27,7 @@ import {
 import { useAppStore } from '@/store/appStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useUpdateStore } from '@/store/updateStore';
+import { formatBytes } from '@/utils/formatBytes';
 import { playReminderSound, stopReminderSound } from '@/utils/reminderAudio';
 import { AppLanguage, AppTheme } from '@/types';
 import { languageOptions, themeOptions, useI18n } from '@/i18n';
@@ -35,6 +37,20 @@ interface ThumbnailBatchResult {
   skipped_count: number;
   failed_count: number;
   errors: string[];
+}
+
+interface DiagnosticsReport {
+  appVersion: string;
+  appDataPath: string;
+  dbSizeBytes: number;
+  videoCount: number;
+  playlistCount: number;
+  ffmpegStatus: string;
+  ffmpegVersion: string | null;
+  ffmpegPath: string | null;
+  ytdlpVersion: string | null;
+  internetOk: boolean;
+  updateEndpointOk: boolean;
 }
 
 const Toggle: React.FC<{
@@ -90,6 +106,19 @@ export const Settings: React.FC = () => {
   const { t } = useI18n();
 
   const [appVersion, setAppVersion] = useState('');
+  const [diagnostics, setDiagnostics] = useState<DiagnosticsReport | null>(null);
+  const [runningDiagnostics, setRunningDiagnostics] = useState(false);
+
+  const handleRunDiagnostics = async () => {
+    setRunningDiagnostics(true);
+    try {
+      setDiagnostics(await invoke<DiagnosticsReport>('get_diagnostics'));
+    } catch (error) {
+      showToast(getErrorMessage(error), 'error');
+    } finally {
+      setRunningDiagnostics(false);
+    }
+  };
 
   const [rescanning, setRescanning] = useState(false);
   const [repairing, setRepairing] = useState(false);
@@ -611,10 +640,70 @@ export const Settings: React.FC = () => {
             />
           </div>
         </SettingsSection>
+
+        <SettingsSection icon={Activity} title={t('diagnostics')}>
+          <div className="mb-3 flex justify-end">
+            <ActionButton
+              icon={Activity}
+              loading={runningDiagnostics}
+              label={t('runDiagnostics')}
+              loadingLabel={t('runningDiagnostics')}
+              onClick={handleRunDiagnostics}
+            />
+          </div>
+          {diagnostics && (
+            <div className="grid gap-1.5 rounded-lg border border-border bg-background/60 p-4 text-sm sm:grid-cols-2">
+              <DiagRow label={t('appVersion')} value={diagnostics.appVersion} />
+              <DiagRow label={t('diagDatabaseSize')} value={formatBytes(diagnostics.dbSizeBytes)} />
+              <DiagRow
+                label={t('diagLibraryItems')}
+                value={`${diagnostics.videoCount} ${t('videosLower')} / ${diagnostics.playlistCount} ${t('playlistsLower')}`}
+              />
+              <DiagRow
+                label={t('ffmpegStatus')}
+                value={diagnostics.ffmpegStatus === 'missing' ? t('missing') : `${diagnostics.ffmpegStatus}`}
+                ok={diagnostics.ffmpegStatus !== 'missing'}
+              />
+              <DiagRow
+                label={t('diagDownloaderHelper')}
+                value={diagnostics.ytdlpVersion ?? t('diagNotInstalled')}
+                ok={Boolean(diagnostics.ytdlpVersion)}
+              />
+              <DiagRow
+                label={t('diagInternet')}
+                value={diagnostics.internetOk ? t('diagConnected') : t('diagNotConnected')}
+                ok={diagnostics.internetOk}
+              />
+              <DiagRow
+                label={t('diagUpdateEndpoint')}
+                value={diagnostics.updateEndpointOk ? t('diagConnected') : t('diagNotConnected')}
+                ok={diagnostics.updateEndpointOk}
+              />
+              <div className="sm:col-span-2">
+                <span className="text-xs text-muted-text">{t('openAppDataFolder')}: </span>
+                <span dir="ltr" className="break-all text-xs text-text-primary">{diagnostics.appDataPath}</span>
+              </div>
+            </div>
+          )}
+        </SettingsSection>
       </div>
     </div>
   );
 };
+
+const DiagRow: React.FC<{ label: string; value: string; ok?: boolean }> = ({ label, value, ok }) => (
+  <div className="flex items-center justify-between gap-3 rounded-md bg-panel/60 px-3 py-2">
+    <span className="text-xs text-muted-text">{label}</span>
+    <span
+      className={`truncate text-xs font-medium ${
+        ok === undefined ? 'text-text-primary' : ok ? 'text-success-green' : 'text-danger-red'
+      }`}
+      title={value}
+    >
+      {value}
+    </span>
+  </div>
+);
 
 const SettingsSection: React.FC<{
   icon: React.ComponentType<{ className?: string }>;

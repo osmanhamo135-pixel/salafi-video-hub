@@ -7,9 +7,11 @@ import { PlayerPage } from './pages/PlayerPage';
 import { Reminders } from './pages/Reminders';
 import { Downloads } from './pages/Downloads';
 import { Watch } from './pages/Watch';
+import { Radio } from './pages/Radio';
 import { Settings } from './pages/Settings';
 import { ReminderAlarm } from './components/reminders/ReminderAlarm';
 import { UpdateManager } from './components/updater/UpdateManager';
+import { RadioMiniPlayer } from './components/radio/RadioMiniPlayer';
 import { usePlayerStore } from './store/playerStore';
 import { useSettingsStore } from './store/settingsStore';
 import { useAppEvents } from './hooks/useAppEvents';
@@ -63,11 +65,13 @@ export default function App() {
           <Route path="/reminders" element={<Reminders />} />
           <Route path="/downloads" element={<Downloads />} />
           <Route path="/watch" element={<Watch />} />
+          <Route path="/radio" element={<Radio />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </AppShell>
       <ReminderAlarm />
       <UpdateManager />
+      <RadioMiniPlayer />
     </div>
   );
 }

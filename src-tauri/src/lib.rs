@@ -66,6 +66,8 @@ pub fn run() {
             commands::downloader::download_youtube_video,
             commands::youtube::youtube_search,
             commands::youtube::youtube_resolve,
+            commands::radio::get_radio_stations,
+            commands::diagnostics::get_diagnostics,
             commands::settings::get_settings,
             commands::settings::update_settings,
             commands::settings::add_imported_folder,
