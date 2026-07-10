@@ -1,5 +1,7 @@
+pub mod diagnostics;
 pub mod downloader;
 pub mod ffmpeg;
+pub mod radio;
 pub mod file_ops;
 pub mod playback;
 pub mod playlist;

@@ -1,6 +1,6 @@
 {
   "productName": "Salafi Video Hub",
-  "version": "1.6.3",
+  "version": "1.7.0",
   "identifier": "com.salafivideohub.app",
   "build": {
     "frontendDist": "../dist",
@@ -25,7 +25,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https://asset.localhost https://i.ytimg.com https://*.ytimg.com; media-src 'self' asset: http://asset.localhost https://asset.localhost https://*.googlevideo.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'",
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https://asset.localhost https://i.ytimg.com https://*.ytimg.com; media-src 'self' asset: http://asset.localhost https://asset.localhost https: http:; frame-src https://www.youtube-nocookie.com https://www.youtube.com; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'",
       "assetProtocol": {
         "enable": true,
         "scope": ["$APPDATA/**", "$APPCACHE/**"]
