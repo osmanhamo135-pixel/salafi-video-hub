@@ -288,6 +288,41 @@
     letter-spacing: 0;
     text-rendering: geometricPrecision;
   }
+
+  /* Synchronized recitation: calm, theme-aware glow on the active ayah.
+     Transitions are audio-clock driven; no layout movement, no heavy blur. */
+  .quran-ayah {
+    transition: background-color 220ms ease, box-shadow 220ms ease;
+  }
+
+  .quran-ayah .quran-ayah-text {
+    transition: text-shadow 220ms ease, color 220ms ease;
+  }
+
+  .quran-ayah-active {
+    background: rgba(var(--accent-teal-rgb), 0.07);
+    box-shadow:
+      inset 0 0 0 1px rgba(var(--accent-gold-rgb), 0.28),
+      0 0 22px rgba(var(--accent-gold-rgb), 0.08);
+  }
+
+  .quran-ayah-active .quran-ayah-text {
+    color: rgb(var(--text-main-rgb));
+    text-shadow:
+      0 0 14px rgba(var(--accent-gold-rgb), 0.4),
+      0 0 34px rgba(var(--accent-teal-rgb), 0.18);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .quran-ayah,
+    .quran-ayah .quran-ayah-text {
+      transition: none;
+    }
+
+    .quran-ayah-active .quran-ayah-text {
+      text-shadow: none;
+    }
+  }
   
   @keyframes page-enter {
     from {
