@@ -66,27 +66,70 @@ pub fn clean_filename(filename: &str) -> String {
     name.trim().to_string()
 }
 
+/// Guesses a content category from a folder name, in English or Arabic.
+///
+/// Ordered most-specific first (the four madhhab fiqh categories before generic
+/// fiqh, tafsir before quran) so folder names like "فقه حنبلي" or
+/// "تفسير القرآن" land in the right place. The category ids are stable English
+/// strings; the UI translates them.
 pub fn guess_category(folder_name: &str) -> Option<String> {
     let lower = folder_name.to_lowercase();
     let categories = [
-        ("quran", "Quran"),
-        ("hadith", "Hadith"),
+        // Madhhab-specific fiqh (before generic fiqh).
+        ("hanbali", "Hanbali Fiqh"),
+        ("حنبلي", "Hanbali Fiqh"),
+        ("الحنبلي", "Hanbali Fiqh"),
+        ("hanafi", "Hanafi Fiqh"),
+        ("حنفي", "Hanafi Fiqh"),
+        ("maliki", "Maliki Fiqh"),
+        ("مالكي", "Maliki Fiqh"),
+        ("shafi", "Shafi'i Fiqh"),
+        ("شافعي", "Shafi'i Fiqh"),
+        ("comparative fiqh", "Comparative Fiqh"),
+        ("فقه مقارن", "Comparative Fiqh"),
+        // Tafsir before Quran ("tafsir al-quran" is tafsir).
         ("tafsir", "Tafsir"),
+        ("تفسير", "Tafsir"),
+        ("quran", "Quran"),
+        ("قرآن", "Quran"),
+        ("قران", "Quran"),
+        ("مصحف", "Quran"),
+        ("تلاوة", "Quran"),
+        ("hadith", "Hadith"),
+        ("حديث", "Hadith"),
+        ("أحاديث", "Hadith"),
         ("aqeedah", "Aqeedah"),
         ("aqidah", "Aqeedah"),
+        ("عقيدة", "Aqeedah"),
+        ("عقيده", "Aqeedah"),
         ("tawheed", "Tawheed"),
+        ("tawhid", "Tawheed"),
+        ("توحيد", "Tawheed"),
         ("manhaj", "Manhaj"),
+        ("منهج", "Manhaj"),
         ("fiqh", "Fiqh"),
+        ("فقه", "Fiqh"),
         ("seerah", "Seerah"),
+        ("sirah", "Seerah"),
+        ("سيرة", "Seerah"),
+        ("سيره", "Seerah"),
         ("arabic", "Arabic Lessons"),
+        ("نحو", "Arabic Lessons"),
+        ("صرف", "Arabic Lessons"),
+        ("لغة عربية", "Arabic Lessons"),
         ("refutation", "Refutations"),
-        ("refutations", "Refutations"),
+        ("ردود", "Refutations"),
+        ("رد على", "Refutations"),
         ("clip", "Short Clips"),
-        ("clips", "Short Clips"),
+        ("مقاطع", "Short Clips"),
+        ("مقطع", "Short Clips"),
         ("lesson", "Long Lessons"),
-        ("lessons", "Long Lessons"),
         ("lecture", "Long Lessons"),
-        ("lectures", "Long Lessons"),
+        ("شرح", "Long Lessons"),
+        ("دروس", "Long Lessons"),
+        ("درس", "Long Lessons"),
+        ("محاضرة", "Long Lessons"),
+        ("محاضرات", "Long Lessons"),
     ];
 
     for (keyword, category) in &categories {

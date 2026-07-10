@@ -21,6 +21,7 @@ import { pickFolder, pickVideoFile } from '@/hooks/useTauriCommands';
 import { PlaylistGrid } from '@/components/playlist/PlaylistGrid';
 import { PlaylistDetail } from '@/components/playlist/PlaylistDetail';
 import { SearchResults } from '@/components/playlist/SearchResults';
+import { CONTENT_CATEGORIES } from '@/utils/constants';
 import { useI18n } from '@/i18n';
 
 const getErrorMessage = (error: unknown) => {
@@ -66,6 +67,7 @@ export const Library: React.FC = () => {
   const [playlistLoading, setPlaylistLoading] = useState(false);
   const [playlistSort, setPlaylistSort] = useState<PlaylistSortKey>('recent');
   const [playlistFilter, setPlaylistFilter] = useState<PlaylistFilterKey>('all');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [viewMode, setViewMode] = useState<PlaylistViewMode>('grid');
 
   useEffect(() => {
@@ -290,6 +292,7 @@ export const Library: React.FC = () => {
 
   const filteredPlaylists = useMemo(() => {
     const visible = playlists.filter((playlist) => {
+      if (categoryFilter && playlist.category !== categoryFilter) return false;
       const progress = getPlaylistProgress(playlist);
       if (playlistFilter === 'in-progress') return progress > 0 && progress < 95;
       if (playlistFilter === 'completed') return progress >= 95;
@@ -304,7 +307,7 @@ export const Library: React.FC = () => {
       if (playlistSort === 'progress') return getPlaylistProgress(b) - getPlaylistProgress(a);
       return b.updatedAt - a.updatedAt;
     });
-  }, [playlistFilter, playlistSort, playlists]);
+  }, [categoryFilter, playlistFilter, playlistSort, playlists]);
 
   return (
     <div className="page-container">
@@ -435,6 +438,21 @@ export const Library: React.FC = () => {
               active={playlistFilter === 'empty'}
               onClick={() => setPlaylistFilter('empty')}
             />
+            <label className="ms-auto flex items-center gap-2 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs text-muted-text">
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              <select
+                value={categoryFilter}
+                onChange={(event) => setCategoryFilter(event.target.value)}
+                className="bg-transparent text-text-primary outline-none"
+              >
+                <option value="">{t('allCategories')}</option>
+                {CONTENT_CATEGORIES.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {t(category.labelKey)}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
           {importError && (
