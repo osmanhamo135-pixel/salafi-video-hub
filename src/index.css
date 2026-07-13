@@ -308,56 +308,43 @@
     text-rendering: geometricPrecision;
   }
 
-  /* Quran field modelled after the user's reference: a quiet sage surface,
-     luminous Uthmani text, and no app chrome inside the reading area. */
+  /* The reading page inherits the active premium theme. */
   .quran-reading-surface {
     position: relative;
     isolation: isolate;
     overflow: hidden;
     min-height: 19rem;
-    border: 1px solid rgba(255, 255, 245, 0.2);
+    border: 1px solid rgba(var(--accent-gold-rgb), 0.28);
     border-radius: 4px;
     padding: clamp(1.25rem, 2.2vw, 1.8rem) clamp(2rem, 4vw, 3rem);
-    color: rgba(255, 255, 250, 0.96);
-    background-color: #9ea196;
+    color: rgb(var(--text-main-rgb));
+    background-color: rgb(var(--bg-card-rgb));
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.2),
-      inset 0 0 70px rgba(38, 46, 39, 0.1),
-      0 18px 45px rgba(0, 0, 0, 0.24);
+      inset 0 1px 0 rgba(var(--text-main-rgb), 0.06),
+      inset 0 0 70px rgba(var(--accent-teal-rgb), 0.035),
+      0 18px 45px rgba(var(--bg-main-rgb), 0.32);
   }
 
-  .quran-reading-surface::before,
-  .quran-reading-surface::after {
-    position: absolute;
-    top: 50%;
-    z-index: -1;
-    color: rgba(255, 255, 250, 0.72);
-    font-family: 'Amiri Quran', serif;
-    font-size: 1.55rem;
-    transform: translateY(-50%);
-    text-shadow: 0 1px 8px rgba(24, 30, 25, 0.22);
-  }
-
-  .quran-reading-surface::before {
-    content: '﴿';
-    inset-inline-start: 0.75rem;
-  }
-
-  .quran-reading-surface::after {
-    content: '﴾';
-    inset-inline-end: 0.75rem;
+  .quran-surah-heading {
+    color: rgb(var(--accent-gold-rgb));
+    text-shadow: 0 0 0.5em rgba(var(--accent-gold-rgb), 0.16);
   }
 
   .quran-basmala {
-    color: rgba(255, 255, 250, 0.98);
-    text-shadow: 0 1px 9px rgba(35, 43, 37, 0.22);
+    color: rgb(var(--text-main-rgb));
   }
 
   .quran-flow {
     text-align: justify;
     text-align-last: center;
-    color: rgba(255, 255, 250, 0.96);
-    text-shadow: 0 1px 8px rgba(30, 37, 31, 0.2);
+    color: rgb(var(--text-main-rgb));
+  }
+
+  .quran-passage-bracket {
+    color: rgb(var(--accent-gold-rgb));
+    font-size: 0.84em;
+    white-space: nowrap;
+    text-shadow: 0 0 0.4em rgba(var(--accent-gold-rgb), 0.2);
   }
 
   /* Inline ayah: clickable and highlightable without ever moving the layout.
@@ -372,49 +359,50 @@
   }
 
   .quran-ayah-inline:hover {
-    background: rgba(255, 255, 255, 0.09);
+    background: rgba(var(--accent-teal-rgb), 0.1);
   }
 
   /* The traditional ۝ end-of-ayah ornament: U+06DD encloses the following
      Arabic-Indic digits inside the circle (Amiri Quran composes them), exactly
      like the medallion of a printed page. */
   .quran-ayah-marker {
-    color: rgba(255, 255, 245, 0.92);
+    color: rgb(var(--accent-gold-rgb));
     font-size: 0.95em;
-    text-shadow: 0 1px 7px rgba(30, 37, 31, 0.24);
+    text-shadow: 0 0 0.35em rgba(var(--accent-gold-rgb), 0.18);
   }
 
   .quran-bookmarked {
-    background: rgba(255, 248, 210, 0.12);
+    background: rgba(var(--accent-gold-rgb), 0.12);
   }
 
   .quran-lastread {
-    text-decoration: underline dotted rgba(255, 255, 245, 0.72);
+    text-decoration: underline dotted rgba(var(--accent-gold-rgb), 0.72);
     text-decoration-thickness: 1.5px;
     text-underline-offset: 0.4em;
   }
 
-  /* The ayah stays softly located while one exact word receives the recitation
-     cue. Inline styling preserves the printed flow and tashkeel positions. */
+  /* Only the exact spoken word changes. The low accent line and glyph glow
+     avoid the tall rectangle that obscured Arabic diacritics. */
   .quran-ayah-active {
-    background: rgba(255, 255, 255, 0.055);
+    background: transparent;
   }
 
   .quran-word {
     border-radius: 0.14em;
     color: inherit;
-    transition: color 100ms ease, background-color 100ms ease, text-shadow 100ms ease;
+    transition: color 100ms ease, box-shadow 100ms ease, text-shadow 100ms ease;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
   }
 
   .quran-word-active {
-    color: #092b20;
-    background: rgba(218, 255, 232, 0.9);
-    box-shadow: 0 0 0 0.08em rgba(218, 255, 232, 0.9);
-    text-shadow: none;
+    color: rgb(var(--accent-turquoise-rgb));
+    box-shadow: inset 0 -0.12em 0 rgba(var(--accent-teal-rgb), 0.52);
+    text-shadow: 0 0 0.3em rgba(var(--accent-teal-rgb), 0.34);
   }
 
   .quran-ayah-active .quran-ayah-marker {
-    color: rgba(233, 255, 239, 0.98);
+    color: rgb(var(--accent-turquoise-rgb));
   }
 
   /* Refined translation typography under each ayah. */
@@ -422,7 +410,7 @@
     font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif;
     border-inline-start: 2px solid rgba(var(--accent-gold-rgb), 0.35);
     padding-inline-start: 0.75rem;
-    color: rgba(255, 255, 250, 0.82);
+    color: rgb(var(--text-soft-rgb));
     letter-spacing: 0.01em;
   }
 

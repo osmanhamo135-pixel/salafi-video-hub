@@ -688,7 +688,13 @@ const SurahReader: React.FC = () => {
       )}
 
       <div className="quran-reading-surface mx-auto mt-2 max-w-[68rem]">
-        <span className="sr-only">سُورَةُ {surah.name}</span>
+        <h2
+          dir="rtl"
+          className="quran-surah-heading quran-script arabic-text mb-2 text-center font-normal"
+          style={{ fontSize: fontSize * 0.72, lineHeight: 1.4 }}
+        >
+          سُورَةُ {surah.name}
+        </h2>
 
         {surah.id !== 1 && surah.id !== 9 && (
           <p
@@ -742,6 +748,7 @@ const SurahReader: React.FC = () => {
         ) : (
           /* Mushaf page mode: one continuous justified flow, like a real page. */
           <p dir="rtl" className="quran-flow quran-script arabic-text" style={{ fontSize, lineHeight: 1.72 }}>
+            <span className="quran-passage-bracket" aria-hidden="true">﴿</span>{' '}
             {surah.verses.map((verse) => {
               const bookmark = { surahId: surah.id, verseId: verse.id };
               const marked = isBookmarked(bookmark);
@@ -772,6 +779,7 @@ const SurahReader: React.FC = () => {
                 </span>
               );
             })}
+            {' '}<span className="quran-passage-bracket" aria-hidden="true">﴾</span>
           </p>
         )}
       </div>
