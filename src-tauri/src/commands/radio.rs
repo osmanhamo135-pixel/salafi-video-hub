@@ -135,7 +135,19 @@ pub(crate) fn fetch_url(url: &str) -> Result<String, String> {
 
     for program in ["curl.exe", "curl"] {
         match hidden_command(program)
-            .args(["-L", "--fail", "--silent", "--connect-timeout", "15", "--max-time", "30", url])
+            .args([
+                "-L",
+                "--fail",
+                "--silent",
+                "--connect-timeout",
+                "15",
+                "--max-time",
+                "30",
+                // Some catalog CDNs reject curl's default agent with 403.
+                "-A",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) SalafiHub/1.0",
+                url,
+            ])
             .output()
         {
             Ok(output) if output.status.success() => {

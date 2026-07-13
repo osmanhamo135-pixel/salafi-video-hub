@@ -2,7 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Amiri Quran (OFL) — dedicated Quranic script with full Uthmani mark support. */
+/* KFGQPC Uthmanic Script HAFS — the official King Fahd Complex typeface of
+   the printed Madinah mushaf (bundled unmodified; see KFGQPC-NOTICE.txt). */
+@font-face {
+  font-family: 'KFGQPC Uthmanic Script HAFS';
+  src: url('./assets/fonts/UthmanicHafs1-Ver09.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Amiri Quran (OFL) — calligraphic fallback (basmala ligature and glyph gaps). */
 @font-face {
   font-family: 'Amiri Quran';
   src: url('./assets/fonts/AmiriQuran-Regular.ttf') format('truetype');
@@ -331,7 +341,7 @@
 
   /* Mushaf-style Quranic script (Amiri Quran with graceful fallbacks). */
   .quran-script {
-    font-family: 'Amiri Quran', 'Noto Naskh Arabic', 'Scheherazade New', 'Segoe UI', Tahoma, system-ui, sans-serif;
+    font-family: 'KFGQPC Uthmanic Script HAFS', 'Amiri Quran', 'Noto Naskh Arabic', 'Scheherazade New', 'Segoe UI', Tahoma, system-ui, sans-serif;
     text-rendering: geometricPrecision;
   }
 
@@ -420,6 +430,9 @@
      Arabic-Indic digits inside the circle (Amiri Quran composes them), exactly
      like the medallion of a printed page — in the theme's gold. */
   .quran-ayah-marker {
+    /* Amiri Quran composes ۝ + digits into one medallion (KFGQPC draws them
+       as two separate marks), so the marker keeps the Amiri glyph. */
+    font-family: 'Amiri Quran', 'Noto Naskh Arabic', serif;
     color: rgb(var(--accent-gold-rgb));
     font-size: 0.95em;
     text-shadow: 0 0 0.35em rgb(var(--accent-gold-rgb) / 0.18);

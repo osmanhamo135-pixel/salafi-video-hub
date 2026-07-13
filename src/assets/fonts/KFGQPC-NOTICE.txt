@@ -1,0 +1,8 @@
+KFGQPC Uthmanic Script HAFS (UthmanicHafs1 Ver09)
+
+Copyright: King Fahd Glorious Qur'an Printing Complex (KFGQPC), Madinah.
+This is the official typeface of the printed Madinah mushaf, distributed
+free of charge by the Complex for use in displaying the Qur'an.
+Source: http://qurancomplex.gov.sa / fonts.qurancomplex.gov.sa
+License terms: http://dm.qurancomplex.gov.sa/copyright-2/
+The font is included unmodified.
