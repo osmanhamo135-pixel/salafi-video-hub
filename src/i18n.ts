@@ -116,6 +116,8 @@ const dictionaries = {
     themeBlueDescription: 'Deep sapphire with a refined gold thread.',
     themeRed: 'Yaqut Red',
     themeRedDescription: 'Deep crimson with a refined gold thread.',
+    themeOnyx: 'Onyx Black',
+    themeOnyxDescription: 'Pure black with royal gold.',
     applied: 'Applied',
     retry: 'Retry',
     updateAvailable: 'Update available',
@@ -606,6 +608,8 @@ const dictionaries = {
     themeBlueDescription: 'أزرق ياقوتي عميق مع خيط ذهبي أنيق.',
     themeRed: 'ياقوت أحمر',
     themeRedDescription: 'قرمزي عميق مع خيط ذهبي أنيق.',
+    themeOnyx: 'أونيكس الأسود',
+    themeOnyxDescription: 'أسود نقي مع ذهب فاخر.',
     applied: 'مطبق',
     retry: 'إعادة المحاولة',
     updateAvailable: 'يتوفر تحديث',
@@ -1033,6 +1037,12 @@ export const themeOptions: Array<{
     labelKey: 'themeRed',
     descriptionKey: 'themeRedDescription',
     swatches: ['#0E0506', '#E5545C', '#E2C57A'],
+  },
+  {
+    id: 'onyx',
+    labelKey: 'themeOnyx',
+    descriptionKey: 'themeOnyxDescription',
+    swatches: ['#020203', '#D1AA54', '#E2BE68'],
   },
 ];
 

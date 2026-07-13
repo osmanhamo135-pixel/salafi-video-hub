@@ -148,7 +148,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 const normalizeSettings = (settings: Settings): Settings => ({
   ...settings,
   language: settings.language === 'ar' ? 'ar' : 'en',
-  theme: ['noor', 'emerald', 'pearl', 'mushaf', 'blue', 'red'].includes(settings.theme)
+  theme: ['noor', 'emerald', 'pearl', 'mushaf', 'blue', 'red', 'onyx'].includes(settings.theme)
     ? settings.theme
     : 'noor',
   automaticThumbnailsMode: settings.automaticThumbnailsMode || 'automatic',

@@ -1,5 +1,5 @@
 export type AppLanguage = 'en' | 'ar';
-export type AppTheme = 'noor' | 'emerald' | 'pearl' | 'mushaf' | 'blue' | 'red';
+export type AppTheme = 'noor' | 'emerald' | 'pearl' | 'mushaf' | 'blue' | 'red' | 'onyx';
 
 export interface Video {
   id: string;
