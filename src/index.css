@@ -310,7 +310,9 @@
     text-rendering: geometricPrecision;
   }
 
-  /* The mushaf belongs to the active theme instead of introducing another palette. */
+  /* The mushaf belongs to the active theme instead of introducing another
+     palette — on the theme's card colour so the page reads brighter than the
+     app background, never darker. */
   .quran-reading-surface {
     position: relative;
     isolation: isolate;
@@ -318,9 +320,9 @@
     min-height: 19rem;
     border: 1px solid rgb(var(--accent-gold-rgb) / 0.24);
     border-radius: 6px;
-    padding: clamp(1.25rem, 2.2vw, 1.8rem) clamp(2rem, 4vw, 3rem);
+    padding: clamp(1.4rem, 2.4vw, 2rem) clamp(2rem, 4vw, 3rem);
     color: rgb(var(--text-main-rgb));
-    background-color: rgb(var(--bg-main-rgb) / 0.72);
+    background-color: rgb(var(--bg-card-rgb) / 0.92);
     box-shadow:
       inset 0 1px 0 rgb(var(--text-main-rgb) / 0.035),
       inset 0 0 0 1px rgb(var(--accent-gold-rgb) / 0.045),
@@ -348,10 +350,50 @@
     text-shadow: 0 0 0.45em rgb(var(--text-main-rgb) / 0.08);
   }
 
+  /* The calligraphic basmala ﷽: sits on its own centered line with enough
+     vertical room for the tall ligature, so it can never collide with the
+     surrounding lines or medallions. */
+  .quran-basmala-ligature {
+    position: relative;
+    display: inline-block;
+    color: inherit;
+    font-family: 'Amiri Quran', 'Noto Naskh Arabic', 'Scheherazade New', serif;
+    font-size: 1.5em;
+    font-feature-settings: 'liga' 1, 'rlig' 1;
+    line-height: 1.25;
+    padding-block: 0.08em;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  .quran-basmala-glyph {
+    display: inline-block;
+    transition: color 120ms ease, text-shadow 120ms ease;
+  }
+
+  /* Hidden word anchors keep exact tracking working inside the calligraphy. */
+  .quran-basmala-track {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .quran-basmala-ligature:has(.quran-word-active) .quran-basmala-glyph {
+    color: rgb(var(--quran-green-rgb));
+    text-shadow: 0 0 0.34em rgb(var(--quran-green-rgb) / 0.25);
+  }
+
+  /* The mushaf flow line for the basmala ayah gets extra height from the
+     inline-block ligature itself; other lines keep the page rhythm. */
+
   .quran-flow {
     text-align: justify;
     text-align-last: center;
     color: rgb(var(--text-main-rgb));
+    word-spacing: 0.08em;
   }
 
   .quran-passage-bracket {
@@ -408,11 +450,12 @@
   }
 
   /* Ayah-level reciters have no word segments, so the whole recited ayah gets
-     a soft green tint and its medallion fills — honest, never guessing words. */
+     the same gentle treatment as the word mode — a soft tint and a green
+     medallion. Honest, consistent, never guessing words. */
   .quran-ayah-active-ayah {
     color: inherit;
     text-decoration: none;
-    background: rgb(var(--quran-green-rgb) / 0.1);
+    background: rgb(var(--quran-green-rgb) / 0.07);
   }
 
   .quran-word {
@@ -459,15 +502,8 @@
   }
 
   .quran-ayah-active-ayah .quran-ayah-marker {
-    display: inline-block;
-    border-radius: 999px;
-    padding: 0.06em;
-    color: rgb(var(--bg-main-rgb));
-    background-color: rgb(var(--quran-green-rgb));
-    box-shadow: 0 0 0.3em rgb(var(--quran-green-rgb) / 0.2);
-    line-height: 1.05;
-    text-shadow: none;
-    vertical-align: 0.04em;
+    color: rgb(var(--quran-green-rgb));
+    text-shadow: 0 0 0.35em rgb(var(--quran-green-rgb) / 0.3);
   }
 
   /* Refined translation typography under each ayah. */
