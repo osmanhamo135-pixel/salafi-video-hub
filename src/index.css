@@ -182,6 +182,31 @@
     --card-wash: linear-gradient(180deg, rgba(71, 29, 35, 0.97), rgba(35, 17, 20, 0.98));
   }
 
+  html[data-theme='onyx'] {
+    --quran-green-rgb: 82 196 130;
+    --bg-main-rgb: 2 2 3;
+    --bg-sidebar-rgb: 6 6 8;
+    --bg-panel-rgb: 10 10 12;
+    --bg-card-rgb: 15 15 18;
+    --bg-card-hover-rgb: 22 22 26;
+    --border-subtle-rgb: 212 178 90;
+    --accent-teal-rgb: 209 170 84;
+    --accent-turquoise-rgb: 240 214 150;
+    --accent-emerald-rgb: 190 158 80;
+    --accent-blue-rgb: 224 190 110;
+    --accent-gold-rgb: 226 190 104;
+    --text-main-rgb: 248 247 244;
+    --text-soft-rgb: 222 219 210;
+    --text-muted-rgb: 148 143 130;
+    --text-faint-rgb: 96 93 84;
+    --border-subtle: rgba(212, 178, 90, 0.15);
+    --border-strong: rgba(226, 190, 104, 0.35);
+    --teal-glass: rgba(209, 170, 84, 0.1);
+    --gold-glass: rgba(226, 190, 104, 0.12);
+    --surface-wash: linear-gradient(180deg, rgba(14, 14, 17, 0.98), rgba(4, 4, 5, 0.98));
+    --card-wash: linear-gradient(180deg, rgba(20, 20, 24, 0.97), rgba(8, 8, 10, 0.98));
+  }
+
   * {
     box-sizing: border-box;
   }
@@ -310,27 +335,19 @@
     text-rendering: geometricPrecision;
   }
 
-  /* The mushaf belongs to the active theme instead of introducing another
-     palette — the theme's card colour lifted towards the theme's own text
-     colour, so the page always reads clearly brighter than the background. */
+  /* The mushaf page melts into the active theme — no separate slab colour,
+     exactly like the app's original look. The section around it carries the
+     single frame. */
   .quran-reading-surface {
     position: relative;
     isolation: isolate;
     overflow: hidden;
     min-height: 19rem;
-    border: 1px solid rgb(var(--accent-gold-rgb) / 0.24);
+    border: none;
     border-radius: 6px;
     padding: clamp(1.4rem, 2.4vw, 2rem) clamp(2rem, 4vw, 3rem);
     color: rgb(var(--text-main-rgb));
-    background: linear-gradient(
-      180deg,
-      color-mix(in srgb, rgb(var(--bg-card-rgb)) 86%, rgb(var(--text-main-rgb)) 14%),
-      color-mix(in srgb, rgb(var(--bg-card-rgb)) 91%, rgb(var(--text-main-rgb)) 9%)
-    );
-    box-shadow:
-      inset 0 1px 0 rgb(var(--text-main-rgb) / 0.035),
-      inset 0 0 0 1px rgb(var(--accent-gold-rgb) / 0.045),
-      0 12px 30px rgba(0, 0, 0, 0.16);
+    background: transparent;
   }
 
   .quran-surah-heading {
