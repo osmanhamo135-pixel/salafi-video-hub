@@ -31,7 +31,6 @@
     --danger-rgb: 239 68 68;
     --warning-rgb: 214 181 109;
     --success-rgb: 16 185 129;
-    --quran-surface-rgb: 46 64 53;
     --bg-main: rgb(var(--bg-main-rgb));
     --bg-sidebar: rgb(var(--bg-sidebar-rgb));
     --bg-panel: rgb(var(--bg-panel-rgb));
@@ -73,7 +72,6 @@
     --text-soft-rgb: 214 232 220;
     --text-muted-rgb: 132 162 145;
     --text-faint-rgb: 86 111 96;
-    --quran-surface-rgb: 35 86 61;
     --border-subtle: rgba(52, 211, 153, 0.13);
     --border-strong: rgba(52, 211, 153, 0.31);
     --teal-glass: rgba(34, 197, 94, 0.11);
@@ -98,7 +96,6 @@
     --text-soft-rgb: 55 65 81;
     --text-muted-rgb: 91 105 120;
     --text-faint-rgb: 122 137 151;
-    --quran-surface-rgb: 225 234 232;
     --border-subtle: rgba(15, 118, 110, 0.17);
     --border-strong: rgba(15, 118, 110, 0.38);
     --teal-glass: rgba(15, 118, 110, 0.1);
@@ -123,7 +120,6 @@
     --text-soft-rgb: 220 226 205;
     --text-muted-rgb: 145 154 127;
     --text-faint-rgb: 92 102 80;
-    --quran-surface-rgb: 57 68 43;
     --border-subtle: rgba(132, 204, 22, 0.14);
     --border-strong: rgba(132, 204, 22, 0.34);
     --teal-glass: rgba(101, 163, 13, 0.12);
@@ -148,7 +144,6 @@
     --text-soft-rgb: 205 216 233;
     --text-muted-rgb: 130 148 178;
     --text-faint-rgb: 84 102 132;
-    --quran-surface-rgb: 31 55 97;
     --border-subtle: rgba(120, 170, 255, 0.14);
     --border-strong: rgba(120, 170, 255, 0.34);
     --teal-glass: rgba(59, 130, 246, 0.12);
@@ -173,7 +168,6 @@
     --text-soft-rgb: 233 214 214;
     --text-muted-rgb: 178 140 140;
     --text-faint-rgb: 132 100 100;
-    --quran-surface-rgb: 82 36 42;
     --border-subtle: rgba(224, 130, 120, 0.15);
     --border-strong: rgba(226, 197, 122, 0.34);
     --teal-glass: rgba(229, 84, 92, 0.12);
@@ -310,21 +304,21 @@
     text-rendering: geometricPrecision;
   }
 
-  /* The reading page has a dedicated, visibly colored surface per theme. */
+  /* The mushaf belongs to the active theme instead of introducing another palette. */
   .quran-reading-surface {
     position: relative;
     isolation: isolate;
     overflow: hidden;
     min-height: 19rem;
-    border: 1px solid rgba(var(--accent-gold-rgb), 0.38);
+    border: 1px solid rgba(var(--accent-gold-rgb), 0.24);
     border-radius: 6px;
     padding: clamp(1.25rem, 2.2vw, 1.8rem) clamp(2rem, 4vw, 3rem);
     color: rgb(var(--text-main-rgb));
-    background-color: rgb(var(--quran-surface-rgb));
+    background-color: rgba(var(--bg-main-rgb), 0.72);
     box-shadow:
-      inset 0 1px 0 rgba(var(--text-main-rgb), 0.08),
-      inset 0 0 0 1px rgba(var(--accent-gold-rgb), 0.08),
-      0 16px 38px rgba(var(--bg-main-rgb), 0.28);
+      inset 0 1px 0 rgba(var(--text-main-rgb), 0.035),
+      inset 0 0 0 1px rgba(var(--accent-gold-rgb), 0.045),
+      0 12px 30px rgba(0, 0, 0, 0.16);
   }
 
   .quran-surah-heading {
@@ -345,6 +339,42 @@
 
   .quran-basmala {
     color: rgb(var(--text-main-rgb));
+    text-shadow: 0 0 0.45em rgba(var(--text-main-rgb), 0.08);
+  }
+
+  .quran-basmala-ligature {
+    position: relative;
+    isolation: isolate;
+    display: inline-block;
+    color: inherit;
+    font-family: 'Amiri Quran', 'Noto Naskh Arabic', 'Scheherazade New', serif;
+    font-size: 1.18em;
+    font-feature-settings: 'liga' 1, 'rlig' 1;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .quran-basmala-glyph {
+    position: relative;
+    z-index: 1;
+    display: inline-block;
+  }
+
+  .quran-basmala-track {
+    position: absolute;
+    inset-inline: -0.08em;
+    top: 50%;
+    z-index: 0;
+    display: grid;
+    height: 1.08em;
+    direction: rtl;
+    transform: translateY(-48%);
+    pointer-events: none;
+  }
+
+  .quran-basmala-track-word {
+    min-width: 0;
+    border-radius: 0.16em;
   }
 
   .quran-flow {
@@ -354,8 +384,12 @@
   }
 
   .quran-passage-bracket {
+    display: inline-block;
     color: rgb(var(--accent-gold-rgb));
-    font-size: 0.84em;
+    font-size: 0.92em;
+    line-height: 1;
+    margin-inline: 0.05em;
+    vertical-align: 0.02em;
     white-space: nowrap;
     text-shadow: 0 0 0.4em rgba(var(--accent-gold-rgb), 0.2);
   }
@@ -403,31 +437,61 @@
   }
 
   .quran-ayah-active-ayah {
-    color: rgb(var(--accent-turquoise-rgb));
-    text-decoration-line: underline;
-    text-decoration-style: dotted;
-    text-decoration-color: rgba(var(--accent-turquoise-rgb), 0.72);
-    text-decoration-thickness: 0.07em;
-    text-underline-offset: 0.24em;
+    color: inherit;
+    text-decoration: none;
   }
 
   .quran-word {
+    position: relative;
+    z-index: 0;
+    border-radius: 0.16em;
     color: inherit;
-    transition: color 100ms ease, text-shadow 100ms ease, text-decoration-color 100ms ease;
+    transition: color 100ms ease;
   }
 
-  /* Track the exact spoken word without painting a tall box over its tashkeel. */
+  /* A compact fill follows the word while leaving the full tashkeel unobstructed. */
   .quran-word-active {
-    color: rgb(var(--accent-turquoise-rgb));
-    text-decoration-line: underline;
-    text-decoration-color: rgba(var(--accent-turquoise-rgb), 0.9);
-    text-decoration-thickness: 0.08em;
-    text-underline-offset: 0.2em;
-    text-shadow: 0 0 0.32em rgba(var(--accent-turquoise-rgb), 0.34);
+    color: rgb(var(--bg-main-rgb));
+    text-decoration: none;
+    text-shadow: none;
+  }
+
+  .quran-word-active::before {
+    content: '';
+    position: absolute;
+    inset-inline: -0.1em;
+    top: 50%;
+    z-index: -1;
+    height: 1.14em;
+    border: 1px solid rgba(var(--text-main-rgb), 0.16);
+    border-radius: 0.18em;
+    background-color: rgb(var(--accent-turquoise-rgb));
+    box-shadow: 0 0 0.32em rgba(var(--accent-turquoise-rgb), 0.2);
+    transform: translateY(-48%);
   }
 
   .quran-ayah-active .quran-ayah-marker {
     color: rgb(var(--accent-turquoise-rgb));
+  }
+
+  .quran-ayah-active-ayah .quran-ayah-marker {
+    display: inline-block;
+    border-radius: 0.2em;
+    padding-inline: 0.06em;
+    color: rgb(var(--bg-main-rgb));
+    background-color: rgb(var(--accent-turquoise-rgb));
+    box-shadow: 0 0 0.3em rgba(var(--accent-turquoise-rgb), 0.2);
+    text-shadow: none;
+  }
+
+  .quran-basmala-track-word.quran-word-active {
+    color: inherit;
+    background-color: rgb(var(--accent-turquoise-rgb));
+    box-shadow: 0 0 0.28em rgba(var(--accent-turquoise-rgb), 0.2);
+  }
+
+  .quran-basmala-track-word.quran-word-active::before {
+    content: none;
   }
 
   /* Refined translation typography under each ayah. */

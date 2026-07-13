@@ -22,7 +22,8 @@ import {
 import { audioElementHolder, seekToSeconds, useRadioStore } from '@/store/radioStore';
 import { useI18n } from '@/i18n';
 
-const BASMALA = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
+const BASMALA_TEXT = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
+const BASMALA_LIGATURE = '﷽';
 
 type QuranTab = 'read' | 'listen';
 type QuranRepeatMode = 'off' | 'ayah' | 'range' | 'surah';
@@ -317,6 +318,34 @@ const useWordSync = (
   return activeAyah;
 };
 
+const QuranBasmalaLigature: React.FC<{
+  label: string;
+  surahId?: number;
+  ayah?: number;
+  wordCount?: number;
+}> = React.memo(({ label, surahId, ayah, wordCount = 0 }) => (
+  <span className="quran-basmala-ligature" aria-label={label}>
+    <span className="quran-basmala-glyph" aria-hidden="true">{BASMALA_LIGATURE}</span>
+    {surahId && ayah && wordCount > 0 && (
+      <span
+        className="quran-basmala-track"
+        aria-hidden="true"
+        style={{ gridTemplateColumns: `repeat(${wordCount}, minmax(0, 1fr))` }}
+      >
+        {Array.from({ length: wordCount }, (_, index) => (
+          <span
+            key={index}
+            id={`quran-word-${surahId}-${ayah}-${index + 1}`}
+            className="quran-word quran-basmala-track-word"
+          />
+        ))}
+      </span>
+    )}
+  </span>
+));
+
+QuranBasmalaLigature.displayName = 'QuranBasmalaLigature';
+
 const QuranVerseWords: React.FC<{
   surahId: number;
   ayah: number;
@@ -324,6 +353,19 @@ const QuranVerseWords: React.FC<{
   syncedWords?: string[];
 }> = React.memo(({ surahId, ayah, text, syncedWords }) => {
   const words = syncedWords?.length ? syncedWords : text.trim().split(/\s+/u).filter(Boolean);
+  if (surahId === 1 && ayah === 1) {
+    return (
+      <span className="quran-ayah-text">
+        <QuranBasmalaLigature
+          label={text}
+          surahId={surahId}
+          ayah={ayah}
+          wordCount={words.length}
+        />{' '}
+      </span>
+    );
+  }
+
   return (
     <span className="quran-ayah-text">
       {words.map((word, index) => (
@@ -703,7 +745,7 @@ const SurahReader: React.FC = () => {
             className="quran-basmala quran-script arabic-text mb-3 text-center"
             style={{ fontSize: fontSize * 0.9, lineHeight: 1.8 }}
           >
-            {BASMALA}
+            <QuranBasmalaLigature label={BASMALA_TEXT} />
           </p>
         )}
 
