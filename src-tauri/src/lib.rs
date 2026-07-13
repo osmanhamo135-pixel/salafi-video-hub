@@ -84,6 +84,8 @@ pub fn run() {
             commands::quran::get_quran_reciters,
             commands::quran::get_quran_timing_reads,
             commands::quran::get_quran_ayah_timings,
+            commands::quran::get_quran_word_timing_reads,
+            commands::quran::get_quran_synced_audio,
             commands::settings::get_settings,
             commands::settings::update_settings,
             commands::settings::add_imported_folder,

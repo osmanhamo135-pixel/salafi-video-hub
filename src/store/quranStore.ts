@@ -50,6 +50,25 @@ export interface AyahTiming {
   endMs: number;
 }
 
+export interface WordTiming {
+  ayah: number;
+  wordIndex: number;
+  startMs: number;
+  endMs: number;
+}
+
+export interface SyncedAyahWords {
+  ayah: number;
+  words: string[];
+}
+
+export interface SyncedSurahAudio {
+  audioUrl: string;
+  ayahTimings: AyahTiming[];
+  wordTimings: WordTiming[];
+  wordsByAyah: SyncedAyahWords[];
+}
+
 interface QuranState {
   surahs: SurahMeta[];
   surahsError: string | null;
@@ -66,16 +85,17 @@ interface QuranState {
   recitersError: string | null;
   selectedReciterId: string | null;
 
-  /** Reciters that provide trusted per-ayah timing for synced highlighting. */
+  /** Reciters with exact word timing paired to the same chapter audio. */
   timingReads: TimingRead[];
   timingReadsError: string | null;
   selectedTimingReadId: string | null;
-  /** Loaded timings keyed by `${readId}:${surahId}`. */
-  timings: Record<string, AyahTiming[]>;
+  /** Loaded audio and timing keyed by `${readId}:${surahId}`. */
+  syncedAudio: Record<string, SyncedSurahAudio>;
+  syncedAudioError: string | null;
 
   loadTimingReads: () => Promise<void>;
   selectTimingRead: (id: string) => void;
-  loadTimings: (readId: string, surahId: number) => Promise<AyahTiming[] | null>;
+  loadSyncedAudio: (readId: string, surahId: number) => Promise<SyncedSurahAudio | null>;
 
   loadSurahs: () => Promise<void>;
   openSurah: (surahId: number) => Promise<void>;
@@ -134,15 +154,21 @@ export const useQuranStore = create<QuranState>((set, get) => ({
   timingReads: [],
   timingReadsError: null,
   selectedTimingReadId: readJson<string | null>(TIMING_READ_KEY, null),
-  timings: {},
+  syncedAudio: {},
+  syncedAudioError: null,
 
   loadTimingReads: async () => {
     if (get().timingReads.length > 0) return;
     try {
-      const timingReads = await invoke<TimingRead[]>('get_quran_timing_reads');
+      const timingReads = await invoke<TimingRead[]>('get_quran_word_timing_reads');
       set({ timingReads, timingReadsError: null });
-      if (!get().selectedTimingReadId && timingReads.length > 0) {
-        set({ selectedTimingReadId: timingReads[0].id });
+      const selected = get().selectedTimingReadId;
+      if (!selected || !timingReads.some((read) => read.id === selected)) {
+        const defaultRead = timingReads.find((read) => read.id === '7') ?? timingReads[0];
+        if (defaultRead) {
+          writeJson(TIMING_READ_KEY, defaultRead.id);
+          set({ selectedTimingReadId: defaultRead.id });
+        }
       }
     } catch (error) {
       set({ timingReadsError: getMessage(error) });
@@ -154,15 +180,19 @@ export const useQuranStore = create<QuranState>((set, get) => ({
     set({ selectedTimingReadId: id });
   },
 
-  loadTimings: async (readId, surahId) => {
+  loadSyncedAudio: async (readId, surahId) => {
     const key = `${readId}:${surahId}`;
-    const cached = get().timings[key];
+    const cached = get().syncedAudio[key];
     if (cached) return cached;
     try {
-      const timings = await invoke<AyahTiming[]>('get_quran_ayah_timings', { readId, surahId });
-      set({ timings: { ...get().timings, [key]: timings } });
-      return timings;
-    } catch {
+      const synced = await invoke<SyncedSurahAudio>('get_quran_synced_audio', { readId, surahId });
+      set({
+        syncedAudio: { ...get().syncedAudio, [key]: synced },
+        syncedAudioError: null,
+      });
+      return synced;
+    } catch (error) {
+      set({ syncedAudioError: getMessage(error) });
       return null;
     }
   },

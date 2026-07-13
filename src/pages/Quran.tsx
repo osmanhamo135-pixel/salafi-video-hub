@@ -9,15 +9,29 @@ import {
   Pause,
   Play,
   Plus,
+  Repeat,
   Search,
 } from 'lucide-react';
-import { AyahTiming, QuranBookmark, SurahMeta, surahAudioUrl, useQuranStore } from '@/store/quranStore';
+import {
+  QuranBookmark,
+  SurahMeta,
+  SyncedSurahAudio,
+  surahAudioUrl,
+  useQuranStore,
+} from '@/store/quranStore';
 import { audioElementHolder, seekToSeconds, useRadioStore } from '@/store/radioStore';
 import { useI18n } from '@/i18n';
 
 const BASMALA = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
 
 type QuranTab = 'read' | 'listen';
+type QuranRepeatMode = 'off' | 'ayah' | 'range' | 'surah';
+
+interface QuranRepeatSelection {
+  mode: QuranRepeatMode;
+  startAyah: number;
+  endAyah: number;
+}
 
 export const Quran: React.FC = () => {
   const { t } = useI18n();
@@ -204,7 +218,7 @@ const SurahRow: React.FC<{ surah: SurahMeta; active: boolean; onOpen: () => void
 SurahRow.displayName = 'SurahRow';
 
 /** Binary search: index of the last timing segment whose start is <= the clock. */
-const findActiveIndex = (timings: AyahTiming[], clock: number): number => {
+function findActiveIndex<T extends { startMs: number }>(timings: T[], clock: number): number {
   let lo = 0;
   let hi = timings.length - 1;
   let found = -1;
@@ -218,67 +232,115 @@ const findActiveIndex = (timings: AyahTiming[], clock: number): number => {
     }
   }
   return found;
-};
+}
 
 /**
- * Ayah synchronization engine (Level B — ayah sync). Reads the audio clock
- * every animation frame directly from the media element and updates React
- * state only when the active ayah actually changes.
+ * Exact word synchronization. React only updates when the ayah changes; the
+ * currently spoken word is switched directly on the DOM so long surahs remain
+ * smooth and do not re-render on every word.
  */
-const useAyahSync = (syncActive: boolean, timings: AyahTiming[] | null, surahId: number | null) => {
+const useWordSync = (
+  syncActive: boolean,
+  synced: SyncedSurahAudio | null,
+  surahId: number | null,
+  repeat: QuranRepeatSelection,
+) => {
   const [activeAyah, setActiveAyah] = useState<number | null>(null);
   const lastAyahRef = useRef<number | null>(null);
-  // Milliseconds multiplier for the timing values; 0 = not yet detected.
-  const scaleRef = useRef(0);
+  const activeWordElementRef = useRef<HTMLElement | null>(null);
+  const lastLoopAtRef = useRef(0);
 
   useEffect(() => {
     lastAyahRef.current = null;
-    scaleRef.current = 0;
+    activeWordElementRef.current?.classList.remove('quran-word-active');
+    activeWordElementRef.current = null;
     setActiveAyah(null);
-    if (!syncActive || !timings || timings.length === 0 || surahId === null) return;
+    if (!syncActive || !synced || surahId === null) return;
+
+    const { ayahTimings, wordTimings } = synced;
+    if (ayahTimings.length === 0 || wordTimings.length === 0) return;
 
     let frame = 0;
     const tick = () => {
       const element = audioElementHolder.current;
-      if (element) {
-        // Some timing sources report seconds instead of milliseconds. Detect
-        // the unit once against the real audio duration: if the last segment
-        // ends far below duration*10, the values are seconds.
-        if (scaleRef.current === 0 && Number.isFinite(element.duration) && element.duration > 0) {
-          const lastEnd = timings[timings.length - 1].endMs;
-          scaleRef.current = lastEnd < element.duration * 10 ? 1000 : 1;
+      if (element && !element.paused) {
+        let clock = element.currentTime * 1000;
+
+        if (repeat.mode === 'ayah' || repeat.mode === 'range') {
+          const first = ayahTimings.find((timing) => timing.ayah === repeat.startAyah);
+          const last = ayahTimings.find((timing) => timing.ayah === repeat.endAyah);
+          const now = performance.now();
+          if (
+            first &&
+            last &&
+            clock >= last.endMs - 45 &&
+            clock > first.startMs + 120 &&
+            now - lastLoopAtRef.current > 250
+          ) {
+            lastLoopAtRef.current = now;
+            element.currentTime = first.startMs / 1000;
+            clock = first.startMs;
+          }
         }
-        if (scaleRef.current !== 0 && !element.paused) {
-          // Convert the audio clock into the timing values' native unit.
-          const clock = (element.currentTime * 1000) / scaleRef.current;
-          const index = findActiveIndex(timings, clock);
-          const segment = index >= 0 ? timings[index] : null;
-          const next = segment && segment.ayah >= 1 ? segment.ayah : null;
 
-          if (next !== lastAyahRef.current) {
-            lastAyahRef.current = next;
-            setActiveAyah(next);
-          }
+        const ayahIndex = findActiveIndex(ayahTimings, clock);
+        const ayahSegment = ayahIndex >= 0 ? ayahTimings[ayahIndex] : null;
+        const nextAyah =
+          ayahSegment && clock <= ayahSegment.endMs + 160 ? ayahSegment.ayah : null;
+        if (nextAyah !== lastAyahRef.current) {
+          lastAyahRef.current = nextAyah;
+          setActiveAyah(nextAyah);
+        }
 
-          // Drive the green sweep across the ayah text with a direct CSS
-          // variable update — the reading direction fill follows the voice.
-          if (next !== null && segment) {
-            const span = segment.endMs - segment.startMs;
-            const progress = span > 0 ? Math.min(Math.max((clock - segment.startMs) / span, 0), 1) : 1;
-            document
-              .getElementById(`quran-verse-${surahId}-${next}`)
-              ?.style.setProperty('--ayah-progress', `${(progress * 100).toFixed(1)}%`);
-          }
+        const wordIndex = findActiveIndex(wordTimings, clock);
+        const word = wordIndex >= 0 ? wordTimings[wordIndex] : null;
+        const nextWordElement =
+          word && clock <= word.endMs + 90
+            ? document.getElementById(`quran-word-${surahId}-${word.ayah}-${word.wordIndex}`)
+            : null;
+        if (nextWordElement !== activeWordElementRef.current) {
+          activeWordElementRef.current?.classList.remove('quran-word-active');
+          nextWordElement?.classList.add('quran-word-active');
+          activeWordElementRef.current = nextWordElement;
         }
       }
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [syncActive, timings, surahId]);
+    return () => {
+      cancelAnimationFrame(frame);
+      activeWordElementRef.current?.classList.remove('quran-word-active');
+      activeWordElementRef.current = null;
+    };
+  }, [repeat, syncActive, synced, surahId]);
 
   return activeAyah;
 };
+
+const QuranVerseWords: React.FC<{
+  surahId: number;
+  ayah: number;
+  text: string;
+  syncedWords?: string[];
+}> = React.memo(({ surahId, ayah, text, syncedWords }) => {
+  const words = syncedWords?.length ? syncedWords : text.trim().split(/\s+/u).filter(Boolean);
+  return (
+    <span className="quran-ayah-text">
+      {words.map((word, index) => (
+        <React.Fragment key={`${ayah}-${index}`}>
+          <span
+            id={`quran-word-${surahId}-${ayah}-${index + 1}`}
+            className="quran-word"
+          >
+            {word}
+          </span>{' '}
+        </React.Fragment>
+      ))}
+    </span>
+  );
+});
+
+QuranVerseWords.displayName = 'QuranVerseWords';
 
 const SurahReader: React.FC = () => {
   const { t } = useI18n();
@@ -295,12 +357,19 @@ const SurahReader: React.FC = () => {
   const selectedTimingReadId = useQuranStore((state) => state.selectedTimingReadId);
   const loadTimingReads = useQuranStore((state) => state.loadTimingReads);
   const selectTimingRead = useQuranStore((state) => state.selectTimingRead);
-  const loadTimings = useQuranStore((state) => state.loadTimings);
-  const storeTimings = useQuranStore((state) => state.timings);
+  const loadSyncedAudio = useQuranStore((state) => state.loadSyncedAudio);
+  const syncedAudioBySurah = useQuranStore((state) => state.syncedAudio);
+  const syncedAudioError = useQuranStore((state) => state.syncedAudioError);
   const playStation = useRadioStore((state) => state.play);
+  const setLooping = useRadioStore((state) => state.setLooping);
   const currentStation = useRadioStore((state) => state.current);
   const [followPaused, setFollowPaused] = useState(false);
+  const [preparingAudio, setPreparingAudio] = useState(false);
+  const [repeatMode, setRepeatMode] = useState<QuranRepeatMode>('off');
+  const [repeatStart, setRepeatStart] = useState(1);
+  const [repeatEnd, setRepeatEnd] = useState(1);
   const programmaticScrollRef = useRef(false);
+  const pendingInitialSeekRef = useRef<number | null>(null);
 
   useEffect(() => {
     void loadTimingReads();
@@ -309,8 +378,49 @@ const SurahReader: React.FC = () => {
   const read = timingReads.find((entry) => entry.id === selectedTimingReadId) ?? timingReads[0];
   const syncStationId = surah && read ? `quran-sync-${read.id}-${surah.id}` : null;
   const syncActive = Boolean(syncStationId && currentStation?.id === syncStationId);
-  const timings = surah && read ? storeTimings[`${read.id}:${surah.id}`] ?? null : null;
-  const activeAyah = useAyahSync(syncActive, timings, surah?.id ?? null);
+  const synced = surah && read ? syncedAudioBySurah[`${read.id}:${surah.id}`] ?? null : null;
+  const syncedWordsByAyah = useMemo(
+    () => new Map(synced?.wordsByAyah.map((entry) => [entry.ayah, entry.words]) ?? []),
+    [synced],
+  );
+  const repeatSelection = useMemo<QuranRepeatSelection>(
+    () => ({ mode: repeatMode, startAyah: repeatStart, endAyah: repeatEnd }),
+    [repeatEnd, repeatMode, repeatStart],
+  );
+  const activeAyah = useWordSync(syncActive, synced, surah?.id ?? null, repeatSelection);
+
+  useEffect(() => {
+    if (!surah) return;
+    setRepeatMode('off');
+    setRepeatStart(1);
+    setRepeatEnd(1);
+  }, [surah?.id]);
+
+  useEffect(() => {
+    if (!syncActive) return;
+    setLooping(repeatMode === 'surah');
+  }, [repeatMode, setLooping, syncActive]);
+
+  useEffect(() => {
+    if (!syncActive || pendingInitialSeekRef.current === null) return;
+    let cancelled = false;
+    let timer = 0;
+    const applyPendingSeek = () => {
+      if (cancelled || pendingInitialSeekRef.current === null) return;
+      const element = audioElementHolder.current;
+      if (element && Number.isFinite(element.duration) && element.duration > 0) {
+        element.currentTime = pendingInitialSeekRef.current / 1000;
+        pendingInitialSeekRef.current = null;
+        return;
+      }
+      timer = window.setTimeout(applyPendingSeek, 100);
+    };
+    applyPendingSeek();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [currentStation?.url, syncActive]);
 
   // Follow the recitation: gently keep the active ayah visible, but never
   // fight the user — manual scrolling pauses auto-follow until they return.
@@ -346,32 +456,57 @@ const SurahReader: React.FC = () => {
 
   const handlePlaySurah = async () => {
     if (!read) return;
-    // Load this reciter's own timing for this surah first (cached after once),
-    // then start playback through the global player.
-    void loadTimings(read.id, surah.id);
-    playStation({
-      id: `quran-sync-${read.id}-${surah.id}`,
-      name: `${surah.transliteration} · ${read.name}`,
-      url: surahAudioUrl(read.folderUrl, surah.id),
-    });
-    setFollowPaused(false);
+    setPreparingAudio(true);
+    try {
+      const loaded = synced ?? (await loadSyncedAudio(read.id, surah.id));
+      if (!loaded) return;
+      const startTiming =
+        repeatMode === 'ayah' || repeatMode === 'range'
+          ? loaded.ayahTimings.find((timing) => timing.ayah === repeatStart)
+          : null;
+      pendingInitialSeekRef.current = startTiming?.startMs ?? null;
+      playStation({
+        id: `quran-sync-${read.id}-${surah.id}`,
+        name: `${surah.transliteration} · ${read.name}`,
+        url: loaded.audioUrl,
+      });
+      setLooping(repeatMode === 'surah');
+      setFollowPaused(false);
+    } finally {
+      setPreparingAudio(false);
+    }
   };
 
   const handleAyahClick = (verseId: number) => {
     setLastRead({ surahId: surah.id, verseId });
-    if (syncActive && timings && timings.length > 0) {
-      const segment = timings.find((timing) => timing.ayah === verseId);
+    if (repeatMode === 'ayah') {
+      setRepeatStart(verseId);
+      setRepeatEnd(verseId);
+    }
+    if (syncActive && synced) {
+      const segment = synced.ayahTimings.find((timing) => timing.ayah === verseId);
       if (segment) {
-        const element = audioElementHolder.current;
-        const lastEnd = timings[timings.length - 1].endMs;
-        const valuesAreSeconds =
-          element && Number.isFinite(element.duration) && element.duration > 0
-            ? lastEnd < element.duration * 10
-            : false;
-        seekToSeconds(valuesAreSeconds ? segment.startMs : segment.startMs / 1000);
+        seekToSeconds(segment.startMs / 1000);
         setFollowPaused(false);
       }
     }
+  };
+
+  const clampAyah = (value: number) =>
+    Math.min(Math.max(Math.round(Number.isFinite(value) ? value : 1), 1), surah.total_verses);
+
+  const handleRepeatMode = (mode: QuranRepeatMode) => {
+    const preferredAyah = clampAyah(
+      activeAyah ?? (lastRead?.surahId === surah.id ? lastRead.verseId : repeatStart),
+    );
+    if (mode === 'ayah') {
+      setRepeatStart(preferredAyah);
+      setRepeatEnd(preferredAyah);
+    } else if (mode === 'range') {
+      setRepeatStart(Math.min(repeatStart, repeatEnd));
+      setRepeatEnd(Math.max(repeatStart, repeatEnd));
+    }
+    setRepeatMode(mode);
   };
 
   const handleReturnToAyah = () => {
@@ -389,14 +524,14 @@ const SurahReader: React.FC = () => {
           <span className="truncate">
             {surah.id}. {surah.transliteration} · {surah.total_verses} {t('quranVerses')}
           </span>
-          {syncActive && timings && (
+          {syncActive && synced && (
             <span className="inline-flex items-center gap-1 rounded-full bg-success-green/15 px-2 py-0.5 font-medium text-success-green">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success-green" />
               {t('quranSyncBadge')}
               {activeAyah !== null && <span className="tabular-nums" dir="ltr"> · {activeAyah}</span>}
             </span>
           )}
-          {syncActive && !timings && (
+          {syncActive && !synced && (
             <span className="rounded-full bg-muted-text/15 px-2 py-0.5 font-medium text-muted-text">
               {t('quranSyncUnavailable')}
             </span>
@@ -421,12 +556,85 @@ const SurahReader: React.FC = () => {
             <button
               type="button"
               onClick={() => void handlePlaySurah()}
+              disabled={preparingAudio}
               className="btn-primary px-2.5 py-1 text-[11px]"
               title={t('quranPlaySurah')}
             >
-              <Play className="h-3 w-3" fill="currentColor" />
-              {t('quranPlaySurah')}
+              {preparingAudio ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Play className="h-3 w-3" fill="currentColor" />
+              )}
+              {preparingAudio ? t('quranPreparingAudio') : t('quranPlaySurah')}
             </button>
+          )}
+          <div className="relative">
+            <Repeat
+              className={`pointer-events-none absolute start-2 top-1/2 h-3 w-3 -translate-y-1/2 ${
+                repeatMode === 'off' ? 'text-muted-text' : 'text-success-green'
+              }`}
+            />
+            <select
+              value={repeatMode}
+              onChange={(event) => handleRepeatMode(event.target.value as QuranRepeatMode)}
+              className={`surface-input w-[126px] py-1 ps-7 text-[11px] ${
+                repeatMode === 'off' ? '' : 'border-success-green/40 text-success-green'
+              }`}
+              title={t('quranRepeat')}
+            >
+              <option value="off">{t('quranRepeatOff')}</option>
+              <option value="ayah">{t('quranRepeatAyah')}</option>
+              <option value="range">{t('quranRepeatRange')}</option>
+              <option value="surah">{t('quranRepeatSurah')}</option>
+            </select>
+          </div>
+          {repeatMode === 'ayah' && (
+            <label className="inline-flex items-center gap-1 text-[10px] text-muted-text">
+              {t('quranAyah')}
+              <input
+                type="number"
+                min={1}
+                max={surah.total_verses}
+                value={repeatStart}
+                onChange={(event) => {
+                  const next = clampAyah(Number(event.target.value));
+                  setRepeatStart(next);
+                  setRepeatEnd(next);
+                }}
+                className="surface-input w-14 py-1 text-center text-[11px] tabular-nums"
+              />
+            </label>
+          )}
+          {repeatMode === 'range' && (
+            <div className="inline-flex items-center gap-1 text-[10px] text-muted-text">
+              <input
+                type="number"
+                min={1}
+                max={surah.total_verses}
+                value={repeatStart}
+                aria-label={t('quranRepeatFrom')}
+                onChange={(event) => {
+                  const next = clampAyah(Number(event.target.value));
+                  setRepeatStart(next);
+                  if (next > repeatEnd) setRepeatEnd(next);
+                }}
+                className="surface-input w-14 py-1 text-center text-[11px] tabular-nums"
+              />
+              <span>–</span>
+              <input
+                type="number"
+                min={1}
+                max={surah.total_verses}
+                value={repeatEnd}
+                aria-label={t('quranRepeatTo')}
+                onChange={(event) => {
+                  const next = clampAyah(Number(event.target.value));
+                  setRepeatEnd(next);
+                  if (next < repeatStart) setRepeatStart(next);
+                }}
+                className="surface-input w-14 py-1 text-center text-[11px] tabular-nums"
+              />
+            </div>
           )}
           <div className="flex items-center rounded-md border border-border">
             <button
@@ -461,6 +669,13 @@ const SurahReader: React.FC = () => {
         </div>
       </div>
 
+      {syncedAudioError && !synced && (
+        <div className="mb-3 flex items-start gap-2 rounded-md border border-warning-orange/25 bg-warning-orange/10 px-3 py-2 text-[11px] text-warning-orange">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>{syncedAudioError}</span>
+        </div>
+      )}
+
       {syncActive && followPaused && (
         <button
           type="button"
@@ -472,23 +687,13 @@ const SurahReader: React.FC = () => {
         </button>
       )}
 
-      <div className="quran-reading-surface mx-auto mt-2 max-w-[54rem]">
-        {/* Mushaf-style ornamental surah band. */}
-        <div className="mb-6 text-center">
-          <div className="quran-surah-band">
-            <span
-              className="quran-script arabic-text font-semibold"
-              style={{ fontSize: Math.max(fontSize * 0.8, 22), lineHeight: 1.9 }}
-            >
-              سُورَةُ {surah.name}
-            </span>
-          </div>
-        </div>
+      <div className="quran-reading-surface mx-auto mt-2 max-w-[68rem]">
+        <span className="sr-only">سُورَةُ {surah.name}</span>
 
         {surah.id !== 1 && surah.id !== 9 && (
           <p
-            className="quran-script arabic-text mb-7 text-center text-text-primary/90"
-            style={{ fontSize: fontSize * 0.82, lineHeight: 2 }}
+            className="quran-basmala quran-script arabic-text mb-3 text-center"
+            style={{ fontSize: fontSize * 0.9, lineHeight: 1.8 }}
           >
             {BASMALA}
           </p>
@@ -518,7 +723,12 @@ const SurahReader: React.FC = () => {
                         marked ? 'quran-bookmarked' : ''
                       } ${isLastRead && !isActive ? 'quran-lastread' : ''}`}
                     >
-                      <span className="quran-ayah-text">{verse.text}</span>
+                      <QuranVerseWords
+                        surahId={surah.id}
+                        ayah={verse.id}
+                        text={verse.text}
+                        syncedWords={syncedWordsByAyah.get(verse.id)}
+                      />
                       <span className="quran-ayah-marker"> ۝{toArabicDigits(verse.id)} </span>
                     </span>
                   </p>
@@ -531,7 +741,7 @@ const SurahReader: React.FC = () => {
           </div>
         ) : (
           /* Mushaf page mode: one continuous justified flow, like a real page. */
-          <p dir="rtl" className="quran-flow quran-script arabic-text" style={{ fontSize, lineHeight: 2.4 }}>
+          <p dir="rtl" className="quran-flow quran-script arabic-text" style={{ fontSize, lineHeight: 1.72 }}>
             {surah.verses.map((verse) => {
               const bookmark = { surahId: surah.id, verseId: verse.id };
               const marked = isBookmarked(bookmark);
@@ -552,7 +762,12 @@ const SurahReader: React.FC = () => {
                     marked ? 'quran-bookmarked' : ''
                   } ${isLastRead && !isActive ? 'quran-lastread' : ''}`}
                 >
-                  <span className="quran-ayah-text">{verse.text}</span>
+                  <QuranVerseWords
+                    surahId={surah.id}
+                    ayah={verse.id}
+                    text={verse.text}
+                    syncedWords={syncedWordsByAyah.get(verse.id)}
+                  />
                   <span className="quran-ayah-marker"> ۝{toArabicDigits(verse.id)} </span>
                 </span>
               );

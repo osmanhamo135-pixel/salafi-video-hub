@@ -40,6 +40,7 @@ interface RadioState {
   playing: boolean;
   playbackError: boolean;
   volume: number;
+  looping: boolean;
   favorites: string[];
   sleepMinutes: SleepMinutes;
   sleepUntil: number | null;
@@ -52,6 +53,8 @@ interface RadioState {
   markPlaybackError: () => void;
   markPlaying: () => void;
   setVolume: (volume: number) => void;
+  setLooping: (looping: boolean) => void;
+  toggleLooping: () => void;
   toggleFavorite: (id: string) => void;
   setSleepMinutes: (minutes: SleepMinutes) => void;
 }
@@ -92,6 +95,7 @@ export const useRadioStore = create<RadioState>((set, get) => ({
   playing: false,
   playbackError: false,
   volume: loadVolume(),
+  looping: false,
   favorites: loadFavorites(),
   sleepMinutes: 0,
   sleepUntil: null,
@@ -113,7 +117,7 @@ export const useRadioStore = create<RadioState>((set, get) => ({
   },
 
   play: (station) => {
-    set({ current: station, playing: true, playbackError: false });
+    set({ current: station, playing: true, playbackError: false, looping: false });
   },
 
   togglePlay: () => {
@@ -124,7 +128,14 @@ export const useRadioStore = create<RadioState>((set, get) => ({
 
   stop: () => {
     clearSleepTimer();
-    set({ current: null, playing: false, playbackError: false, sleepMinutes: 0, sleepUntil: null });
+    set({
+      current: null,
+      playing: false,
+      playbackError: false,
+      looping: false,
+      sleepMinutes: 0,
+      sleepUntil: null,
+    });
   },
 
   retry: () => {
@@ -146,6 +157,9 @@ export const useRadioStore = create<RadioState>((set, get) => ({
     }
     set({ volume: clamped });
   },
+
+  setLooping: (looping) => set({ looping }),
+  toggleLooping: () => set({ looping: !get().looping }),
 
   toggleFavorite: (id) => {
     const favorites = get().favorites.includes(id)

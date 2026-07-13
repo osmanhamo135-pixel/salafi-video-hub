@@ -9,6 +9,7 @@ import {
   Play,
   RadioTower,
   RefreshCw,
+  Repeat,
   Volume2,
   X,
 } from 'lucide-react';
@@ -28,6 +29,7 @@ export const RadioMiniPlayer: React.FC = () => {
   const playing = useRadioStore((state) => state.playing);
   const playbackError = useRadioStore((state) => state.playbackError);
   const volume = useRadioStore((state) => state.volume);
+  const looping = useRadioStore((state) => state.looping);
   const sleepMinutes = useRadioStore((state) => state.sleepMinutes);
   const togglePlay = useRadioStore((state) => state.togglePlay);
   const stop = useRadioStore((state) => state.stop);
@@ -35,6 +37,7 @@ export const RadioMiniPlayer: React.FC = () => {
   const markPlaybackError = useRadioStore((state) => state.markPlaybackError);
   const markPlaying = useRadioStore((state) => state.markPlaying);
   const setVolume = useRadioStore((state) => state.setVolume);
+  const toggleLooping = useRadioStore((state) => state.toggleLooping);
   const setSleepMinutes = useRadioStore((state) => state.setSleepMinutes);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [buffering, setBuffering] = React.useState(false);
@@ -82,6 +85,7 @@ export const RadioMiniPlayer: React.FC = () => {
         }}
         key={`${current.id}-${current.url}`}
         src={current.url}
+        loop={looping}
         preload="none"
         onPlaying={() => {
           setBuffering(false);
@@ -102,41 +106,43 @@ export const RadioMiniPlayer: React.FC = () => {
   // Collapsed: a tiny floating pill so nothing blocks the page while listening.
   if (collapsed) {
     return (
-      <div className="fixed bottom-4 end-4 z-40 flex items-center gap-1 rounded-full border border-border bg-panel/85 p-1 shadow-xl backdrop-blur">
+      <>
         {audioElement}
-        <button
-          type="button"
-          onClick={playbackError ? retry : togglePlay}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-blue text-white shadow transition-transform hover:scale-105"
-          title={playbackError ? t('retry') : playing ? t('pause') : t('play')}
-        >
-          {playbackError ? (
-            <RefreshCw className="h-4 w-4" />
-          ) : buffering && playing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : playing ? (
-            <Pause className="h-4 w-4" fill="currentColor" />
-          ) : (
-            <Play className="h-4 w-4" fill="currentColor" />
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => setCollapsedPersisted(false)}
-          className="flex h-7 w-7 items-center justify-center rounded-full text-muted-text hover:bg-panel-hover hover:text-text-primary"
-          title={t('playerExpand')}
-        >
-          <ChevronUp className="h-4 w-4" />
-        </button>
-      </div>
+        <div className="fixed bottom-4 end-4 z-40 flex items-center gap-1 rounded-full border border-border bg-panel/85 p-1 shadow-xl backdrop-blur">
+          <button
+            type="button"
+            onClick={playbackError ? retry : togglePlay}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-blue text-white shadow transition-transform hover:scale-105"
+            title={playbackError ? t('retry') : playing ? t('pause') : t('play')}
+          >
+            {playbackError ? (
+              <RefreshCw className="h-4 w-4" />
+            ) : buffering && playing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : playing ? (
+              <Pause className="h-4 w-4" fill="currentColor" />
+            ) : (
+              <Play className="h-4 w-4" fill="currentColor" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setCollapsedPersisted(false)}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-muted-text hover:bg-panel-hover hover:text-text-primary"
+            title={t('playerExpand')}
+          >
+            <ChevronUp className="h-4 w-4" />
+          </button>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="fixed bottom-4 end-4 z-40 w-[400px] max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-panel/90 p-3 shadow-2xl backdrop-blur">
+    <>
       {audioElement}
-
-      <div className="flex items-center gap-3">
+      <div className="fixed bottom-4 end-4 z-40 w-[400px] max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-panel/90 p-3 shadow-2xl backdrop-blur">
+        <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={playbackError ? retry : togglePlay}
@@ -212,6 +218,21 @@ export const RadioMiniPlayer: React.FC = () => {
 
           <button
             type="button"
+            onClick={toggleLooping}
+            disabled={!seekable}
+            className={`rounded p-1 transition-colors ${
+              looping
+                ? 'bg-success-green/15 text-success-green'
+                : 'text-muted-text hover:bg-panel-hover hover:text-text-primary'
+            } disabled:cursor-not-allowed disabled:opacity-35`}
+            title={looping ? t('quranRepeatSurahOn') : t('quranRepeatSurah')}
+            aria-pressed={looping}
+          >
+            <Repeat className="h-4 w-4" />
+          </button>
+
+          <button
+            type="button"
             onClick={() => setCollapsedPersisted(true)}
             className="rounded p-1 text-muted-text hover:bg-panel-hover hover:text-text-primary"
             title={t('playerCollapse')}
@@ -228,10 +249,10 @@ export const RadioMiniPlayer: React.FC = () => {
             <X className="h-4 w-4" />
           </button>
         </div>
-      </div>
+        </div>
 
-      {seekable && (
-        <div className="mt-2 flex items-center gap-2">
+        {seekable && (
+          <div className="mt-2 flex items-center gap-2">
           <span className="w-10 text-end text-[10px] tabular-nums text-muted-text" dir="ltr">
             {formatTime(position)}
           </span>
@@ -250,8 +271,9 @@ export const RadioMiniPlayer: React.FC = () => {
           <span className="w-10 text-[10px] tabular-nums text-muted-text" dir="ltr">
             {formatTime(duration)}
           </span>
-        </div>
-      )}
-    </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
