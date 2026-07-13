@@ -345,6 +345,13 @@ pub fn get_quran_word_timing_reads() -> Vec<TimingRead> {
         ("9", "Mohamed Siddiq al-Minshawi - Murattal"),
         ("10", "Saud ash-Shuraym - Murattal"),
         ("12", "Mahmoud Khalil Al-Husary - Muallim"),
+        ("97", "Yasser ad-Dussary - Murattal (Classic)"),
+        ("161", "Khalifah al-Tunaiji - Murattal"),
+        ("168", "Mohamed Siddiq al-Minshawi - Kids Repeat"),
+        ("170", "Khalid al-Jalil - Murattal"),
+        ("172", "Hadi Toure - Murattal"),
+        ("173", "Mishari Rashid al-Afasy - Murattal (Alternate)"),
+        ("174", "Yasser ad-Dussary - Murattal"),
     ]
     .into_iter()
     .map(|(id, name)| TimingRead {
@@ -358,7 +365,24 @@ pub fn get_quran_word_timing_reads() -> Vec<TimingRead> {
 fn is_supported_word_timing_read(read_id: &str) -> bool {
     matches!(
         read_id,
-        "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "12"
+        "1"
+            | "2"
+            | "3"
+            | "4"
+            | "5"
+            | "6"
+            | "7"
+            | "8"
+            | "9"
+            | "10"
+            | "12"
+            | "97"
+            | "161"
+            | "168"
+            | "170"
+            | "172"
+            | "173"
+            | "174"
     )
 }
 
@@ -592,7 +616,19 @@ fn parse_synced_ayah_words(body: &str, surah_id: i64) -> Result<Vec<SyncedAyahWo
 
 #[cfg(test)]
 mod timing_tests {
-    use super::{parse_synced_ayah_words, parse_synced_surah_audio};
+    use super::{
+        get_quran_word_timing_reads, is_supported_word_timing_read, parse_synced_ayah_words,
+        parse_synced_surah_audio,
+    };
+
+    #[test]
+    fn every_visible_word_timing_reciter_is_supported() {
+        let reads = get_quran_word_timing_reads();
+        assert_eq!(reads.len(), 18);
+        assert!(reads
+            .iter()
+            .all(|read| is_supported_word_timing_read(&read.id)));
+    }
 
     #[test]
     fn parses_word_segments_and_ignores_incomplete_legacy_segments() {

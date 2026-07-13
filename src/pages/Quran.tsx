@@ -747,7 +747,7 @@ const SurahReader: React.FC = () => {
           </div>
         ) : (
           /* Mushaf page mode: one continuous justified flow, like a real page. */
-          <p dir="rtl" className="quran-flow quran-script arabic-text" style={{ fontSize, lineHeight: 1.72 }}>
+          <p dir="rtl" className="quran-flow quran-script arabic-text" style={{ fontSize, lineHeight: 1.82 }}>
             <span className="quran-passage-bracket" aria-hidden="true">﴿</span>{' '}
             {surah.verses.map((verse) => {
               const bookmark = { surahId: surah.id, verseId: verse.id };
