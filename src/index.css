@@ -402,6 +402,15 @@
     background: transparent;
   }
 
+  .quran-ayah-active-ayah {
+    color: rgb(var(--accent-turquoise-rgb));
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: rgba(var(--accent-turquoise-rgb), 0.72);
+    text-decoration-thickness: 0.07em;
+    text-underline-offset: 0.24em;
+  }
+
   .quran-word {
     color: inherit;
     transition: color 100ms ease, text-shadow 100ms ease, text-decoration-color 100ms ease;

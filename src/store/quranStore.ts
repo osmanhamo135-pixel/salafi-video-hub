@@ -41,6 +41,8 @@ export interface QuranBookmark {
 export interface TimingRead {
   id: string;
   name: string;
+  nameAr?: string;
+  timingLevel: 'word' | 'ayah';
   folderUrl: string;
 }
 
@@ -83,6 +85,7 @@ interface QuranState {
   reciters: QuranReciter[];
   recitersLoading: boolean;
   recitersError: string | null;
+  recitersLanguage: string | null;
   selectedReciterId: string | null;
 
   /** Reciters with exact word timing paired to the same chapter audio. */
@@ -149,6 +152,7 @@ export const useQuranStore = create<QuranState>((set, get) => ({
   reciters: [],
   recitersLoading: false,
   recitersError: null,
+  recitersLanguage: null,
   selectedReciterId: readJson<string | null>(RECITER_KEY, null),
 
   timingReads: [],
@@ -250,15 +254,36 @@ export const useQuranStore = create<QuranState>((set, get) => ({
     ),
 
   loadReciters: async (language) => {
-    if (get().recitersLoading || get().reciters.length > 0) return;
-    set({ recitersLoading: true, recitersError: null });
+    const normalizedLanguage = language === 'ar' ? 'ar' : 'eng';
+    if (get().recitersLanguage === normalizedLanguage) {
+      if (get().recitersLoading || get().reciters.length > 0) return;
+    }
+    set({
+      recitersLoading: true,
+      recitersError: null,
+      recitersLanguage: normalizedLanguage,
+    });
     try {
-      const reciters = await invoke<QuranReciter[]>('get_quran_reciters', { language });
-      set({ reciters, recitersLoading: false });
-      if (!get().selectedReciterId && reciters.length > 0) {
-        set({ selectedReciterId: reciters[0].id });
+      const reciters = await invoke<QuranReciter[]>('get_quran_reciters', {
+        language: normalizedLanguage,
+      });
+      if (get().recitersLanguage !== normalizedLanguage) return;
+      const selected = get().selectedReciterId;
+      const selectedReciterId =
+        selected && reciters.some((reciter) => reciter.id === selected)
+          ? selected
+          : reciters[0]?.id ?? null;
+      set({
+        reciters,
+        recitersLoading: false,
+        recitersLanguage: normalizedLanguage,
+        selectedReciterId,
+      });
+      if (selectedReciterId) {
+        writeJson(RECITER_KEY, selectedReciterId);
       }
     } catch (error) {
+      if (get().recitersLanguage !== normalizedLanguage) return;
       set({ recitersLoading: false, recitersError: getMessage(error) });
     }
   },

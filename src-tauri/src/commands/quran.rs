@@ -132,6 +132,10 @@ fn locate_quran_file(app_handle: &AppHandle) -> Option<PathBuf> {
 pub struct TimingRead {
     pub id: String,
     pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name_ar: Option<String>,
+    #[serde(default)]
+    pub timing_level: String,
     /// Audio base URL for this read; surah audio is `{folder_url}{surah:03}.mp3`.
     pub folder_url: String,
 }
@@ -212,6 +216,8 @@ fn parse_timing_reads(body: &str) -> Result<Vec<TimingRead>, String> {
             Some(TimingRead {
                 id,
                 name,
+                name_ar: None,
+                timing_level: "ayah".to_string(),
                 folder_url,
             })
         })
@@ -328,45 +334,106 @@ pub struct SyncedSurahAudio {
     pub words_by_ayah: Vec<SyncedAyahWords>,
 }
 
-/// Recitations whose Quran Foundation chapter audio currently exposes exact
-/// word segments. The list is local so unsupported reciters are never shown as
-/// word accurate when they only provide an ayah-level clock.
+/// Reader recitations. Quran Foundation recordings expose exact word segments;
+/// selected MP3Quran recordings are retained with an explicit ayah-level label.
 #[tauri::command]
 pub fn get_quran_word_timing_reads() -> Vec<TimingRead> {
-    [
-        ("1", "AbdulBaset AbdulSamad - Mujawwad"),
-        ("2", "AbdulBaset AbdulSamad - Murattal"),
-        ("3", "Abdur-Rahman as-Sudais - Murattal"),
-        ("4", "Abu Bakr al-Shatri - Murattal"),
-        ("5", "Hani ar-Rifai - Murattal"),
-        ("6", "Mahmoud Khalil Al-Husary - Murattal"),
-        ("7", "Mishari Rashid al-Afasy - Murattal"),
-        ("8", "Mohamed Siddiq al-Minshawi - Mujawwad"),
-        ("9", "Mohamed Siddiq al-Minshawi - Murattal"),
-        ("10", "Saud ash-Shuraym - Murattal"),
-        ("12", "Mahmoud Khalil Al-Husary - Muallim"),
-        ("97", "Yasser ad-Dussary - Murattal (Classic)"),
-        ("161", "Khalifah al-Tunaiji - Murattal"),
-        ("168", "Mohamed Siddiq al-Minshawi - Kids Repeat"),
-        ("170", "Khalid al-Jalil - Murattal"),
-        ("172", "Hadi Toure - Murattal"),
-        ("173", "Mishari Rashid al-Afasy - Murattal (Alternate)"),
-        ("174", "Yasser ad-Dussary - Murattal"),
+    let mut reads = [
+        (
+            "1",
+            "AbdulBaset AbdulSamad - Mujawwad",
+            "عبد الباسط عبد الصمد - مجوّد",
+        ),
+        (
+            "2",
+            "AbdulBaset AbdulSamad - Murattal",
+            "عبد الباسط عبد الصمد - مرتّل",
+        ),
+        (
+            "3",
+            "Abdur-Rahman as-Sudais - Murattal",
+            "عبد الرحمن السديس - مرتّل",
+        ),
+        (
+            "4",
+            "Abu Bakr al-Shatri - Murattal",
+            "أبو بكر الشاطري - مرتّل",
+        ),
+        ("5", "Hani ar-Rifai - Murattal", "هاني الرفاعي - مرتّل"),
+        (
+            "6",
+            "Mahmoud Khalil Al-Husary - Murattal",
+            "محمود خليل الحصري - مرتّل",
+        ),
+        (
+            "7",
+            "Mishari Rashid al-Afasy - Murattal",
+            "مشاري راشد العفاسي - مرتّل",
+        ),
+        (
+            "8",
+            "Mohamed Siddiq al-Minshawi - Mujawwad",
+            "محمد صديق المنشاوي - مجوّد",
+        ),
+        (
+            "9",
+            "Mohamed Siddiq al-Minshawi - Murattal",
+            "محمد صديق المنشاوي - مرتّل",
+        ),
+        ("10", "Saud ash-Shuraym - Murattal", "سعود الشريم - مرتّل"),
+        (
+            "12",
+            "Mahmoud Khalil Al-Husary - Muallim",
+            "محمود خليل الحصري - معلّم",
+        ),
+        (
+            "97",
+            "Yasser ad-Dussary - Murattal (Classic)",
+            "ياسر الدوسري - مرتّل (تسجيل كلاسيكي)",
+        ),
+        (
+            "161",
+            "Khalifah al-Tunaiji - Murattal",
+            "خليفة الطنيجي - مرتّل",
+        ),
+        (
+            "168",
+            "Mohamed Siddiq al-Minshawi - Kids Repeat",
+            "محمد صديق المنشاوي - ترديد الأطفال",
+        ),
+        ("170", "Khalid al-Jalil - Murattal", "خالد الجليل - مرتّل"),
+        ("172", "Hadi Toure - Murattal", "هادي توري - مرتّل"),
+        (
+            "173",
+            "Mishari Rashid al-Afasy - Murattal (Alternate)",
+            "مشاري راشد العفاسي - مرتّل (تسجيل بديل)",
+        ),
+        ("174", "Yasser ad-Dussary - Murattal", "ياسر الدوسري - مرتّل"),
     ]
     .into_iter()
-    .map(|(id, name)| TimingRead {
+    .map(|(id, name, name_ar)| TimingRead {
         id: id.to_string(),
         name: name.to_string(),
+        name_ar: Some(name_ar.to_string()),
+        timing_level: "word".to_string(),
         folder_url: String::new(),
     })
-    .collect()
+    .collect::<Vec<_>>();
+
+    reads.push(TimingRead {
+        id: "mp3-137".to_string(),
+        name: "Ahmad Talib bin Humaid - Ayah tracking".to_string(),
+        name_ar: Some("أحمد طالب بن حميد - متابعة الآية".to_string()),
+        timing_level: "ayah".to_string(),
+        folder_url: "https://server16.mp3quran.net/a_binhameed/Rewayat-Hafs-A-n-Assem/".to_string(),
+    });
+    reads
 }
 
 fn is_supported_word_timing_read(read_id: &str) -> bool {
     matches!(
         read_id,
-        "1"
-            | "2"
+        "1" | "2"
             | "3"
             | "4"
             | "5"
@@ -386,8 +453,8 @@ fn is_supported_word_timing_read(read_id: &str) -> bool {
     )
 }
 
-/// Returns a chapter audio URL and the word timings produced for that exact
-/// recording. Responses are cached after first use for instant offline replay.
+/// Returns synchronized chapter audio. Exact recordings include word segments;
+/// retained legacy recordings include verified ayah boundaries only.
 #[tauri::command]
 pub async fn get_quran_synced_audio(
     app_handle: AppHandle,
@@ -396,8 +463,15 @@ pub async fn get_quran_synced_audio(
 ) -> Result<SyncedSurahAudio, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let read_id = read_id.trim();
-        if !is_supported_word_timing_read(read_id) {
-            return Err("This reciter does not provide verified word timing.".to_string());
+        let ayah_source = match read_id {
+            "mp3-137" => Some((
+                "137",
+                "https://server16.mp3quran.net/a_binhameed/Rewayat-Hafs-A-n-Assem/",
+            )),
+            _ => None,
+        };
+        if ayah_source.is_none() && !is_supported_word_timing_read(read_id) {
+            return Err("This reciter does not provide verified timing.".to_string());
         }
         if !(1..=114).contains(&surah_id) {
             return Err("Surah number must be between 1 and 114.".to_string());
@@ -413,12 +487,33 @@ pub async fn get_quran_synced_audio(
             if let Ok(cached) = serde_json::from_str::<SyncedSurahAudio>(&raw) {
                 if cached.audio_url.starts_with("https://")
                     && !cached.ayah_timings.is_empty()
-                    && !cached.word_timings.is_empty()
-                    && !cached.words_by_ayah.is_empty()
+                    && (ayah_source.is_some()
+                        || (!cached.word_timings.is_empty() && !cached.words_by_ayah.is_empty()))
                 {
                     return Ok(cached);
                 }
             }
+        }
+
+        if let Some((source_id, folder_url)) = ayah_source {
+            let body = fetch_url(&format!(
+                "https://mp3quran.net/api/v3/ayat_timing?surah={}&read={}",
+                surah_id, source_id
+            ))?;
+            let ayah_timings = parse_ayah_timings(&body)?;
+            if ayah_timings.is_empty() {
+                return Err("This reciter has no recording for the selected surah.".to_string());
+            }
+            let synced = SyncedSurahAudio {
+                audio_url: format!("{}{:03}.mp3", folder_url, surah_id),
+                ayah_timings,
+                word_timings: Vec::new(),
+                words_by_ayah: Vec::new(),
+            };
+            if let Ok(json) = serde_json::to_string(&synced) {
+                let _ = fs::write(&cache_path, json);
+            }
+            return Ok(synced);
         }
 
         let url = format!(
@@ -622,12 +717,22 @@ mod timing_tests {
     };
 
     #[test]
-    fn every_visible_word_timing_reciter_is_supported() {
+    fn reader_reciters_keep_exact_timing_honest_and_restore_ahmad() {
         let reads = get_quran_word_timing_reads();
-        assert_eq!(reads.len(), 18);
+        assert_eq!(reads.len(), 19);
         assert!(reads
             .iter()
+            .filter(|read| read.timing_level == "word")
             .all(|read| is_supported_word_timing_read(&read.id)));
+        let ahmad = reads
+            .iter()
+            .find(|read| read.id == "mp3-137")
+            .expect("Ahmad Talib bin Humaid should remain available");
+        assert_eq!(ahmad.timing_level, "ayah");
+        assert_eq!(
+            ahmad.name_ar.as_deref(),
+            Some("أحمد طالب بن حميد - متابعة الآية")
+        );
     }
 
     #[test]

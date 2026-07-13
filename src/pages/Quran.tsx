@@ -258,7 +258,7 @@ const useWordSync = (
     if (!syncActive || !synced || surahId === null) return;
 
     const { ayahTimings, wordTimings } = synced;
-    if (ayahTimings.length === 0 || wordTimings.length === 0) return;
+    if (ayahTimings.length === 0) return;
 
     let frame = 0;
     const tick = () => {
@@ -343,7 +343,7 @@ const QuranVerseWords: React.FC<{
 QuranVerseWords.displayName = 'QuranVerseWords';
 
 const SurahReader: React.FC = () => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const surah = useQuranStore((state) => state.currentSurah);
   const fontSize = useQuranStore((state) => state.fontSize);
   const showTranslation = useQuranStore((state) => state.showTranslation);
@@ -376,6 +376,8 @@ const SurahReader: React.FC = () => {
   }, [loadTimingReads]);
 
   const read = timingReads.find((entry) => entry.id === selectedTimingReadId) ?? timingReads[0];
+  const readName = read ? (language === 'ar' ? read.nameAr ?? read.name : read.name) : '';
+  const ayahOnlyTracking = read?.timingLevel === 'ayah';
   const syncStationId = surah && read ? `quran-sync-${read.id}-${surah.id}` : null;
   const syncActive = Boolean(syncStationId && currentStation?.id === syncStationId);
   const synced = surah && read ? syncedAudioBySurah[`${read.id}:${surah.id}`] ?? null : null;
@@ -467,7 +469,7 @@ const SurahReader: React.FC = () => {
       pendingInitialSeekRef.current = startTiming?.startMs ?? null;
       playStation({
         id: `quran-sync-${read.id}-${surah.id}`,
-        name: `${surah.transliteration} · ${read.name}`,
+        name: `${surah.transliteration} · ${readName}`,
         url: loaded.audioUrl,
       });
       setLooping(repeatMode === 'surah');
@@ -527,7 +529,7 @@ const SurahReader: React.FC = () => {
           {syncActive && synced && (
             <span className="inline-flex items-center gap-1 rounded-full bg-success-green/15 px-2 py-0.5 font-medium text-success-green">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success-green" />
-              {t('quranSyncBadge')}
+              {t(ayahOnlyTracking ? 'quranAyahSyncBadge' : 'quranSyncBadge')}
               {activeAyah !== null && <span className="tabular-nums" dir="ltr"> · {activeAyah}</span>}
             </span>
           )}
@@ -547,7 +549,7 @@ const SurahReader: React.FC = () => {
             >
               {timingReads.map((entry) => (
                 <option key={entry.id} value={entry.id}>
-                  {entry.name}
+                  {language === 'ar' ? entry.nameAr ?? entry.name : entry.name}
                 </option>
               ))}
             </select>
@@ -725,7 +727,11 @@ const SurahReader: React.FC = () => {
                         toggleBookmark(bookmark);
                       }}
                       title={t('quranBookmarkHint')}
-                      className={`quran-ayah-inline ${isActive ? 'quran-ayah-active' : ''} ${
+                      className={`quran-ayah-inline ${
+                        isActive
+                          ? `quran-ayah-active${ayahOnlyTracking ? ' quran-ayah-active-ayah' : ''}`
+                          : ''
+                      } ${
                         marked ? 'quran-bookmarked' : ''
                       } ${isLastRead && !isActive ? 'quran-lastread' : ''}`}
                     >
@@ -765,7 +771,11 @@ const SurahReader: React.FC = () => {
                     toggleBookmark(bookmark);
                   }}
                   title={t('quranBookmarkHint')}
-                  className={`quran-ayah-inline ${isActive ? 'quran-ayah-active' : ''} ${
+                  className={`quran-ayah-inline ${
+                    isActive
+                      ? `quran-ayah-active${ayahOnlyTracking ? ' quran-ayah-active-ayah' : ''}`
+                      : ''
+                  } ${
                     marked ? 'quran-bookmarked' : ''
                   } ${isLastRead && !isActive ? 'quran-lastread' : ''}`}
                 >
