@@ -688,7 +688,12 @@ const SurahReader: React.FC = () => {
       )}
 
       <div className="quran-reading-surface mx-auto mt-2 max-w-[68rem]">
-        <span className="sr-only">سُورَةُ {surah.name}</span>
+        {/* Ornamental surah heading, mushaf-style, in the theme's gold. */}
+        <div className="mb-5 text-center">
+          <span className="quran-surah-band quran-script arabic-text font-semibold">
+            سُورَةُ {surah.name}
+          </span>
+        </div>
 
         {surah.id !== 1 && surah.id !== 9 && (
           <p
@@ -741,7 +746,7 @@ const SurahReader: React.FC = () => {
           </div>
         ) : (
           /* Mushaf page mode: one continuous justified flow, like a real page. */
-          <p dir="rtl" className="quran-flow quran-script arabic-text" style={{ fontSize, lineHeight: 1.72 }}>
+          <p dir="rtl" className="quran-flow quran-script arabic-text" style={{ fontSize, lineHeight: 1.95 }}>
             {surah.verses.map((verse) => {
               const bookmark = { surahId: surah.id, verseId: verse.id };
               const marked = isBookmarked(bookmark);
