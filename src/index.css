@@ -287,7 +287,7 @@
 
   html[dir='rtl'] .app-sidebar nav a[aria-current='page'],
   html[dir='rtl'] .app-sidebar nav a.shadow-\[inset_3px_0_0_rgba\(15\2c 185\2c 177\2c 0\.85\)\] {
-    box-shadow: inset -3px 0 0 rgba(var(--accent-teal-rgb), 0.85);
+    box-shadow: inset -3px 0 0 rgb(var(--accent-teal-rgb) / 0.85);
   }
 
   .arabic-text {
@@ -310,14 +310,14 @@
     isolation: isolate;
     overflow: hidden;
     min-height: 19rem;
-    border: 1px solid rgba(var(--accent-gold-rgb), 0.24);
+    border: 1px solid rgb(var(--accent-gold-rgb) / 0.24);
     border-radius: 6px;
     padding: clamp(1.25rem, 2.2vw, 1.8rem) clamp(2rem, 4vw, 3rem);
     color: rgb(var(--text-main-rgb));
-    background-color: rgba(var(--bg-main-rgb), 0.72);
+    background-color: rgb(var(--bg-main-rgb) / 0.72);
     box-shadow:
-      inset 0 1px 0 rgba(var(--text-main-rgb), 0.035),
-      inset 0 0 0 1px rgba(var(--accent-gold-rgb), 0.045),
+      inset 0 1px 0 rgb(var(--text-main-rgb) / 0.035),
+      inset 0 0 0 1px rgb(var(--accent-gold-rgb) / 0.045),
       0 12px 30px rgba(0, 0, 0, 0.16);
   }
 
@@ -327,19 +327,19 @@
     justify-content: center;
     gap: clamp(1.5rem, 5vw, 4rem);
     color: rgb(var(--accent-gold-rgb));
-    text-shadow: 0 0 0.5em rgba(var(--accent-gold-rgb), 0.18);
+    text-shadow: 0 0 0.5em rgb(var(--accent-gold-rgb) / 0.18);
   }
 
   .quran-surah-heading::before,
   .quran-surah-heading::after {
     content: '۞';
     font-size: 0.42em;
-    color: rgba(var(--accent-gold-rgb), 0.75);
+    color: rgb(var(--accent-gold-rgb) / 0.75);
   }
 
   .quran-basmala {
     color: rgb(var(--text-main-rgb));
-    text-shadow: 0 0 0.45em rgba(var(--text-main-rgb), 0.08);
+    text-shadow: 0 0 0.45em rgb(var(--text-main-rgb) / 0.08);
   }
 
   .quran-basmala-ligature {
@@ -358,18 +358,16 @@
     position: relative;
     z-index: 1;
     display: inline-block;
+    transition: color 100ms ease, text-shadow 100ms ease;
   }
 
   .quran-basmala-track {
     position: absolute;
-    inset-inline: -0.08em;
-    top: 50%;
-    z-index: 0;
-    display: grid;
-    height: 1.08em;
-    direction: rtl;
-    transform: translateY(-48%);
-    pointer-events: none;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .quran-basmala-track-word {
@@ -391,7 +389,7 @@
     margin-inline: 0.05em;
     vertical-align: 0.02em;
     white-space: nowrap;
-    text-shadow: 0 0 0.4em rgba(var(--accent-gold-rgb), 0.2);
+    text-shadow: 0 0 0.4em rgb(var(--accent-gold-rgb) / 0.2);
   }
 
   /* Inline ayah: clickable and highlightable without ever moving the layout.
@@ -406,7 +404,7 @@
   }
 
   .quran-ayah-inline:hover {
-    background: rgba(var(--accent-gold-rgb), 0.08);
+    background: rgb(var(--accent-gold-rgb) / 0.08);
   }
 
   /* The traditional ۝ end-of-ayah ornament: U+06DD encloses the following
@@ -415,17 +413,17 @@
   .quran-ayah-marker {
     color: rgb(var(--accent-gold-rgb));
     font-size: 0.95em;
-    text-shadow: 0 0 0.35em rgba(var(--accent-gold-rgb), 0.18);
+    text-shadow: 0 0 0.35em rgb(var(--accent-gold-rgb) / 0.18);
   }
 
   .quran-bookmarked {
-    text-decoration: underline solid rgba(var(--accent-gold-rgb), 0.55);
+    text-decoration: underline solid rgb(var(--accent-gold-rgb) / 0.55);
     text-decoration-thickness: 2px;
     text-underline-offset: 0.35em;
   }
 
   .quran-lastread {
-    text-decoration: underline dotted rgba(var(--accent-gold-rgb), 0.65);
+    text-decoration: underline dotted rgb(var(--accent-gold-rgb) / 0.65);
     text-decoration-thickness: 1.5px;
     text-underline-offset: 0.4em;
   }
@@ -463,10 +461,10 @@
     top: 50%;
     z-index: -1;
     height: 1.14em;
-    border: 1px solid rgba(var(--text-main-rgb), 0.16);
+    border: 1px solid rgb(var(--text-main-rgb) / 0.16);
     border-radius: 0.18em;
     background-color: rgb(var(--accent-turquoise-rgb));
-    box-shadow: 0 0 0.32em rgba(var(--accent-turquoise-rgb), 0.2);
+    box-shadow: 0 0 0.32em rgb(var(--accent-turquoise-rgb) / 0.2);
     transform: translateY(-48%);
   }
 
@@ -476,28 +474,35 @@
 
   .quran-ayah-active-ayah .quran-ayah-marker {
     display: inline-block;
-    border-radius: 0.2em;
-    padding-inline: 0.06em;
+    border-radius: 999px;
+    padding: 0.06em;
     color: rgb(var(--bg-main-rgb));
     background-color: rgb(var(--accent-turquoise-rgb));
-    box-shadow: 0 0 0.3em rgba(var(--accent-turquoise-rgb), 0.2);
+    box-shadow: 0 0 0.3em rgb(var(--accent-turquoise-rgb) / 0.2);
+    line-height: 1.05;
     text-shadow: none;
+    vertical-align: 0.04em;
   }
 
   .quran-basmala-track-word.quran-word-active {
     color: inherit;
-    background-color: rgb(var(--accent-turquoise-rgb));
-    box-shadow: 0 0 0.28em rgba(var(--accent-turquoise-rgb), 0.2);
+    background: transparent;
+    box-shadow: none;
   }
 
   .quran-basmala-track-word.quran-word-active::before {
     content: none;
   }
 
+  .quran-basmala-ligature:has(.quran-word-active) .quran-basmala-glyph {
+    color: rgb(var(--accent-turquoise-rgb));
+    text-shadow: 0 0 0.34em rgb(var(--accent-turquoise-rgb) / 0.22);
+  }
+
   /* Refined translation typography under each ayah. */
   .quran-translation {
     font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif;
-    border-inline-start: 2px solid rgba(var(--accent-gold-rgb), 0.35);
+    border-inline-start: 2px solid rgb(var(--accent-gold-rgb) / 0.35);
     padding-inline-start: 0.75rem;
     color: rgb(var(--text-soft-rgb));
     letter-spacing: 0.01em;
