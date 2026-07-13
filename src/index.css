@@ -354,6 +354,18 @@
     text-shadow: 0 0 0.45em rgb(var(--text-main-rgb) / 0.08);
   }
 
+  /* The traditional elongated calligraphic basmala (U+FDFD) — the same form
+     printed mushafs use. A standalone centered block with generous vertical
+     room, so the tall calligraphy can never collide with surrounding lines. */
+  .quran-basmala-calligraphy {
+    display: block;
+    line-height: 1.9;
+    padding-block: 0.08em;
+    white-space: nowrap;
+    color: rgb(var(--text-main-rgb));
+    text-shadow: 0 0 0.45em rgb(var(--text-main-rgb) / 0.08);
+  }
+
   .quran-flow {
     text-align: justify;
     text-align-last: center;
