@@ -23,7 +23,6 @@ import { audioElementHolder, seekToSeconds, useRadioStore } from '@/store/radioS
 import { useI18n } from '@/i18n';
 
 const BASMALA_TEXT = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
-const BASMALA_LIGATURE = '﷽';
 
 type QuranTab = 'read' | 'listen';
 type QuranRepeatMode = 'off' | 'ayah' | 'range' | 'surah';
@@ -236,6 +235,29 @@ function findActiveIndex<T extends { startMs: number }>(timings: T[], clock: num
 }
 
 /**
+ * Positions the gliding recitation cue over one word. The cue is a single
+ * absolutely-positioned pill inside the reading surface; CSS transitions make
+ * it glide smoothly between verified word boundaries — the geometry animates,
+ * never the timing, so the cue can never point at a word that is not being
+ * recited.
+ */
+const positionWordCue = (cue: HTMLElement, word: HTMLElement) => {
+  const container = cue.offsetParent as HTMLElement | null;
+  if (!container) return;
+  const wordRect = word.getBoundingClientRect();
+  const containerRect = container.getBoundingClientRect();
+  if (wordRect.width <= 0 || wordRect.height <= 0) return;
+  const padX = wordRect.height * 0.14;
+  const padY = wordRect.height * 0.05;
+  cue.style.opacity = '1';
+  cue.style.transform = `translate(${wordRect.left - containerRect.left - padX}px, ${
+    wordRect.top - containerRect.top - padY
+  }px)`;
+  cue.style.width = `${wordRect.width + padX * 2}px`;
+  cue.style.height = `${wordRect.height + padY * 2}px`;
+};
+
+/**
  * Exact word synchronization. React only updates when the ayah changes; the
  * currently spoken word is switched directly on the DOM so long surahs remain
  * smooth and do not re-render on every word.
@@ -256,16 +278,25 @@ const useWordSync = (
     activeWordElementRef.current?.classList.remove('quran-word-active');
     activeWordElementRef.current = null;
     setActiveAyah(null);
+    const hideCue = () => {
+      if (surahId !== null) {
+        const cue = document.getElementById(`quran-cue-${surahId}`);
+        if (cue) cue.style.opacity = '0';
+      }
+    };
+    hideCue();
     if (!syncActive || !synced || surahId === null) return;
 
     const { ayahTimings, wordTimings } = synced;
     if (ayahTimings.length === 0) return;
 
     let frame = 0;
+    let frameCount = 0;
     const tick = () => {
       const element = audioElementHolder.current;
       if (element && !element.paused) {
         let clock = element.currentTime * 1000;
+        frameCount += 1;
 
         if (repeat.mode === 'ayah' || repeat.mode === 'range') {
           const first = ayahTimings.find((timing) => timing.ayah === repeat.startAyah);
@@ -299,10 +330,19 @@ const useWordSync = (
           word && clock <= word.endMs + 90
             ? document.getElementById(`quran-word-${surahId}-${word.ayah}-${word.wordIndex}`)
             : null;
+        const cue = document.getElementById(`quran-cue-${surahId}`);
         if (nextWordElement !== activeWordElementRef.current) {
           activeWordElementRef.current?.classList.remove('quran-word-active');
           nextWordElement?.classList.add('quran-word-active');
           activeWordElementRef.current = nextWordElement;
+          if (cue) {
+            if (nextWordElement) positionWordCue(cue, nextWordElement);
+            else cue.style.opacity = '0';
+          }
+        } else if (cue && nextWordElement && frameCount % 30 === 0) {
+          // Re-anchor occasionally so font-size changes or resizes while a
+          // long word is recited cannot leave the cue misplaced.
+          positionWordCue(cue, nextWordElement);
         }
       }
       frame = requestAnimationFrame(tick);
@@ -312,39 +352,12 @@ const useWordSync = (
       cancelAnimationFrame(frame);
       activeWordElementRef.current?.classList.remove('quran-word-active');
       activeWordElementRef.current = null;
+      hideCue();
     };
   }, [repeat, syncActive, synced, surahId]);
 
   return activeAyah;
 };
-
-const QuranBasmalaLigature: React.FC<{
-  label: string;
-  surahId?: number;
-  ayah?: number;
-  wordCount?: number;
-}> = React.memo(({ label, surahId, ayah, wordCount = 0 }) => (
-  <span className="quran-basmala-ligature" aria-label={label}>
-    <span className="quran-basmala-glyph" aria-hidden="true">{BASMALA_LIGATURE}</span>
-    {surahId && ayah && wordCount > 0 && (
-      <span
-        className="quran-basmala-track"
-        aria-hidden="true"
-        style={{ gridTemplateColumns: `repeat(${wordCount}, minmax(0, 1fr))` }}
-      >
-        {Array.from({ length: wordCount }, (_, index) => (
-          <span
-            key={index}
-            id={`quran-word-${surahId}-${ayah}-${index + 1}`}
-            className="quran-word quran-basmala-track-word"
-          />
-        ))}
-      </span>
-    )}
-  </span>
-));
-
-QuranBasmalaLigature.displayName = 'QuranBasmalaLigature';
 
 const QuranVerseWords: React.FC<{
   surahId: number;
@@ -353,18 +366,6 @@ const QuranVerseWords: React.FC<{
   syncedWords?: string[];
 }> = React.memo(({ surahId, ayah, text, syncedWords }) => {
   const words = syncedWords?.length ? syncedWords : text.trim().split(/\s+/u).filter(Boolean);
-  if (surahId === 1 && ayah === 1) {
-    return (
-      <span className="quran-ayah-text">
-        <QuranBasmalaLigature
-          label={text}
-          surahId={surahId}
-          ayah={ayah}
-          wordCount={words.length}
-        />{' '}
-      </span>
-    );
-  }
 
   return (
     <span className="quran-ayah-text">
@@ -586,14 +587,27 @@ const SurahReader: React.FC = () => {
             <select
               value={read?.id ?? ''}
               onChange={(event) => selectTimingRead(event.target.value)}
-              className="surface-input max-w-[170px] py-1 text-[11px]"
+              className="surface-input max-w-[190px] py-1 text-[11px]"
               title={t('quranSyncedReciter')}
             >
-              {timingReads.map((entry) => (
-                <option key={entry.id} value={entry.id}>
-                  {language === 'ar' ? entry.nameAr ?? entry.name : entry.name}
-                </option>
-              ))}
+              <optgroup label={t('quranExactReciters')}>
+                {timingReads
+                  .filter((entry) => entry.timingLevel === 'word')
+                  .map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {language === 'ar' ? entry.nameAr ?? entry.name : entry.name}
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label={t('quranAyahReciters')}>
+                {timingReads
+                  .filter((entry) => entry.timingLevel !== 'word')
+                  .map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {language === 'ar' ? entry.nameAr ?? entry.name : entry.name}
+                    </option>
+                  ))}
+              </optgroup>
             </select>
           )}
           {read && (
@@ -732,6 +746,8 @@ const SurahReader: React.FC = () => {
       )}
 
       <div className="quran-reading-surface mx-auto mt-2 max-w-[68rem]">
+        {/* The gliding recitation cue — one pill that follows the exact word. */}
+        <span aria-hidden="true" id={`quran-cue-${surah.id}`} className="quran-word-cue" />
         <h2
           dir="rtl"
           className="quran-surah-heading quran-script arabic-text mb-2 text-center font-normal"
@@ -743,9 +759,10 @@ const SurahReader: React.FC = () => {
         {surah.id !== 1 && surah.id !== 9 && (
           <p
             className="quran-basmala quran-script arabic-text mb-3 text-center"
+            dir="rtl"
             style={{ fontSize: fontSize * 0.9, lineHeight: 1.8 }}
           >
-            <QuranBasmalaLigature label={BASMALA_TEXT} />
+            {BASMALA_TEXT}
           </p>
         )}
 
