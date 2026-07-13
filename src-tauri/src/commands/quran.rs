@@ -213,6 +213,19 @@ fn parse_timing_reads(body: &str) -> Result<Vec<TimingRead>, String> {
                 .get("id")
                 .map(|value| value.to_string().trim_matches('"').to_string())
                 .filter(|value| !value.is_empty())?;
+            // A read in another riwayah is distinct content: keep the riwayah
+            // in the display name so two reads by one reciter stay tellable
+            // apart (Hafs is the default and is left unsuffixed).
+            let rewaya = entry
+                .get("rewaya")
+                .and_then(|value| value.as_str())
+                .map(str::trim)
+                .unwrap_or("");
+            let name = if rewaya.is_empty() || rewaya.contains("حفص") {
+                name
+            } else {
+                format!("{} - {}", name, rewaya)
+            };
             Some(TimingRead {
                 id,
                 name,
@@ -222,6 +235,12 @@ fn parse_timing_reads(body: &str) -> Result<Vec<TimingRead>, String> {
             })
         })
         .collect())
+}
+
+/// Normalizes an audio folder/server URL for exact matching between the
+/// timing catalog and the reciter catalog.
+fn normalize_server_url(url: &str) -> String {
+    url.trim().trim_end_matches('/').to_ascii_lowercase()
 }
 
 /// Fetches per-ayah timing (milliseconds) for one surah of one timing-capable
@@ -351,7 +370,8 @@ fn combined_timing_reads(app_handle: &AppHandle) -> Vec<TimingRead> {
     let mut seen_mp3_137 = false;
 
     for read in mp3quran_ayah_reads(app_handle).unwrap_or_default() {
-        if duplicates_word_read(&read.name) {
+        // Dedup runs on the Arabic catalog name — the surnames are Arabic.
+        if duplicates_word_read(read.name_ar.as_deref().unwrap_or(&read.name)) {
             continue;
         }
         if read.id == "mp3-137" {
@@ -377,10 +397,12 @@ fn combined_timing_reads(app_handle: &AppHandle) -> Vec<TimingRead> {
 
 /// MP3Quran recitations with verified per-ayah timing, cached with a stale
 /// fallback so the catalog keeps working offline after the first fetch.
+/// English display names are joined from the English reciter catalog by the
+/// read's own audio folder URL — an exact match, never a name guess.
 fn mp3quran_ayah_reads(app_handle: &AppHandle) -> Result<Vec<TimingRead>, String> {
     let cache_path = get_app_data_dir(app_handle)?
         .join("cache")
-        .join("quran-ayah-reads-v2.json");
+        .join("quran-ayah-reads-v3.json");
     if let Some(parent) = cache_path.parent() {
         fs::create_dir_all(parent).map_err(|error| error.to_string())?;
     }
@@ -390,13 +412,20 @@ fn mp3quran_ayah_reads(app_handle: &AppHandle) -> Result<Vec<TimingRead>, String
         .and_then(|body| parse_timing_reads(&body).ok())
         .filter(|reads| !reads.is_empty())
         .map(|reads| {
+            let english_by_server = english_reciters_by_server(app_handle);
             reads
                 .into_iter()
-                .map(|read| TimingRead {
-                    id: format!("mp3-{}", read.id),
-                    name_ar: Some(read.name.clone()),
-                    timing_level: "ayah".to_string(),
-                    ..read
+                .map(|read| {
+                    let english_name = english_by_server
+                        .get(&normalize_server_url(&read.folder_url))
+                        .cloned();
+                    TimingRead {
+                        id: format!("mp3-{}", read.id),
+                        name: english_name.unwrap_or_else(|| read.name.clone()),
+                        name_ar: Some(read.name.clone()),
+                        timing_level: "ayah".to_string(),
+                        folder_url: read.folder_url,
+                    }
                 })
                 .collect::<Vec<_>>()
         });
@@ -414,6 +443,29 @@ fn mp3quran_ayah_reads(app_handle: &AppHandle) -> Result<Vec<TimingRead>, String
             .and_then(|raw| serde_json::from_str::<Vec<TimingRead>>(&raw).ok())
             .ok_or_else(|| "The MP3Quran timing catalog is not available yet.".to_string()),
     }
+}
+
+/// English reciter names keyed by their moshaf's audio server URL. Falls back
+/// to an empty map when the English catalog is unavailable (Arabic names are
+/// shown instead until the next successful refresh).
+fn english_reciters_by_server(app_handle: &AppHandle) -> std::collections::HashMap<String, String> {
+    let mut by_server = std::collections::HashMap::new();
+    if let Ok(reciters) = get_reciters_blocking(app_handle, "eng") {
+        for reciter in reciters {
+            let key = normalize_server_url(&reciter.server);
+            // A non-Hafs moshaf carries its riwayah in the moshaf name; keep
+            // it so distinct riwayat stay distinguishable in English too.
+            let label = if reciter.moshaf_name.to_lowercase().contains("hafs")
+                || reciter.moshaf_name.is_empty()
+            {
+                reciter.name
+            } else {
+                format!("{} - {}", reciter.name, reciter.moshaf_name)
+            };
+            by_server.entry(key).or_insert(label);
+        }
+    }
+    by_server
 }
 
 /// Arabic surnames of reciters whose default Hafs recordings are already
@@ -828,9 +880,30 @@ fn parse_synced_ayah_words(body: &str, surah_id: i64) -> Result<Vec<SyncedAyahWo
 #[cfg(test)]
 mod timing_tests {
     use super::{
-        duplicates_word_read, is_supported_word_timing_read, parse_synced_ayah_words,
-        parse_synced_surah_audio, word_timing_reads,
+        duplicates_word_read, is_supported_word_timing_read, normalize_server_url,
+        parse_synced_ayah_words, parse_synced_surah_audio, parse_timing_reads, word_timing_reads,
     };
+
+    #[test]
+    fn timing_reads_keep_riwayah_in_the_name_and_hafs_plain() {
+        let body = r#"[
+          {"id": 5, "name": "أحمد العجمي", "rewaya": "حفص عن عاصم", "folder_url": "https://server10.mp3quran.net/ajm/"},
+          {"id": 51, "name": "الحصري", "rewaya": "ورش عن نافع", "folder_url": "https://server13.mp3quran.net/husr_warsh/"}
+        ]"#;
+        let reads = parse_timing_reads(body).expect("valid reads response");
+        assert_eq!(reads[0].name, "أحمد العجمي");
+        assert_eq!(reads[1].name, "الحصري - ورش عن نافع");
+        // The riwayah suffix keeps the Warsh read out of the Hafs dedup.
+        assert!(!duplicates_word_read(&reads[1].name));
+    }
+
+    #[test]
+    fn server_urls_match_regardless_of_trailing_slash_and_case() {
+        assert_eq!(
+            normalize_server_url("https://Server10.mp3quran.net/ajm/"),
+            normalize_server_url("https://server10.mp3quran.net/ajm"),
+        );
+    }
 
     #[test]
     fn word_reads_are_unique_supported_and_deduplicated() {
