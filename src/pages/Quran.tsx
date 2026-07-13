@@ -24,6 +24,7 @@ import { audioElementHolder, seekToSeconds, useRadioStore } from '@/store/radioS
 import { useI18n } from '@/i18n';
 
 const BASMALA_TEXT = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
+const BASMALA_LIGATURE = '﷽';
 
 type QuranTab = 'read' | 'listen';
 type QuranRepeatMode = 'off' | 'ayah' | 'range' | 'surah';
@@ -771,22 +772,25 @@ const SurahReader: React.FC = () => {
         <span aria-hidden="true" id={`quran-cue-${surah.id}`} className="quran-word-cue" />
         <h2
           dir="rtl"
-          className="quran-surah-heading quran-script arabic-text mb-2 text-center font-normal"
+          className="quran-surah-heading quran-script arabic-text mb-5 text-center font-normal"
           style={{ fontSize: fontSize * 0.72, lineHeight: 1.4 }}
         >
           سُورَةُ {surah.name}
         </h2>
 
         {/* The unnumbered opening basmala: written before every surah except
-            At-Tawbah in the Uthmani mushaf (Al-Fatihah's basmala is verse 1
-            and appears inside the flow with its medallion instead). */}
+            At-Tawbah in the Uthmani mushaf, in the traditional elongated
+            calligraphic form on its own centered line (Al-Fatihah's basmala
+            is verse 1 and appears inside the flow with its medallion). */}
         {surah.id !== 1 && surah.id !== 9 && (
           <p
-            className="quran-basmala quran-script arabic-text mb-4 text-center"
+            className="quran-basmala-calligraphy quran-script arabic-text mb-7 mt-2 text-center"
             dir="rtl"
-            style={{ fontSize: fontSize * 0.95, lineHeight: 1.9 }}
+            role="img"
+            aria-label={BASMALA_TEXT}
+            style={{ fontSize: fontSize * 1.5 }}
           >
-            {BASMALA_TEXT}
+            {BASMALA_LIGATURE}
           </p>
         )}
 
