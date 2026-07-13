@@ -13,11 +13,11 @@
 
 @layer base {
   :root {
-    --bg-main-rgb: 3 4 4;
-    --bg-sidebar-rgb: 6 9 8;
-    --bg-panel-rgb: 9 13 11;
-    --bg-card-rgb: 13 20 16;
-    --bg-card-hover-rgb: 18 28 23;
+    --bg-main-rgb: 9 11 11;
+    --bg-sidebar-rgb: 14 19 17;
+    --bg-panel-rgb: 19 25 21;
+    --bg-card-rgb: 25 35 29;
+    --bg-card-hover-rgb: 32 47 39;
     --border-subtle-rgb: 214 181 109;
     --accent-teal-rgb: 219 177 83;
     --accent-turquoise-rgb: 250 220 140;
@@ -53,17 +53,17 @@
     --success: rgb(var(--success-rgb));
     --teal-glass: rgba(28, 173, 111, 0.1);
     --gold-glass: rgba(236, 195, 102, 0.12);
-    --surface-wash: linear-gradient(180deg, rgba(13, 18, 15, 0.98), rgba(5, 8, 7, 0.98));
-    --card-wash: linear-gradient(180deg, rgba(18, 28, 22, 0.96), rgba(8, 12, 10, 0.98));
+    --surface-wash: linear-gradient(180deg, rgba(25, 32, 27, 0.98), rgba(13, 17, 15, 0.98));
+    --card-wash: linear-gradient(180deg, rgba(32, 47, 38, 0.96), rgba(17, 23, 20, 0.98));
   }
 
   html[data-theme='emerald'] {
     --quran-green-rgb: 74 222 128;
-    --bg-main-rgb: 5 13 10;
-    --bg-sidebar-rgb: 7 20 15;
-    --bg-panel-rgb: 9 24 18;
-    --bg-card-rgb: 13 34 26;
-    --bg-card-hover-rgb: 18 48 36;
+    --bg-main-rgb: 13 25 20;
+    --bg-sidebar-rgb: 15 35 27;
+    --bg-panel-rgb: 19 41 32;
+    --bg-card-rgb: 25 56 44;
+    --bg-card-hover-rgb: 32 77 59;
     --border-subtle-rgb: 52 211 153;
     --accent-teal-rgb: 34 197 94;
     --accent-turquoise-rgb: 94 234 212;
@@ -78,8 +78,8 @@
     --border-strong: rgba(52, 211, 153, 0.31);
     --teal-glass: rgba(34, 197, 94, 0.11);
     --gold-glass: rgba(176, 141, 87, 0.1);
-    --surface-wash: linear-gradient(180deg, rgba(13, 34, 26, 0.98), rgba(6, 17, 13, 0.98));
-    --card-wash: linear-gradient(180deg, rgba(16, 42, 31, 0.97), rgba(8, 22, 16, 0.98));
+    --surface-wash: linear-gradient(180deg, rgba(25, 56, 44, 0.98), rgba(14, 31, 25, 0.98));
+    --card-wash: linear-gradient(180deg, rgba(29, 68, 51, 0.97), rgba(17, 38, 29, 0.98));
   }
 
   html[data-theme='pearl'] {
@@ -109,11 +109,11 @@
 
   html[data-theme='mushaf'] {
     --quran-green-rgb: 112 205 110;
-    --bg-main-rgb: 5 7 6;
-    --bg-sidebar-rgb: 8 12 10;
-    --bg-panel-rgb: 11 16 13;
-    --bg-card-rgb: 15 22 18;
-    --bg-card-hover-rgb: 22 33 27;
+    --bg-main-rgb: 13 15 14;
+    --bg-sidebar-rgb: 17 23 20;
+    --bg-panel-rgb: 21 29 25;
+    --bg-card-rgb: 27 38 32;
+    --bg-card-hover-rgb: 38 55 45;
     --border-subtle-rgb: 132 204 22;
     --accent-teal-rgb: 101 163 13;
     --accent-turquoise-rgb: 190 242 100;
@@ -128,17 +128,17 @@
     --border-strong: rgba(132, 204, 22, 0.34);
     --teal-glass: rgba(101, 163, 13, 0.12);
     --gold-glass: rgba(200, 164, 93, 0.12);
-    --surface-wash: linear-gradient(180deg, rgba(15, 22, 18, 0.98), rgba(7, 10, 8, 0.98));
-    --card-wash: linear-gradient(180deg, rgba(19, 29, 23, 0.97), rgba(9, 14, 11, 0.98));
+    --surface-wash: linear-gradient(180deg, rgba(27, 38, 32, 0.98), rgba(15, 20, 17, 0.98));
+    --card-wash: linear-gradient(180deg, rgba(33, 49, 39, 0.97), rgba(19, 26, 21, 0.98));
   }
 
   html[data-theme='blue'] {
     --quran-green-rgb: 64 207 154;
-    --bg-main-rgb: 4 9 18;
-    --bg-sidebar-rgb: 6 13 26;
-    --bg-panel-rgb: 9 17 34;
-    --bg-card-rgb: 12 23 44;
-    --bg-card-hover-rgb: 18 32 60;
+    --bg-main-rgb: 11 19 32;
+    --bg-sidebar-rgb: 14 25 44;
+    --bg-panel-rgb: 19 31 56;
+    --bg-card-rgb: 23 39 71;
+    --bg-card-hover-rgb: 32 53 95;
     --border-subtle-rgb: 120 170 255;
     --accent-teal-rgb: 59 130 246;
     --accent-turquoise-rgb: 125 185 255;
@@ -153,17 +153,17 @@
     --border-strong: rgba(120, 170, 255, 0.34);
     --teal-glass: rgba(59, 130, 246, 0.12);
     --gold-glass: rgba(226, 197, 122, 0.12);
-    --surface-wash: linear-gradient(180deg, rgba(12, 23, 44, 0.98), rgba(5, 10, 20, 0.98));
-    --card-wash: linear-gradient(180deg, rgba(16, 30, 56, 0.97), rgba(8, 15, 30, 0.98));
+    --surface-wash: linear-gradient(180deg, rgba(23, 39, 71, 0.98), rgba(13, 20, 35, 0.98));
+    --card-wash: linear-gradient(180deg, rgba(29, 50, 89, 0.97), rgba(17, 27, 50, 0.98));
   }
 
   html[data-theme='red'] {
     --quran-green-rgb: 96 190 132;
-    --bg-main-rgb: 14 5 6;
-    --bg-sidebar-rgb: 20 7 9;
-    --bg-panel-rgb: 27 9 12;
-    --bg-card-rgb: 37 13 16;
-    --bg-card-hover-rgb: 52 19 23;
+    --bg-main-rgb: 26 13 14;
+    --bg-sidebar-rgb: 35 15 19;
+    --bg-panel-rgb: 45 19 23;
+    --bg-card-rgb: 61 25 29;
+    --bg-card-hover-rgb: 83 33 39;
     --border-subtle-rgb: 224 130 120;
     --accent-teal-rgb: 229 84 92;
     --accent-turquoise-rgb: 245 130 135;
@@ -178,8 +178,8 @@
     --border-strong: rgba(226, 197, 122, 0.34);
     --teal-glass: rgba(229, 84, 92, 0.12);
     --gold-glass: rgba(226, 197, 122, 0.12);
-    --surface-wash: linear-gradient(180deg, rgba(37, 13, 16, 0.98), rgba(16, 6, 8, 0.98));
-    --card-wash: linear-gradient(180deg, rgba(44, 16, 20, 0.97), rgba(20, 8, 10, 0.98));
+    --surface-wash: linear-gradient(180deg, rgba(61, 25, 29, 0.98), rgba(29, 14, 17, 0.98));
+    --card-wash: linear-gradient(180deg, rgba(71, 29, 35, 0.97), rgba(35, 17, 20, 0.98));
   }
 
   * {
