@@ -13,6 +13,7 @@ import {
   Search,
 } from 'lucide-react';
 import {
+  AyahTiming,
   QuranBookmark,
   SurahMeta,
   SyncedSurahAudio,
@@ -23,7 +24,6 @@ import { audioElementHolder, seekToSeconds, useRadioStore } from '@/store/radioS
 import { useI18n } from '@/i18n';
 
 const BASMALA_TEXT = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
-const BASMALA_LIGATURE = '﷽';
 
 type QuranTab = 'read' | 'listen';
 type QuranRepeatMode = 'off' | 'ayah' | 'range' | 'surah';
@@ -261,6 +261,17 @@ const positionWordCue = (cue: HTMLElement, word: HTMLElement) => {
 };
 
 /**
+ * Timing values are milliseconds for the word-exact recordings, but some
+ * ayah-timing sources publish seconds. Detected once against the real audio
+ * duration: the multiplier converts the audio clock into the timing values'
+ * own unit — measured, never assumed.
+ */
+const detectClockScale = (timings: AyahTiming[], durationSeconds: number): number => {
+  const lastEnd = timings[timings.length - 1]?.endMs ?? 0;
+  return lastEnd < durationSeconds * 10 ? 1 : 1000;
+};
+
+/**
  * Exact word synchronization. React only updates when the ayah changes; the
  * currently spoken word is switched directly on the DOM so long surahs remain
  * smooth and do not re-render on every word.
@@ -275,9 +286,12 @@ const useWordSync = (
   const lastAyahRef = useRef<number | null>(null);
   const activeWordElementRef = useRef<HTMLElement | null>(null);
   const lastLoopAtRef = useRef(0);
+  // Clock multiplier for the timing values; 0 = not yet detected.
+  const scaleRef = useRef(0);
 
   useEffect(() => {
     lastAyahRef.current = null;
+    scaleRef.current = 0;
     activeWordElementRef.current?.classList.remove('quran-word-active');
     activeWordElementRef.current = null;
     setActiveAyah(null);
@@ -298,7 +312,15 @@ const useWordSync = (
     const tick = () => {
       const element = audioElementHolder.current;
       if (element && !element.paused) {
-        let clock = element.currentTime * 1000;
+        if (scaleRef.current === 0 && Number.isFinite(element.duration) && element.duration > 0) {
+          scaleRef.current = detectClockScale(ayahTimings, element.duration);
+        }
+        if (scaleRef.current === 0) {
+          // Wait for the audio duration before tracking — no unit guessing.
+          frame = requestAnimationFrame(tick);
+          return;
+        }
+        let clock = element.currentTime * scaleRef.current;
         frameCount += 1;
 
         if (repeat.mode === 'ayah' || repeat.mode === 'range') {
@@ -313,15 +335,19 @@ const useWordSync = (
             now - lastLoopAtRef.current > 250
           ) {
             lastLoopAtRef.current = now;
-            element.currentTime = first.startMs / 1000;
+            element.currentTime = first.startMs / scaleRef.current;
             clock = first.startMs;
           }
         }
 
         const ayahIndex = findActiveIndex(ayahTimings, clock);
         const ayahSegment = ayahIndex >= 0 ? ayahTimings[ayahIndex] : null;
+        // Segment "ayah 0" is the opening basmala/isti'adhah in some ayah
+        // timing sources — nothing is highlighted for it (it is not an ayah).
         const nextAyah =
-          ayahSegment && clock <= ayahSegment.endMs + 160 ? ayahSegment.ayah : null;
+          ayahSegment && ayahSegment.ayah >= 1 && clock <= ayahSegment.endMs + 160
+            ? ayahSegment.ayah
+            : null;
         if (nextAyah !== lastAyahRef.current) {
           lastAyahRef.current = nextAyah;
           setActiveAyah(nextAyah);
@@ -362,35 +388,6 @@ const useWordSync = (
   return activeAyah;
 };
 
-/**
- * The calligraphic basmala ﷽ on its own centered line, with hidden word
- * anchors so the recitation tracker still follows its words exactly — the
- * whole calligraphy glows while any of its words is recited.
- */
-const QuranBasmalaLigature: React.FC<{
-  label: string;
-  surahId?: number;
-  ayah?: number;
-  wordCount?: number;
-}> = React.memo(({ label, surahId, ayah, wordCount = 0 }) => (
-  <span className="quran-basmala-ligature" role="img" aria-label={label}>
-    <span className="quran-basmala-glyph" aria-hidden="true">{BASMALA_LIGATURE}</span>
-    {surahId !== undefined && ayah !== undefined && wordCount > 0 && (
-      <span className="quran-basmala-track" aria-hidden="true">
-        {Array.from({ length: wordCount }, (_, index) => (
-          <span
-            key={index}
-            id={`quran-word-${surahId}-${ayah}-${index + 1}`}
-            className="quran-word quran-basmala-track-word"
-          />
-        ))}
-      </span>
-    )}
-  </span>
-));
-
-QuranBasmalaLigature.displayName = 'QuranBasmalaLigature';
-
 const QuranVerseWords: React.FC<{
   surahId: number;
   ayah: number;
@@ -398,13 +395,6 @@ const QuranVerseWords: React.FC<{
   syncedWords?: string[];
 }> = React.memo(({ surahId, ayah, text, syncedWords }) => {
   const words = syncedWords?.length ? syncedWords : text.trim().split(/\s+/u).filter(Boolean);
-  if (surahId === 1 && ayah === 1) {
-    return (
-      <span className="quran-ayah-text">
-        <QuranBasmalaLigature label={text} surahId={surahId} ayah={ayah} wordCount={words.length} />{' '}
-      </span>
-    );
-  }
 
   return (
     <span className="quran-ayah-text">
@@ -459,7 +449,6 @@ const SurahReader: React.FC = () => {
 
   const read = timingReads.find((entry) => entry.id === selectedTimingReadId) ?? timingReads[0];
   const readName = read ? (language === 'ar' ? read.nameAr ?? read.name : read.name) : '';
-  const ayahOnlyTracking = read?.timingLevel === 'ayah';
   const syncStationId = surah && read ? `quran-sync-${read.id}-${surah.id}` : null;
   const syncActive = Boolean(syncStationId && currentStation?.id === syncStationId);
   const synced = surah && read ? syncedAudioBySurah[`${read.id}:${surah.id}`] ?? null : null;
@@ -493,7 +482,8 @@ const SurahReader: React.FC = () => {
       if (cancelled || pendingInitialSeekRef.current === null) return;
       const element = audioElementHolder.current;
       if (element && Number.isFinite(element.duration) && element.duration > 0) {
-        element.currentTime = pendingInitialSeekRef.current / 1000;
+        const scale = synced ? detectClockScale(synced.ayahTimings, element.duration) : 1000;
+        element.currentTime = pendingInitialSeekRef.current / scale;
         pendingInitialSeekRef.current = null;
         return;
       }
@@ -570,7 +560,12 @@ const SurahReader: React.FC = () => {
     if (syncActive && synced) {
       const segment = synced.ayahTimings.find((timing) => timing.ayah === verseId);
       if (segment) {
-        seekToSeconds(segment.startMs / 1000);
+        const element = audioElementHolder.current;
+        const scale =
+          element && Number.isFinite(element.duration) && element.duration > 0
+            ? detectClockScale(synced.ayahTimings, element.duration)
+            : 1000;
+        seekToSeconds(segment.startMs / scale);
         setFollowPaused(false);
       }
     }
@@ -611,7 +606,7 @@ const SurahReader: React.FC = () => {
           {syncActive && synced && (
             <span className="inline-flex items-center gap-1 rounded-full bg-success-green/15 px-2 py-0.5 font-medium text-success-green">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success-green" />
-              {t(ayahOnlyTracking ? 'quranAyahSyncBadge' : 'quranSyncBadge')}
+              {t('quranSyncBadge')}
               {activeAyah !== null && <span className="tabular-nums" dir="ltr"> · {activeAyah}</span>}
             </span>
           )}
@@ -629,24 +624,11 @@ const SurahReader: React.FC = () => {
               className="surface-input max-w-[190px] py-1 text-[11px]"
               title={t('quranSyncedReciter')}
             >
-              <optgroup label={t('quranExactReciters')}>
-                {timingReads
-                  .filter((entry) => entry.timingLevel === 'word')
-                  .map((entry) => (
-                    <option key={entry.id} value={entry.id}>
-                      {language === 'ar' ? entry.nameAr ?? entry.name : entry.name}
-                    </option>
-                  ))}
-              </optgroup>
-              <optgroup label={t('quranAyahReciters')}>
-                {timingReads
-                  .filter((entry) => entry.timingLevel !== 'word')
-                  .map((entry) => (
-                    <option key={entry.id} value={entry.id}>
-                      {language === 'ar' ? entry.nameAr ?? entry.name : entry.name}
-                    </option>
-                  ))}
-              </optgroup>
+              {timingReads.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {language === 'ar' ? entry.nameAr ?? entry.name : entry.name}
+                </option>
+              ))}
             </select>
           )}
           {read && (
@@ -795,13 +777,16 @@ const SurahReader: React.FC = () => {
           سُورَةُ {surah.name}
         </h2>
 
+        {/* The unnumbered opening basmala: written before every surah except
+            At-Tawbah in the Uthmani mushaf (Al-Fatihah's basmala is verse 1
+            and appears inside the flow with its medallion instead). */}
         {surah.id !== 1 && surah.id !== 9 && (
           <p
-            className="quran-basmala quran-script arabic-text mb-3 text-center"
+            className="quran-basmala quran-script arabic-text mb-4 text-center"
             dir="rtl"
-            style={{ fontSize: fontSize * 0.9, lineHeight: 1.8 }}
+            style={{ fontSize: fontSize * 0.95, lineHeight: 1.9 }}
           >
-            <QuranBasmalaLigature label={BASMALA_TEXT} />
+            {BASMALA_TEXT}
           </p>
         )}
 
@@ -827,7 +812,7 @@ const SurahReader: React.FC = () => {
                       title={t('quranBookmarkHint')}
                       className={`quran-ayah-inline ${
                         isActive
-                          ? `quran-ayah-active${ayahOnlyTracking ? ' quran-ayah-active-ayah' : ''}`
+                          ? 'quran-ayah-active'
                           : ''
                       } ${
                         marked ? 'quran-bookmarked' : ''
@@ -871,7 +856,7 @@ const SurahReader: React.FC = () => {
                   title={t('quranBookmarkHint')}
                   className={`quran-ayah-inline ${
                     isActive
-                      ? `quran-ayah-active${ayahOnlyTracking ? ' quran-ayah-active-ayah' : ''}`
+                      ? 'quran-ayah-active'
                       : ''
                   } ${
                     marked ? 'quran-bookmarked' : ''
