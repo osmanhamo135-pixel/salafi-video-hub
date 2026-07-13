@@ -23,6 +23,7 @@ import { audioElementHolder, seekToSeconds, useRadioStore } from '@/store/radioS
 import { useI18n } from '@/i18n';
 
 const BASMALA_TEXT = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
+const BASMALA_LIGATURE = '﷽';
 
 type QuranTab = 'read' | 'listen';
 type QuranRepeatMode = 'off' | 'ayah' | 'range' | 'surah';
@@ -247,14 +248,16 @@ const positionWordCue = (cue: HTMLElement, word: HTMLElement) => {
   const wordRect = word.getBoundingClientRect();
   const containerRect = container.getBoundingClientRect();
   if (wordRect.width <= 0 || wordRect.height <= 0) return;
-  const padX = wordRect.height * 0.14;
-  const padY = wordRect.height * 0.05;
+  // Size the pill from the glyph size, not the font's tall line box, and
+  // center it on the word so it hugs the letters instead of a tall rectangle.
+  const glyphSize = parseFloat(window.getComputedStyle(word).fontSize) || wordRect.height;
+  const cueHeight = Math.min(glyphSize * 1.32, wordRect.height);
+  const padX = glyphSize * 0.16;
+  const top = wordRect.top + (wordRect.height - cueHeight) / 2 - containerRect.top;
   cue.style.opacity = '1';
-  cue.style.transform = `translate(${wordRect.left - containerRect.left - padX}px, ${
-    wordRect.top - containerRect.top - padY
-  }px)`;
+  cue.style.transform = `translate(${wordRect.left - containerRect.left - padX}px, ${top}px)`;
   cue.style.width = `${wordRect.width + padX * 2}px`;
-  cue.style.height = `${wordRect.height + padY * 2}px`;
+  cue.style.height = `${cueHeight}px`;
 };
 
 /**
@@ -359,6 +362,35 @@ const useWordSync = (
   return activeAyah;
 };
 
+/**
+ * The calligraphic basmala ﷽ on its own centered line, with hidden word
+ * anchors so the recitation tracker still follows its words exactly — the
+ * whole calligraphy glows while any of its words is recited.
+ */
+const QuranBasmalaLigature: React.FC<{
+  label: string;
+  surahId?: number;
+  ayah?: number;
+  wordCount?: number;
+}> = React.memo(({ label, surahId, ayah, wordCount = 0 }) => (
+  <span className="quran-basmala-ligature" role="img" aria-label={label}>
+    <span className="quran-basmala-glyph" aria-hidden="true">{BASMALA_LIGATURE}</span>
+    {surahId !== undefined && ayah !== undefined && wordCount > 0 && (
+      <span className="quran-basmala-track" aria-hidden="true">
+        {Array.from({ length: wordCount }, (_, index) => (
+          <span
+            key={index}
+            id={`quran-word-${surahId}-${ayah}-${index + 1}`}
+            className="quran-word quran-basmala-track-word"
+          />
+        ))}
+      </span>
+    )}
+  </span>
+));
+
+QuranBasmalaLigature.displayName = 'QuranBasmalaLigature';
+
 const QuranVerseWords: React.FC<{
   surahId: number;
   ayah: number;
@@ -366,6 +398,13 @@ const QuranVerseWords: React.FC<{
   syncedWords?: string[];
 }> = React.memo(({ surahId, ayah, text, syncedWords }) => {
   const words = syncedWords?.length ? syncedWords : text.trim().split(/\s+/u).filter(Boolean);
+  if (surahId === 1 && ayah === 1) {
+    return (
+      <span className="quran-ayah-text">
+        <QuranBasmalaLigature label={text} surahId={surahId} ayah={ayah} wordCount={words.length} />{' '}
+      </span>
+    );
+  }
 
   return (
     <span className="quran-ayah-text">
@@ -762,7 +801,7 @@ const SurahReader: React.FC = () => {
             dir="rtl"
             style={{ fontSize: fontSize * 0.9, lineHeight: 1.8 }}
           >
-            {BASMALA_TEXT}
+            <QuranBasmalaLigature label={BASMALA_TEXT} />
           </p>
         )}
 
@@ -812,7 +851,7 @@ const SurahReader: React.FC = () => {
           </div>
         ) : (
           /* Mushaf page mode: one continuous justified flow, like a real page. */
-          <p dir="rtl" className="quran-flow quran-script arabic-text" style={{ fontSize, lineHeight: 1.82 }}>
+          <p dir="rtl" className="quran-flow quran-script arabic-text" style={{ fontSize, lineHeight: 2.2 }}>
             <span className="quran-passage-bracket" aria-hidden="true">﴿</span>{' '}
             {surah.verses.map((verse) => {
               const bookmark = { surahId: surah.id, verseId: verse.id };
