@@ -334,13 +334,155 @@ pub struct SyncedSurahAudio {
     pub words_by_ayah: Vec<SyncedAyahWords>,
 }
 
-/// The reading tracker's reciter catalog: ONLY recordings with exact word
-/// segments, so every reciter follows the same word-precise tracker. There is
-/// no second ayah-level mode — the Listen tab carries the full listening
-/// catalog for reciters without verified word timing.
+/// The reading tracker's reciter catalog: the FULL live Quran.com recitation
+/// list (every recording that can provide exact word segments), fetched at
+/// runtime so newly published reciters appear without an app update. Falls
+/// back to the bundled list when offline on first run. Every recording is
+/// verified at play time — it either yields real word segments or reports
+/// "sync unavailable"; the tracker never runs on guessed timing.
 #[tauri::command]
-pub fn get_quran_word_timing_reads() -> Vec<TimingRead> {
+pub async fn get_quran_word_timing_reads(app_handle: AppHandle) -> Result<Vec<TimingRead>, String> {
+    tauri::async_runtime::spawn_blocking(move || Ok(dynamic_word_reads(&app_handle)))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
+fn dynamic_word_reads(app_handle: &AppHandle) -> Vec<TimingRead> {
+    let cache_path = match get_app_data_dir(app_handle) {
+        Ok(dir) => {
+            let cache_dir = dir.join("cache");
+            let _ = fs::create_dir_all(&cache_dir);
+            Some(cache_dir.join("quran-word-reads-v1.json"))
+        }
+        Err(_) => None,
+    };
+
+    // A fresh cache (under 24h) avoids hitting the catalog on every visit.
+    if let Some(path) = cache_path.as_deref() {
+        if let (Ok(metadata), Ok(raw)) = (fs::metadata(path), fs::read_to_string(path)) {
+            let fresh = metadata
+                .modified()
+                .ok()
+                .and_then(|time| time.elapsed().ok())
+                .map(|age| age.as_secs() < 24 * 60 * 60)
+                .unwrap_or(false);
+            if fresh {
+                if let Ok(cached) = serde_json::from_str::<Vec<TimingRead>>(&raw) {
+                    if cached.len() >= word_timing_reads().len() {
+                        return cached;
+                    }
+                }
+            }
+        }
+    }
+
+    if let Some(reads) = fetch_quran_com_reciters() {
+        if reads.len() >= word_timing_reads().len() {
+            if let Some(path) = cache_path.as_deref() {
+                if let Ok(json) = serde_json::to_string(&reads) {
+                    let _ = fs::write(path, json);
+                }
+            }
+            return reads;
+        }
+    }
+
+    // Offline / fetch failed: stale cache, then the bundled list.
+    if let Some(path) = cache_path.as_deref() {
+        if let Ok(raw) = fs::read_to_string(path) {
+            if let Ok(cached) = serde_json::from_str::<Vec<TimingRead>>(&raw) {
+                if !cached.is_empty() {
+                    return cached;
+                }
+            }
+        }
+    }
     word_timing_reads()
+}
+
+/// Fetches the complete Quran.com reciter catalog in English and Arabic and
+/// zips the two locales by recitation id.
+fn fetch_quran_com_reciters() -> Option<Vec<TimingRead>> {
+    let english = fetch_url("https://api.qurancdn.com/api/qdc/audio/reciters?locale=en").ok()?;
+    let english = parse_quran_com_reciters(&english)?;
+    if english.is_empty() {
+        return None;
+    }
+    let arabic = fetch_url("https://api.qurancdn.com/api/qdc/audio/reciters?locale=ar")
+        .ok()
+        .and_then(|body| parse_quran_com_reciters(&body))
+        .unwrap_or_default();
+    let arabic_by_id: std::collections::HashMap<i64, String> = arabic.into_iter().collect();
+
+    // The catalog can list two recordings of the same reciter and style under
+    // one display name; keep the long-established (lowest id) recording so
+    // the list never shows duplicates.
+    let mut english = english;
+    english.sort_by_key(|(id, _)| *id);
+    let mut seen_names = std::collections::HashSet::new();
+    let mut reads = english
+        .into_iter()
+        .filter(|(_, name)| seen_names.insert(name.clone()))
+        .map(|(id, name)| TimingRead {
+            id: id.to_string(),
+            name: name.clone(),
+            name_ar: arabic_by_id.get(&id).cloned().or(Some(name)),
+            timing_level: "word".to_string(),
+            folder_url: String::new(),
+        })
+        .collect::<Vec<_>>();
+    reads.sort_by(|a, b| a.name.cmp(&b.name));
+    Some(reads)
+}
+
+/// Parses the Quran.com `/audio/reciters` response: `{"reciters":[{"id":…,
+/// "name":…,"translated_name":{"name":…},"style":{"name":…},"qirat":
+/// {"name":…}}]}`. The style is appended to the display name; a non-Hafs
+/// qirat is appended too so distinct riwayat stay tellable apart.
+fn parse_quran_com_reciters(body: &str) -> Option<Vec<(i64, String)>> {
+    let json: serde_json::Value = serde_json::from_str(body).ok()?;
+    let entries = json.get("reciters")?.as_array()?;
+
+    let nested_name = |entry: &serde_json::Value, key: &str| -> Option<String> {
+        entry
+            .get(key)?
+            .get("name")?
+            .as_str()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string)
+    };
+
+    let mut reciters = Vec::new();
+    for entry in entries {
+        let Some(id) = json_i64(entry.get("id")) else {
+            continue;
+        };
+        let base = nested_name(entry, "translated_name")
+            .or_else(|| {
+                entry
+                    .get("name")
+                    .and_then(|value| value.as_str())
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .map(str::to_string)
+            });
+        let Some(base) = base else {
+            continue;
+        };
+        let mut name = base;
+        if let Some(style) = nested_name(entry, "style") {
+            name = format!("{} - {}", name, style);
+        }
+        if let Some(qirat) = nested_name(entry, "qirat") {
+            let lowered = qirat.to_lowercase();
+            if !lowered.contains("hafs") && !qirat.contains("حفص") {
+                name = format!("{} ({})", name, qirat);
+            }
+        }
+        reciters.push((id, name));
+    }
+    Some(reciters)
 }
 
 /// Quran Foundation recordings with exact word segments — one entry per
@@ -419,28 +561,6 @@ fn word_timing_reads() -> Vec<TimingRead> {
     .collect::<Vec<_>>()
 }
 
-fn is_supported_word_timing_read(read_id: &str) -> bool {
-    matches!(
-        read_id,
-        "1" | "2"
-            | "3"
-            | "4"
-            | "5"
-            | "6"
-            | "7"
-            | "8"
-            | "9"
-            | "10"
-            | "12"
-            | "97"
-            | "161"
-            | "168"
-            | "170"
-            | "172"
-            | "173"
-            | "174"
-    )
-}
 
 /// Returns synchronized chapter audio. Exact recordings include word segments;
 /// retained legacy recordings include verified ayah boundaries only.
@@ -452,7 +572,9 @@ pub async fn get_quran_synced_audio(
 ) -> Result<SyncedSurahAudio, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let read_id = read_id.trim().to_string();
-        if !is_supported_word_timing_read(&read_id) {
+        // Any catalog recitation id is a number; the recording itself is then
+        // verified below — real word segments or a clean error, never a guess.
+        if read_id.is_empty() || !read_id.chars().all(|c| c.is_ascii_digit()) {
             return Err("This reciter does not provide verified word timing.".to_string());
         }
         if !(1..=114).contains(&surah_id) {
@@ -673,9 +795,28 @@ fn parse_synced_ayah_words(body: &str, surah_id: i64) -> Result<Vec<SyncedAyahWo
 #[cfg(test)]
 mod timing_tests {
     use super::{
-        is_supported_word_timing_read, parse_synced_ayah_words, parse_synced_surah_audio,
+        parse_quran_com_reciters, parse_synced_ayah_words, parse_synced_surah_audio,
         word_timing_reads,
     };
+
+    #[test]
+    fn parses_the_quran_com_reciter_catalog_with_styles_and_riwayah() {
+        let body = r#"{
+          "reciters": [
+            {"id": 7, "name": "Mishari", "translated_name": {"name": "Mishari Rashid al-`Afasy"},
+             "style": {"name": "Murattal"}, "qirat": {"name": "Hafs"}},
+            {"id": 210, "translated_name": {"name": "Some Reciter"},
+             "style": {"name": "Murattal"}, "qirat": {"name": "Warsh"}},
+            {"id": 999, "name": ""}
+          ]
+        }"#;
+        let reciters = parse_quran_com_reciters(body).expect("valid catalog");
+        assert_eq!(reciters.len(), 2);
+        assert_eq!(reciters[0].0, 7);
+        assert_eq!(reciters[0].1, "Mishari Rashid al-`Afasy - Murattal");
+        // A non-Hafs qirat is kept visible in the name.
+        assert_eq!(reciters[1].1, "Some Reciter - Murattal (Warsh)");
+    }
 
     #[test]
     fn word_reads_are_unique_supported_and_deduplicated() {
@@ -689,7 +830,7 @@ mod timing_tests {
         assert!(reads.iter().all(|read| read.timing_level == "word"));
         assert!(reads
             .iter()
-            .all(|read| is_supported_word_timing_read(&read.id)));
+            .all(|read| read.id.chars().all(|c| c.is_ascii_digit())));
         // The duplicate alternate recordings are not listed.
         assert!(!reads.iter().any(|read| read.id == "97" || read.id == "173"));
     }
