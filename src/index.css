@@ -323,7 +323,9 @@
     border-radius: 12px;
     padding: clamp(1.25rem, 2.2vw, 1.8rem) clamp(2rem, 4vw, 3rem);
     color: rgb(var(--text-main-rgb));
-    background-color: rgb(var(--bg-card-rgb));
+    background:
+      radial-gradient(115% 85% at 50% 0%, rgba(var(--accent-gold-rgb), 0.05), transparent 60%),
+      linear-gradient(180deg, rgba(var(--bg-card-rgb), 1), rgba(var(--bg-panel-rgb), 0.92));
     box-shadow: inset 0 1px 0 rgba(var(--accent-gold-rgb), 0.06);
   }
 
@@ -418,12 +420,14 @@
     transition: color 120ms ease, background-color 120ms ease;
   }
 
-  /* Active word: a soft, snug green highlight like a printed mushaf — the word
-     stays readable in the theme's own green, no harsh opaque block. */
+  /* Active word: a soft, snug rounded pill in the theme's green hugging just
+     the recited word — the shadow spread extends the pill around the glyphs
+     without any layout shift or spill into neighbouring lines. */
   .quran-word-active {
     color: rgb(var(--text-main-rgb));
-    background: rgba(var(--quran-green-rgb), 0.42);
-    box-shadow: 0 0 0 0.06em rgba(var(--quran-green-rgb), 0.42);
+    background: rgba(var(--quran-green-rgb), 0.3);
+    box-shadow: 0 0 0 0.12em rgba(var(--quran-green-rgb), 0.3);
+    border-radius: 0.4em;
   }
 
   .quran-ayah-active .quran-ayah-marker {
