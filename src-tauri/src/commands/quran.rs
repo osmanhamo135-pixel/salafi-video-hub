@@ -334,11 +334,124 @@ pub struct SyncedSurahAudio {
     pub words_by_ayah: Vec<SyncedAyahWords>,
 }
 
-/// Reader recitations. Quran Foundation recordings expose exact word segments;
-/// selected MP3Quran recordings are retained with an explicit ayah-level label.
+/// One unified reciter catalog for the reading tracker. Quran Foundation
+/// recordings expose exact word segments; every MP3Quran recitation that
+/// publishes verified ayah timing is added at ayah level. Each entry always
+/// pairs a reciter's own timing with that reciter's own recording, and
+/// duplicate recordings of the same reciter and style are removed.
 #[tauri::command]
-pub fn get_quran_word_timing_reads() -> Vec<TimingRead> {
-    let mut reads = [
+pub async fn get_quran_word_timing_reads(app_handle: AppHandle) -> Result<Vec<TimingRead>, String> {
+    tauri::async_runtime::spawn_blocking(move || Ok(combined_timing_reads(&app_handle)))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
+fn combined_timing_reads(app_handle: &AppHandle) -> Vec<TimingRead> {
+    let mut reads = word_timing_reads();
+    let mut seen_mp3_137 = false;
+
+    for read in mp3quran_ayah_reads(app_handle).unwrap_or_default() {
+        if duplicates_word_read(&read.name) {
+            continue;
+        }
+        if read.id == "mp3-137" {
+            seen_mp3_137 = true;
+        }
+        reads.push(read);
+    }
+
+    // Offline-safe fallback: Ahmad Talib bin Humaid stays available even when
+    // the MP3Quran catalog cannot be fetched and nothing is cached yet.
+    if !seen_mp3_137 {
+        reads.push(TimingRead {
+            id: "mp3-137".to_string(),
+            name: "أحمد طالب بن حميد".to_string(),
+            name_ar: Some("أحمد طالب بن حميد".to_string()),
+            timing_level: "ayah".to_string(),
+            folder_url: "https://server16.mp3quran.net/a_binhameed/Rewayat-Hafs-A-n-Assem/"
+                .to_string(),
+        });
+    }
+    reads
+}
+
+/// MP3Quran recitations with verified per-ayah timing, cached with a stale
+/// fallback so the catalog keeps working offline after the first fetch.
+fn mp3quran_ayah_reads(app_handle: &AppHandle) -> Result<Vec<TimingRead>, String> {
+    let cache_path = get_app_data_dir(app_handle)?
+        .join("cache")
+        .join("quran-ayah-reads-v2.json");
+    if let Some(parent) = cache_path.parent() {
+        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    }
+
+    let fetched = fetch_url("https://mp3quran.net/api/v3/ayat_timing/reads")
+        .ok()
+        .and_then(|body| parse_timing_reads(&body).ok())
+        .filter(|reads| !reads.is_empty())
+        .map(|reads| {
+            reads
+                .into_iter()
+                .map(|read| TimingRead {
+                    id: format!("mp3-{}", read.id),
+                    name_ar: Some(read.name.clone()),
+                    timing_level: "ayah".to_string(),
+                    ..read
+                })
+                .collect::<Vec<_>>()
+        });
+
+    match fetched {
+        Some(mut reads) => {
+            reads.sort_by(|a, b| a.name.cmp(&b.name));
+            if let Ok(json) = serde_json::to_string(&reads) {
+                let _ = fs::write(&cache_path, json);
+            }
+            Ok(reads)
+        }
+        None => fs::read_to_string(&cache_path)
+            .ok()
+            .and_then(|raw| serde_json::from_str::<Vec<TimingRead>>(&raw).ok())
+            .ok_or_else(|| "The MP3Quran timing catalog is not available yet.".to_string()),
+    }
+}
+
+/// Arabic surnames of reciters whose default Hafs recordings are already
+/// covered word-exactly, so their MP3Quran ayah-level duplicates are skipped.
+const WORD_COVERED_SURNAMES: [&str; 12] = [
+    "عبد الباسط",
+    "عبدالباسط",
+    "السديس",
+    "الشاطري",
+    "الرفاعي",
+    "الحصري",
+    "العفاسي",
+    "المنشاوي",
+    "الشريم",
+    "الدوسري",
+    "الطنيجي",
+    "الجليل",
+];
+
+/// Riwayah markers: recitations in another riwayah are distinct content and
+/// are always kept, even for word-covered reciters.
+const OTHER_RIWAYAH_MARKERS: [&str; 9] = [
+    "ورش", "قالون", "شعبة", "الدوري", "خلف", "البزي", "قنبل", "السوسي", "يعقوب",
+];
+
+fn duplicates_word_read(name: &str) -> bool {
+    if OTHER_RIWAYAH_MARKERS.iter().any(|marker| name.contains(marker)) {
+        return false;
+    }
+    WORD_COVERED_SURNAMES
+        .iter()
+        .any(|surname| name.contains(surname))
+}
+
+/// Quran Foundation recordings with exact word segments — one entry per
+/// reciter and style (true duplicate recordings are not listed).
+fn word_timing_reads() -> Vec<TimingRead> {
+    [
         (
             "1",
             "AbdulBaset AbdulSamad - Mujawwad",
@@ -387,11 +500,6 @@ pub fn get_quran_word_timing_reads() -> Vec<TimingRead> {
             "محمود خليل الحصري - معلّم",
         ),
         (
-            "97",
-            "Yasser ad-Dussary - Murattal (Classic)",
-            "ياسر الدوسري - مرتّل (تسجيل كلاسيكي)",
-        ),
-        (
             "161",
             "Khalifah al-Tunaiji - Murattal",
             "خليفة الطنيجي - مرتّل",
@@ -403,11 +511,6 @@ pub fn get_quran_word_timing_reads() -> Vec<TimingRead> {
         ),
         ("170", "Khalid al-Jalil - Murattal", "خالد الجليل - مرتّل"),
         ("172", "Hadi Toure - Murattal", "هادي توري - مرتّل"),
-        (
-            "173",
-            "Mishari Rashid al-Afasy - Murattal (Alternate)",
-            "مشاري راشد العفاسي - مرتّل (تسجيل بديل)",
-        ),
         ("174", "Yasser ad-Dussary - Murattal", "ياسر الدوسري - مرتّل"),
     ]
     .into_iter()
@@ -418,16 +521,7 @@ pub fn get_quran_word_timing_reads() -> Vec<TimingRead> {
         timing_level: "word".to_string(),
         folder_url: String::new(),
     })
-    .collect::<Vec<_>>();
-
-    reads.push(TimingRead {
-        id: "mp3-137".to_string(),
-        name: "Ahmad Talib bin Humaid - Ayah tracking".to_string(),
-        name_ar: Some("أحمد طالب بن حميد - متابعة الآية".to_string()),
-        timing_level: "ayah".to_string(),
-        folder_url: "https://server16.mp3quran.net/a_binhameed/Rewayat-Hafs-A-n-Assem/".to_string(),
-    });
-    reads
+    .collect::<Vec<_>>()
 }
 
 fn is_supported_word_timing_read(read_id: &str) -> bool {
@@ -462,15 +556,15 @@ pub async fn get_quran_synced_audio(
     surah_id: i64,
 ) -> Result<SyncedSurahAudio, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        let read_id = read_id.trim();
-        let ayah_source = match read_id {
-            "mp3-137" => Some((
-                "137",
-                "https://server16.mp3quran.net/a_binhameed/Rewayat-Hafs-A-n-Assem/",
+        let read_id = read_id.trim().to_string();
+        let ayah_source = match read_id.strip_prefix("mp3-") {
+            Some(source_id) => Some((
+                source_id.to_string(),
+                lookup_mp3quran_folder(&app_handle, source_id)?,
             )),
-            _ => None,
+            None => None,
         };
-        if ayah_source.is_none() && !is_supported_word_timing_read(read_id) {
+        if ayah_source.is_none() && !is_supported_word_timing_read(&read_id) {
             return Err("This reciter does not provide verified timing.".to_string());
         }
         if !(1..=114).contains(&surah_id) {
@@ -504,6 +598,11 @@ pub async fn get_quran_synced_audio(
             if ayah_timings.is_empty() {
                 return Err("This reciter has no recording for the selected surah.".to_string());
             }
+            let folder_url = if folder_url.ends_with('/') {
+                folder_url
+            } else {
+                format!("{}/", folder_url)
+            };
             let synced = SyncedSurahAudio {
                 audio_url: format!("{}{:03}.mp3", folder_url, surah_id),
                 ayah_timings,
@@ -539,6 +638,23 @@ pub async fn get_quran_synced_audio(
     })
     .await
     .map_err(|error| error.to_string())?
+}
+
+/// Resolves an MP3Quran read's own audio folder so its verified timing is
+/// always paired with the same recording it was measured against.
+fn lookup_mp3quran_folder(app_handle: &AppHandle, source_id: &str) -> Result<String, String> {
+    let target = format!("mp3-{}", source_id);
+    if let Ok(reads) = mp3quran_ayah_reads(app_handle) {
+        if let Some(read) = reads.iter().find(|read| read.id == target) {
+            if !read.folder_url.is_empty() {
+                return Ok(read.folder_url.clone());
+            }
+        }
+    }
+    if source_id == "137" {
+        return Ok("https://server16.mp3quran.net/a_binhameed/Rewayat-Hafs-A-n-Assem/".to_string());
+    }
+    Err("This reciter's audio folder could not be resolved. Check your internet connection.".to_string())
 }
 
 fn fetch_quran_foundation(url: &str) -> Result<String, String> {
@@ -712,32 +828,38 @@ fn parse_synced_ayah_words(body: &str, surah_id: i64) -> Result<Vec<SyncedAyahWo
 #[cfg(test)]
 mod timing_tests {
     use super::{
-        get_quran_word_timing_reads, is_supported_word_timing_read, parse_synced_ayah_words,
-        parse_synced_surah_audio,
+        duplicates_word_read, is_supported_word_timing_read, parse_synced_ayah_words,
+        parse_synced_surah_audio, word_timing_reads,
     };
 
     #[test]
-    fn reader_reciters_keep_exact_timing_honest_and_restore_ahmad() {
-        let reads = get_quran_word_timing_reads();
-        assert_eq!(reads.len(), 19);
+    fn word_reads_are_unique_supported_and_deduplicated() {
+        let reads = word_timing_reads();
+        assert_eq!(reads.len(), 16);
         let unique_ids = reads
             .iter()
             .map(|read| read.id.as_str())
             .collect::<std::collections::HashSet<_>>();
         assert_eq!(unique_ids.len(), reads.len());
+        assert!(reads.iter().all(|read| read.timing_level == "word"));
         assert!(reads
             .iter()
-            .filter(|read| read.timing_level == "word")
             .all(|read| is_supported_word_timing_read(&read.id)));
-        let ahmad = reads
-            .iter()
-            .find(|read| read.id == "mp3-137")
-            .expect("Ahmad Talib bin Humaid should remain available");
-        assert_eq!(ahmad.timing_level, "ayah");
-        assert_eq!(
-            ahmad.name_ar.as_deref(),
-            Some("أحمد طالب بن حميد - متابعة الآية")
-        );
+        // The duplicate alternate recordings are not listed.
+        assert!(!reads.iter().any(|read| read.id == "97" || read.id == "173"));
+    }
+
+    #[test]
+    fn ayah_catalog_skips_word_covered_hafs_but_keeps_other_riwayat() {
+        // Already word-exact in the same style — skipped.
+        assert!(duplicates_word_read("مشاري راشد العفاسي"));
+        assert!(duplicates_word_read("عبد الباسط عبد الصمد"));
+        // Another riwayah is distinct content — kept.
+        assert!(!duplicates_word_read("الحصري - ورش عن نافع"));
+        assert!(!duplicates_word_read("عبد الباسط - ورش"));
+        // Reciters without word-exact coverage — kept.
+        assert!(!duplicates_word_read("ماهر المعيقلي"));
+        assert!(!duplicates_word_read("أحمد طالب بن حميد"));
     }
 
     #[test]

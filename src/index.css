@@ -31,6 +31,7 @@
     --danger-rgb: 239 68 68;
     --warning-rgb: 214 181 109;
     --success-rgb: 16 185 129;
+    --quran-green-rgb: 54 199 124;
     --bg-main: rgb(var(--bg-main-rgb));
     --bg-sidebar: rgb(var(--bg-sidebar-rgb));
     --bg-panel: rgb(var(--bg-panel-rgb));
@@ -57,6 +58,7 @@
   }
 
   html[data-theme='emerald'] {
+    --quran-green-rgb: 74 222 128;
     --bg-main-rgb: 5 13 10;
     --bg-sidebar-rgb: 7 20 15;
     --bg-panel-rgb: 9 24 18;
@@ -81,6 +83,7 @@
   }
 
   html[data-theme='pearl'] {
+    --quran-green-rgb: 16 138 87;
     --bg-main-rgb: 243 246 247;
     --bg-sidebar-rgb: 229 236 238;
     --bg-panel-rgb: 255 255 255;
@@ -105,6 +108,7 @@
   }
 
   html[data-theme='mushaf'] {
+    --quran-green-rgb: 112 205 110;
     --bg-main-rgb: 5 7 6;
     --bg-sidebar-rgb: 8 12 10;
     --bg-panel-rgb: 11 16 13;
@@ -129,6 +133,7 @@
   }
 
   html[data-theme='blue'] {
+    --quran-green-rgb: 64 207 154;
     --bg-main-rgb: 4 9 18;
     --bg-sidebar-rgb: 6 13 26;
     --bg-panel-rgb: 9 17 34;
@@ -153,6 +158,7 @@
   }
 
   html[data-theme='red'] {
+    --quran-green-rgb: 96 190 132;
     --bg-main-rgb: 14 5 6;
     --bg-sidebar-rgb: 20 7 9;
     --bg-panel-rgb: 27 9 12;
@@ -342,39 +348,6 @@
     text-shadow: 0 0 0.45em rgb(var(--text-main-rgb) / 0.08);
   }
 
-  .quran-basmala-ligature {
-    position: relative;
-    isolation: isolate;
-    display: inline-block;
-    color: inherit;
-    font-family: 'Amiri Quran', 'Noto Naskh Arabic', 'Scheherazade New', serif;
-    font-size: 1.18em;
-    font-feature-settings: 'liga' 1, 'rlig' 1;
-    line-height: 1;
-    white-space: nowrap;
-  }
-
-  .quran-basmala-glyph {
-    position: relative;
-    z-index: 1;
-    display: inline-block;
-    transition: color 100ms ease, text-shadow 100ms ease;
-  }
-
-  .quran-basmala-track {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  .quran-basmala-track-word {
-    min-width: 0;
-    border-radius: 0.16em;
-  }
-
   .quran-flow {
     text-align: justify;
     text-align-last: center;
@@ -434,42 +407,55 @@
     background: transparent;
   }
 
+  /* Ayah-level reciters have no word segments, so the whole recited ayah gets
+     a soft green tint and its medallion fills — honest, never guessing words. */
   .quran-ayah-active-ayah {
     color: inherit;
     text-decoration: none;
+    background: rgb(var(--quran-green-rgb) / 0.1);
   }
 
   .quran-word {
     position: relative;
-    z-index: 0;
+    z-index: 1;
     border-radius: 0.16em;
     color: inherit;
-    transition: color 100ms ease;
+    transition: color 120ms ease, text-shadow 120ms ease;
   }
 
-  /* A compact fill follows the word while leaving the full tashkeel unobstructed. */
+  /* The exact spoken word turns recitation-green; the gliding cue pill slides
+     underneath it. Tashkeel stays fully visible — nothing covers the text. */
   .quran-word-active {
-    color: rgb(var(--bg-main-rgb));
-    text-decoration: none;
-    text-shadow: none;
+    color: rgb(var(--quran-green-rgb));
+    text-shadow: 0 0 0.4em rgb(var(--quran-green-rgb) / 0.32);
   }
 
-  .quran-word-active::before {
-    content: '';
+  /* The gliding recitation cue: a single pill positioned from the exact word's
+     verified boundaries and animated between them — smooth like Tarteel, but
+     it only ever rests on a word that is truly being recited. */
+  .quran-word-cue {
     position: absolute;
-    inset-inline: -0.1em;
-    top: 50%;
-    z-index: -1;
-    height: 1.14em;
-    border: 1px solid rgb(var(--text-main-rgb) / 0.16);
-    border-radius: 0.18em;
-    background-color: rgb(var(--accent-turquoise-rgb));
-    box-shadow: 0 0 0.32em rgb(var(--accent-turquoise-rgb) / 0.2);
-    transform: translateY(-48%);
+    top: 0;
+    left: 0;
+    z-index: 0;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
+    border-radius: 0.5em;
+    background: rgb(var(--quran-green-rgb) / 0.16);
+    border: 1px solid rgb(var(--quran-green-rgb) / 0.42);
+    box-shadow: 0 0 0.55em rgb(var(--quran-green-rgb) / 0.22);
+    transition:
+      transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+      width 160ms cubic-bezier(0.22, 1, 0.36, 1),
+      height 160ms ease,
+      opacity 180ms ease;
+    will-change: transform, width;
   }
 
   .quran-ayah-active .quran-ayah-marker {
-    color: rgb(var(--accent-turquoise-rgb));
+    color: rgb(var(--quran-green-rgb));
   }
 
   .quran-ayah-active-ayah .quran-ayah-marker {
@@ -477,26 +463,11 @@
     border-radius: 999px;
     padding: 0.06em;
     color: rgb(var(--bg-main-rgb));
-    background-color: rgb(var(--accent-turquoise-rgb));
-    box-shadow: 0 0 0.3em rgb(var(--accent-turquoise-rgb) / 0.2);
+    background-color: rgb(var(--quran-green-rgb));
+    box-shadow: 0 0 0.3em rgb(var(--quran-green-rgb) / 0.2);
     line-height: 1.05;
     text-shadow: none;
     vertical-align: 0.04em;
-  }
-
-  .quran-basmala-track-word.quran-word-active {
-    color: inherit;
-    background: transparent;
-    box-shadow: none;
-  }
-
-  .quran-basmala-track-word.quran-word-active::before {
-    content: none;
-  }
-
-  .quran-basmala-ligature:has(.quran-word-active) .quran-basmala-glyph {
-    color: rgb(var(--accent-turquoise-rgb));
-    text-shadow: 0 0 0.34em rgb(var(--accent-turquoise-rgb) / 0.22);
   }
 
   /* Refined translation typography under each ayah. */
@@ -515,6 +486,10 @@
 
     .quran-word {
       transition: none;
+    }
+
+    .quran-word-cue {
+      transition: opacity 180ms ease;
     }
   }
   
