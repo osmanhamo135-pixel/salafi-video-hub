@@ -720,6 +720,11 @@ mod timing_tests {
     fn reader_reciters_keep_exact_timing_honest_and_restore_ahmad() {
         let reads = get_quran_word_timing_reads();
         assert_eq!(reads.len(), 19);
+        let unique_ids = reads
+            .iter()
+            .map(|read| read.id.as_str())
+            .collect::<std::collections::HashSet<_>>();
+        assert_eq!(unique_ids.len(), reads.len());
         assert!(reads
             .iter()
             .filter(|read| read.timing_level == "word")
