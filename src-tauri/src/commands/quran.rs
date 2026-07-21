@@ -60,8 +60,11 @@ pub struct QuranReciter {
 }
 
 #[tauri::command]
-pub fn get_quran_surahs(app_handle: AppHandle) -> Result<Vec<SurahMeta>, String> {
-    let quran = load_quran(&app_handle)?;
+pub fn get_quran_surahs(
+    app_handle: AppHandle,
+    riwayah: Option<String>,
+) -> Result<Vec<SurahMeta>, String> {
+    let quran = load_riwayah(&app_handle, riwayah.as_deref())?;
     Ok(quran
         .iter()
         .map(|surah| SurahMeta {
@@ -76,8 +79,12 @@ pub fn get_quran_surahs(app_handle: AppHandle) -> Result<Vec<SurahMeta>, String>
 }
 
 #[tauri::command]
-pub fn get_quran_surah(app_handle: AppHandle, surah_id: i64) -> Result<Surah, String> {
-    let quran = load_quran(&app_handle)?;
+pub fn get_quran_surah(
+    app_handle: AppHandle,
+    surah_id: i64,
+    riwayah: Option<String>,
+) -> Result<Surah, String> {
+    let quran = load_riwayah(&app_handle, riwayah.as_deref())?;
     quran
         .iter()
         .find(|surah| surah.id == surah_id)
@@ -85,12 +92,83 @@ pub fn get_quran_surah(app_handle: AppHandle, surah_id: i64) -> Result<Surah, St
         .ok_or_else(|| format!("Surah {} was not found.", surah_id))
 }
 
+/// Selects the requested riwayah's text. Hafs is the default; Warsh uses the
+/// official KFGQPC dataset with its own (Madani) verse numbering — the two
+/// numberings are never mixed.
+fn load_riwayah(app_handle: &AppHandle, riwayah: Option<&str>) -> Result<&'static Vec<Surah>, String> {
+    match riwayah.map(str::trim) {
+        Some("warsh") => load_warsh(app_handle),
+        _ => load_quran(app_handle),
+    }
+}
+
+/// The bundled Warsh text (KFGQPC warshData v10), grouped once into the same
+/// Surah shape. Surah names and metadata come from the Hafs catalog (they are
+/// identical); verse texts, counts, and numbering come only from the Warsh
+/// dataset itself. Warsh has no bundled translation.
+static WARSH: OnceLock<Vec<Surah>> = OnceLock::new();
+
+#[derive(Debug, Deserialize)]
+struct WarshRow {
+    sura: i64,
+    aya: i64,
+    text: String,
+}
+
+fn load_warsh(app_handle: &AppHandle) -> Result<&'static Vec<Surah>, String> {
+    if let Some(warsh) = WARSH.get() {
+        return Ok(warsh);
+    }
+
+    let hafs = load_quran(app_handle)?;
+    let path = locate_resource_file(app_handle, "quran-warsh.json")
+        .ok_or_else(|| "The bundled Warsh text file could not be found.".to_string())?;
+    let raw = fs::read_to_string(&path)
+        .map_err(|error| format!("Could not read the Warsh text: {}", error))?;
+    let rows: Vec<WarshRow> = serde_json::from_str(&raw)
+        .map_err(|error| format!("Could not parse the Warsh text: {}", error))?;
+
+    let mut surahs: Vec<Surah> = hafs
+        .iter()
+        .map(|surah| Surah {
+            id: surah.id,
+            name: surah.name.clone(),
+            transliteration: surah.transliteration.clone(),
+            translation: surah.translation.clone(),
+            revelation_type: surah.revelation_type.clone(),
+            total_verses: 0,
+            verses: Vec::new(),
+        })
+        .collect();
+
+    for row in rows {
+        let index = (row.sura - 1) as usize;
+        let Some(surah) = surahs.get_mut(index) else {
+            continue;
+        };
+        surah.verses.push(Verse {
+            id: row.aya,
+            text: row.text,
+            translation: String::new(),
+        });
+    }
+    for surah in &mut surahs {
+        surah.verses.sort_by_key(|verse| verse.id);
+        surah.total_verses = surah.verses.len() as i64;
+        if surah.verses.is_empty() {
+            return Err("The bundled Warsh text is incomplete.".to_string());
+        }
+    }
+
+    Ok(WARSH.get_or_init(|| surahs))
+}
+
 fn load_quran(app_handle: &AppHandle) -> Result<&'static Vec<Surah>, String> {
     if let Some(quran) = QURAN.get() {
         return Ok(quran);
     }
 
-    let path = locate_quran_file(app_handle)
+    let path = locate_resource_file(app_handle, "quran.json")
         .ok_or_else(|| "The bundled Quran text file could not be found.".to_string())?;
     let raw = fs::read_to_string(&path)
         .map_err(|error| format!("Could not read the Quran text: {}", error))?;
@@ -104,24 +182,24 @@ fn load_quran(app_handle: &AppHandle) -> Result<&'static Vec<Surah>, String> {
     Ok(QURAN.get_or_init(|| parsed))
 }
 
-fn locate_quran_file(app_handle: &AppHandle) -> Option<PathBuf> {
+fn locate_resource_file(app_handle: &AppHandle, file_name: &str) -> Option<PathBuf> {
     let mut candidates = Vec::new();
 
     if let Ok(resource_dir) = app_handle.path().resource_dir() {
-        candidates.push(resource_dir.join("quran.json"));
-        candidates.push(resource_dir.join("resources").join("quran.json"));
+        candidates.push(resource_dir.join(file_name));
+        candidates.push(resource_dir.join("resources").join(file_name));
     }
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
-            candidates.push(exe_dir.join("quran.json"));
-            candidates.push(exe_dir.join("resources").join("quran.json"));
+            candidates.push(exe_dir.join(file_name));
+            candidates.push(exe_dir.join("resources").join(file_name));
         }
     }
     // Dev builds run from src-tauri, where the file lives in ./resources.
     candidates.push(
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("resources")
-            .join("quran.json"),
+            .join(file_name),
     );
 
     candidates.into_iter().find(|path| path.is_file())
@@ -146,166 +224,6 @@ pub struct AyahTiming {
     pub ayah: i64,
     pub start_ms: i64,
     pub end_ms: i64,
-}
-
-/// Lists the recitations that provide trusted ayah-timing data, so highlighting
-/// always pairs a reciter's own timing with that reciter's own recording.
-#[tauri::command]
-pub async fn get_quran_timing_reads(app_handle: AppHandle) -> Result<Vec<TimingRead>, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let cache_path = get_app_data_dir(&app_handle)?
-            .join("cache")
-            .join("quran-timing-reads.json");
-        if let Some(parent) = cache_path.parent() {
-            fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-        }
-
-        let fetched = fetch_url("https://mp3quran.net/api/v3/ayat_timing/reads")
-            .ok()
-            .and_then(|body| parse_timing_reads(&body).ok())
-            .filter(|reads| !reads.is_empty());
-
-        match fetched {
-            Some(reads) => {
-                if let Ok(json) = serde_json::to_string(&reads) {
-                    let _ = fs::write(&cache_path, json);
-                }
-                Ok(reads)
-            }
-            None => fs::read_to_string(&cache_path)
-                .ok()
-                .and_then(|raw| serde_json::from_str::<Vec<TimingRead>>(&raw).ok())
-                .filter(|reads| !reads.is_empty())
-                .ok_or_else(|| {
-                    "Could not load synced reciters. Check your internet connection.".to_string()
-                }),
-        }
-    })
-    .await
-    .map_err(|error| error.to_string())?
-}
-
-fn parse_timing_reads(body: &str) -> Result<Vec<TimingRead>, String> {
-    let json: serde_json::Value =
-        serde_json::from_str(body).map_err(|error| format!("Invalid reads response: {}", error))?;
-
-    let entries = json
-        .as_array()
-        .or_else(|| json.get("reads").and_then(|value| value.as_array()))
-        .ok_or_else(|| "Reads response had no list.".to_string())?;
-
-    Ok(entries
-        .iter()
-        .filter_map(|entry| {
-            let name = entry.get("name")?.as_str()?.trim().to_string();
-            let folder_url = entry
-                .get("folder_url")
-                .or_else(|| entry.get("server"))?
-                .as_str()?
-                .trim()
-                .to_string();
-            if name.is_empty()
-                || !(folder_url.starts_with("http://") || folder_url.starts_with("https://"))
-            {
-                return None;
-            }
-            let id = entry
-                .get("id")
-                .map(|value| value.to_string().trim_matches('"').to_string())
-                .filter(|value| !value.is_empty())?;
-            Some(TimingRead {
-                id,
-                name,
-                name_ar: None,
-                timing_level: "ayah".to_string(),
-                folder_url,
-            })
-        })
-        .collect())
-}
-
-/// Fetches per-ayah timing (milliseconds) for one surah of one timing-capable
-/// read. Cached permanently on disk — timing data for a published recording
-/// does not change, so replays work offline and instantly.
-#[tauri::command]
-pub async fn get_quran_ayah_timings(
-    app_handle: AppHandle,
-    read_id: String,
-    surah_id: i64,
-) -> Result<Vec<AyahTiming>, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let dir = get_app_data_dir(&app_handle)?
-            .join("cache")
-            .join("quran-timings");
-        fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-        let safe_read: String = read_id
-            .chars()
-            .filter(|c| c.is_ascii_alphanumeric())
-            .collect();
-        let cache_path = dir.join(format!("{}-{}.json", safe_read, surah_id));
-
-        if let Ok(raw) = fs::read_to_string(&cache_path) {
-            if let Ok(cached) = serde_json::from_str::<Vec<AyahTiming>>(&raw) {
-                if !cached.is_empty() {
-                    return Ok(cached);
-                }
-            }
-        }
-
-        let body = fetch_url(&format!(
-            "https://mp3quran.net/api/v3/ayat_timing?surah={}&read={}",
-            surah_id, read_id
-        ))?;
-        let timings = parse_ayah_timings(&body)?;
-        if timings.is_empty() {
-            return Err("No timing data is available for this surah and reciter.".to_string());
-        }
-
-        if let Ok(json) = serde_json::to_string(&timings) {
-            let _ = fs::write(&cache_path, json);
-        }
-        Ok(timings)
-    })
-    .await
-    .map_err(|error| error.to_string())?
-}
-
-fn parse_ayah_timings(body: &str) -> Result<Vec<AyahTiming>, String> {
-    let json: serde_json::Value = serde_json::from_str(body)
-        .map_err(|error| format!("Invalid timing response: {}", error))?;
-
-    let entries = json
-        .as_array()
-        .or_else(|| json.get("timings").and_then(|value| value.as_array()))
-        .ok_or_else(|| "Timing response had no list.".to_string())?;
-
-    let as_ms = |value: Option<&serde_json::Value>| -> Option<i64> {
-        let value = value?;
-        value
-            .as_i64()
-            .or_else(|| value.as_f64().map(|f| f as i64))
-            .or_else(|| value.as_str().and_then(|s| s.trim().parse::<i64>().ok()))
-    };
-
-    let mut timings = entries
-        .iter()
-        .filter_map(|entry| {
-            let ayah = as_ms(entry.get("ayah"))?;
-            let start_ms = as_ms(entry.get("start_time"))?;
-            let end_ms = as_ms(entry.get("end_time"))?;
-            if ayah < 0 || end_ms < start_ms {
-                return None;
-            }
-            Some(AyahTiming {
-                ayah,
-                start_ms,
-                end_ms,
-            })
-        })
-        .collect::<Vec<_>>();
-
-    timings.sort_by_key(|timing| timing.start_ms);
-    Ok(timings)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -40,6 +40,7 @@ export const Quran: React.FC = () => {
   const [tab, setTab] = useState<QuranTab>('read');
   const loadSurahs = useQuranStore((state) => state.loadSurahs);
   const surahsError = useQuranStore((state) => state.surahsError);
+  const riwayah = useQuranStore((state) => state.riwayah);
 
   useEffect(() => {
     void loadSurahs();
@@ -71,7 +72,9 @@ export const Quran: React.FC = () => {
 
         {tab === 'read' ? <ReadTab /> : <ListenTab />}
 
-        <p className="mt-6 text-center text-[11px] text-muted-text">{t('quranAttribution')}</p>
+        <p className="mt-6 text-center text-[11px] text-muted-text">
+          {t(riwayah === 'warsh' ? 'quranAttributionWarsh' : 'quranAttribution')}
+        </p>
       </div>
     </div>
   );
@@ -418,6 +421,8 @@ QuranVerseWords.displayName = 'QuranVerseWords';
 const SurahReader: React.FC = () => {
   const { t, language } = useI18n();
   const surah = useQuranStore((state) => state.currentSurah);
+  const riwayah = useQuranStore((state) => state.riwayah);
+  const setRiwayah = useQuranStore((state) => state.setRiwayah);
   const fontSize = useQuranStore((state) => state.fontSize);
   const showTranslation = useQuranStore((state) => state.showTranslation);
   const lastRead = useQuranStore((state) => state.lastRead);
@@ -448,10 +453,13 @@ const SurahReader: React.FC = () => {
     void loadTimingReads();
   }, [loadTimingReads]);
 
+  const warshMode = riwayah === 'warsh';
   const read = timingReads.find((entry) => entry.id === selectedTimingReadId) ?? timingReads[0];
   const readName = read ? (language === 'ar' ? read.nameAr ?? read.name : read.name) : '';
   const syncStationId = surah && read ? `quran-sync-${read.id}-${surah.id}` : null;
-  const syncActive = Boolean(syncStationId && currentStation?.id === syncStationId);
+  // Recitation timing data uses the Hafs (Kufan) numbering; the tracker is
+  // Hafs-only so it can never point at a differently numbered Warsh ayah.
+  const syncActive = !warshMode && Boolean(syncStationId && currentStation?.id === syncStationId);
   const synced = surah && read ? syncedAudioBySurah[`${read.id}:${surah.id}`] ?? null : null;
   const syncedWordsByAyah = useMemo(
     () => new Map(synced?.wordsByAyah.map((entry) => [entry.ayah, entry.words]) ?? []),
@@ -616,9 +624,35 @@ const SurahReader: React.FC = () => {
               {t('quranSyncUnavailable')}
             </span>
           )}
+          {warshMode && (
+            <span className="rounded-full bg-accent-gold/15 px-2 py-0.5 font-medium text-accent-gold">
+              {t('quranWarshNote')}
+            </span>
+          )}
         </p>
         <div className="flex flex-wrap items-center gap-1.5">
-          {timingReads.length > 0 && (
+          {/* Riwayah switch: text, numbering, bookmarks, and font all follow. */}
+          <div className="flex items-center overflow-hidden rounded-md border border-border" role="group" aria-label={t('quranRiwayah')}>
+            <button
+              type="button"
+              onClick={() => setRiwayah('hafs')}
+              className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                !warshMode ? 'bg-primary-blue/15 text-primary-blue' : 'text-muted-text hover:text-text-primary'
+              }`}
+            >
+              {t('quranRiwayahHafs')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setRiwayah('warsh')}
+              className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                warshMode ? 'bg-primary-blue/15 text-primary-blue' : 'text-muted-text hover:text-text-primary'
+              }`}
+            >
+              {t('quranRiwayahWarsh')}
+            </button>
+          </div>
+          {!warshMode && timingReads.length > 0 && (
             <select
               value={read?.id ?? ''}
               onChange={(event) => selectTimingRead(event.target.value)}
@@ -632,7 +666,7 @@ const SurahReader: React.FC = () => {
               ))}
             </select>
           )}
-          {read && (
+          {!warshMode && read && (
             <button
               type="button"
               onClick={() => void handlePlaySurah()}
@@ -648,6 +682,7 @@ const SurahReader: React.FC = () => {
               {preparingAudio ? t('quranPreparingAudio') : t('quranPlaySurah')}
             </button>
           )}
+          {!warshMode && (
           <div className="relative">
             <Repeat
               className={`pointer-events-none absolute start-2 top-1/2 h-3 w-3 -translate-y-1/2 ${
@@ -668,7 +703,8 @@ const SurahReader: React.FC = () => {
               <option value="surah">{t('quranRepeatSurah')}</option>
             </select>
           </div>
-          {repeatMode === 'ayah' && (
+          )}
+          {!warshMode && repeatMode === 'ayah' && (
             <label className="inline-flex items-center gap-1 text-[10px] text-muted-text">
               {t('quranAyah')}
               <input
@@ -685,7 +721,7 @@ const SurahReader: React.FC = () => {
               />
             </label>
           )}
-          {repeatMode === 'range' && (
+          {!warshMode && repeatMode === 'range' && (
             <div className="inline-flex items-center gap-1 text-[10px] text-muted-text">
               <input
                 type="number"
@@ -734,6 +770,7 @@ const SurahReader: React.FC = () => {
               <Plus className="h-3 w-3" />
             </button>
           </div>
+          {!warshMode && (
           <button
             type="button"
             onClick={() => setShowTranslation(!showTranslation)}
@@ -746,6 +783,7 @@ const SurahReader: React.FC = () => {
           >
             {t('quranTranslation')}
           </button>
+          )}
         </div>
       </div>
 
@@ -767,7 +805,7 @@ const SurahReader: React.FC = () => {
         </button>
       )}
 
-      <div className="quran-reading-surface mx-auto mt-2 max-w-[68rem]">
+      <div className={`quran-reading-surface mx-auto mt-2 max-w-[68rem] ${warshMode ? 'quran-riwayah-warsh' : ''}`}>
         {/* The gliding recitation cue — one pill that follows the exact word. */}
         <span aria-hidden="true" id={`quran-cue-${surah.id}`} className="quran-word-cue" />
         <h2
@@ -782,7 +820,7 @@ const SurahReader: React.FC = () => {
             At-Tawbah in the Uthmani mushaf, in the traditional elongated
             calligraphic form on its own centered line (Al-Fatihah's basmala
             is verse 1 and appears inside the flow with its medallion). */}
-        {surah.id !== 1 && surah.id !== 9 && (
+        {(warshMode ? surah.id !== 9 : surah.id !== 1 && surah.id !== 9) && (
           <p
             className="quran-basmala-calligraphy quran-script arabic-text mb-7 mt-2 text-center"
             dir="rtl"
@@ -794,7 +832,7 @@ const SurahReader: React.FC = () => {
           </p>
         )}
 
-        {showTranslation ? (
+        {showTranslation && !warshMode ? (
           /* Ayah-list mode with translations. */
           <div className="space-y-5">
             {surah.verses.map((verse) => {
@@ -812,6 +850,14 @@ const SurahReader: React.FC = () => {
                       onContextMenu={(event) => {
                         event.preventDefault();
                         toggleBookmark(bookmark);
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          handleAyahClick(verse.id);
+                        }
                       }}
                       title={t('quranBookmarkHint')}
                       className={`quran-ayah-inline ${
@@ -856,6 +902,14 @@ const SurahReader: React.FC = () => {
                   onContextMenu={(event) => {
                     event.preventDefault();
                     toggleBookmark(bookmark);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      handleAyahClick(verse.id);
+                    }
                   }}
                   title={t('quranBookmarkHint')}
                   className={`quran-ayah-inline ${
@@ -1004,7 +1058,11 @@ const ListenTab: React.FC = () => {
             </div>
           </>
         ) : (
-          !recitersLoading && <p className="py-10 text-center text-sm text-muted-text">{recitersError ?? ''}</p>
+          !recitersLoading && (
+            <p className="py-10 text-center text-sm text-muted-text">
+              {recitersError ?? t('quranNoReciters')}
+            </p>
+          )
         )}
       </section>
     </div>

@@ -1,0 +1,9 @@
+Warsh riwayah Quran text (warshData v10) and KFGQPC Warsh font (v10)
+
+Source: King Fahd Glorious Qur'an Printing Complex (KFGQPC), Madinah —
+official developer data (https://qurancomplex.gov.sa/en/techquran/dev/).
+The complete text of the Noble Qur'an in the riwayah of Warsh 'an Nafi',
+in the Uthmani script of the Madinah mushaf, included verbatim without
+modification (only the trailing ayah number digit is separated for
+display). Verse numbering follows the Madani count used by the Warsh
+mushaf and intentionally differs from the Hafs/Kufan count.

@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
 
+export type QuranRiwayah = 'hafs' | 'warsh';
+
 export interface SurahMeta {
   id: number;
   name: string;
@@ -72,6 +74,8 @@ export interface SyncedSurahAudio {
 }
 
 interface QuranState {
+  /** Active riwayah: Hafs (default, Kufan numbering) or Warsh (Madani numbering). */
+  riwayah: QuranRiwayah;
   surahs: SurahMeta[];
   surahsError: string | null;
   currentSurah: QuranSurah | null;
@@ -100,6 +104,7 @@ interface QuranState {
   selectTimingRead: (id: string) => void;
   loadSyncedAudio: (readId: string, surahId: number) => Promise<SyncedSurahAudio | null>;
 
+  setRiwayah: (riwayah: QuranRiwayah) => void;
   loadSurahs: () => Promise<void>;
   openSurah: (surahId: number) => Promise<void>;
   setFontSize: (size: number) => void;
@@ -111,8 +116,11 @@ interface QuranState {
   selectReciter: (id: string) => void;
 }
 
-const LAST_READ_KEY = 'salafi-hub.quran-last-read.v1';
-const BOOKMARKS_KEY = 'salafi-hub.quran-bookmarks.v1';
+const RIWAYAH_KEY = 'salafi-hub.quran-riwayah.v1';
+const lastReadKey = (riwayah: QuranRiwayah) =>
+  riwayah === 'warsh' ? 'salafi-hub.quran-last-read.warsh.v1' : 'salafi-hub.quran-last-read.v1';
+const bookmarksKey = (riwayah: QuranRiwayah) =>
+  riwayah === 'warsh' ? 'salafi-hub.quran-bookmarks.warsh.v1' : 'salafi-hub.quran-bookmarks.v1';
 const FONT_KEY = 'salafi-hub.quran-font-size.v1';
 const TRANSLATION_KEY = 'salafi-hub.quran-show-translation.v1';
 const RECITER_KEY = 'salafi-hub.quran-reciter.v1';
@@ -138,7 +146,10 @@ const writeJson = (key: string, value: unknown) => {
 const getMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
 
+const initialRiwayah = readJson<QuranRiwayah>(RIWAYAH_KEY, 'hafs');
+
 export const useQuranStore = create<QuranState>((set, get) => ({
+  riwayah: initialRiwayah,
   surahs: [],
   surahsError: null,
   currentSurah: null,
@@ -146,8 +157,30 @@ export const useQuranStore = create<QuranState>((set, get) => ({
 
   fontSize: readJson(FONT_KEY, 30),
   showTranslation: readJson(TRANSLATION_KEY, false),
-  lastRead: readJson<QuranBookmark | null>(LAST_READ_KEY, null),
-  bookmarks: readJson<QuranBookmark[]>(BOOKMARKS_KEY, []),
+  lastRead: readJson<QuranBookmark | null>(lastReadKey(initialRiwayah), null),
+  bookmarks: readJson<QuranBookmark[]>(bookmarksKey(initialRiwayah), []),
+
+  setRiwayah: (riwayah) => {
+    if (get().riwayah === riwayah) return;
+    writeJson(RIWAYAH_KEY, riwayah);
+    const reopenSurah = get().currentSurah?.id ?? null;
+    // Verse numbering differs between riwayat, so bookmarks and the last-read
+    // position are kept separately per riwayah — never mixed.
+    set({
+      riwayah,
+      surahs: [],
+      currentSurah: null,
+      lastRead: readJson<QuranBookmark | null>(lastReadKey(riwayah), null),
+      bookmarks: readJson<QuranBookmark[]>(bookmarksKey(riwayah), []),
+    });
+    void get()
+      .loadSurahs()
+      .then(() => {
+        if (reopenSurah !== null && get().riwayah === riwayah) {
+          void get().openSurah(reopenSurah);
+        }
+      });
+  },
 
   reciters: [],
   recitersLoading: false,
@@ -204,7 +237,7 @@ export const useQuranStore = create<QuranState>((set, get) => ({
   loadSurahs: async () => {
     if (get().surahs.length > 0) return;
     try {
-      const surahs = await invoke<SurahMeta[]>('get_quran_surahs');
+      const surahs = await invoke<SurahMeta[]>('get_quran_surahs', { riwayah: get().riwayah });
       set({ surahs, surahsError: null });
     } catch (error) {
       set({ surahsError: getMessage(error) });
@@ -215,7 +248,10 @@ export const useQuranStore = create<QuranState>((set, get) => ({
     if (get().loadingSurah || get().currentSurah?.id === surahId) return;
     set({ loadingSurah: true });
     try {
-      const surah = await invoke<QuranSurah>('get_quran_surah', { surahId });
+      const surah = await invoke<QuranSurah>('get_quran_surah', {
+        surahId,
+        riwayah: get().riwayah,
+      });
       set({ currentSurah: surah, loadingSurah: false });
     } catch (error) {
       set({ loadingSurah: false, surahsError: getMessage(error) });
@@ -234,7 +270,7 @@ export const useQuranStore = create<QuranState>((set, get) => ({
   },
 
   setLastRead: (bookmark) => {
-    writeJson(LAST_READ_KEY, bookmark);
+    writeJson(lastReadKey(get().riwayah), bookmark);
     set({ lastRead: bookmark });
   },
 
@@ -244,7 +280,7 @@ export const useQuranStore = create<QuranState>((set, get) => ({
           (existing) => !(existing.surahId === bookmark.surahId && existing.verseId === bookmark.verseId),
         )
       : [...get().bookmarks, bookmark];
-    writeJson(BOOKMARKS_KEY, bookmarks);
+    writeJson(bookmarksKey(get().riwayah), bookmarks);
     set({ bookmarks });
   },
 

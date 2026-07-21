@@ -21,7 +21,7 @@ export const QuickActions: React.FC = () => {
     try {
       setImportError(null);
       setImportSummary(null);
-      const path = await pickFolder();
+      const path = await pickFolder(t('dialogSelectFolder'));
       if (!path) return;
 
       setImporting(true);
@@ -40,7 +40,7 @@ export const QuickActions: React.FC = () => {
     try {
       setImportError(null);
       setImportSummary(null);
-      const path = await pickVideoFile();
+      const path = await pickVideoFile(t('dialogSelectVideo'));
       if (!path) return;
 
       setImporting(true);
