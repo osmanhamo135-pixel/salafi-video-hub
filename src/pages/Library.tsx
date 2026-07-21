@@ -152,7 +152,7 @@ export const Library: React.FC = () => {
     try {
       setImportError(null);
       setImportResult(null);
-      const path = await pickFolder();
+      const path = await pickFolder(t('dialogSelectFolder'));
       if (!path) return;
 
       setImporting(true);
@@ -169,7 +169,7 @@ export const Library: React.FC = () => {
     try {
       setImportError(null);
       setImportResult(null);
-      const path = await pickVideoFile();
+      const path = await pickVideoFile(t('dialogSelectVideo'));
       if (!path) return;
 
       setImporting(true);

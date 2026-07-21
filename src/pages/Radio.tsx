@@ -71,7 +71,8 @@ export const Radio: React.FC = () => {
             <button
               type="button"
               onClick={() => void loadStations(language === 'ar' ? 'ar' : 'eng')}
-              className="btn-secondary mx-auto mt-4 px-4 py-2 text-xs"
+              disabled={loading}
+              className="btn-secondary mx-auto mt-4 px-4 py-2 text-xs disabled:opacity-60"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               {t('retry')}

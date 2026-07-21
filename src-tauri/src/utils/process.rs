@@ -5,6 +5,7 @@ use std::process::Command;
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 pub fn hidden_command<S: AsRef<OsStr>>(program: S) -> Command {
+    #[cfg_attr(not(windows), allow(unused_mut))]
     let mut command = Command::new(program);
 
     #[cfg(windows)]
