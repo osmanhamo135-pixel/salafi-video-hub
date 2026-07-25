@@ -685,6 +685,107 @@
     }
   }
   
+  /* ── Shared primitives ──────────────────────────────────────────────────
+     One family for every list, control group, and quiet field, so the Quran
+     page, Radio, Reminders and the Library visibly belong together. All
+     token-derived, so they re-colour in every theme. */
+
+  .rule-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .rule-list > .rule-row:last-child {
+    border-bottom: 0;
+  }
+
+  /* Active row: an inset marker and one value step — never a filled box. */
+  .rule-row-active {
+    background: rgb(var(--accent-gold-rgb) / 0.05);
+    box-shadow: inset 2px 0 0 rgb(var(--accent-gold-rgb));
+    color: rgb(var(--text-main-rgb));
+  }
+
+  /* Segmented control: labels sharing a baseline rule, not boxes. */
+  .segmented {
+    display: inline-flex;
+    align-items: stretch;
+    gap: var(--s4);
+  }
+
+  .segmented button {
+    padding: 4px 2px;
+    font: inherit;
+    font-size: var(--fs-cap);
+    color: rgb(var(--text-muted-rgb));
+    background: none;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    cursor: pointer;
+    transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  }
+
+  .segmented button[aria-pressed='true'] {
+    color: rgb(var(--text-main-rgb));
+    border-bottom-color: rgb(var(--accent-gold-rgb));
+  }
+
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: var(--r-sm);
+    background: none;
+    color: rgb(var(--text-muted-rgb));
+    cursor: pointer;
+    transition: color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+  }
+
+  .icon-btn:hover {
+    color: rgb(var(--text-main-rgb));
+    background: rgb(var(--accent-gold-rgb) / 0.06);
+  }
+
+  /* Quiet field: a baseline rule instead of a boxed input. */
+  .field-quiet {
+    width: 100%;
+    padding: 8px 2px;
+    color: rgb(var(--text-main-rgb));
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--hair);
+    outline: none;
+    transition: border-color var(--dur) var(--ease);
+  }
+
+  .field-quiet:focus {
+    border-bottom-color: rgb(var(--accent-gold-rgb));
+  }
+
+  .field-quiet::placeholder {
+    color: rgb(var(--text-faint-rgb));
+  }
+
+  /* Every interactive element gets the same focus ring. */
+  .rule-row:focus-visible,
+  .segmented button:focus-visible,
+  .icon-btn:focus-visible,
+  .field-quiet:focus-visible {
+    outline: 2px solid rgb(var(--accent-gold-rgb));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .segmented button,
+    .icon-btn,
+    .field-quiet {
+      transition: none;
+    }
+  }
+
   /* ── Hero ───────────────────────────────────────────────────────────────
      Five layers, all derived from theme tokens so the hero re-colours itself
      in every theme. The background is procedural: no bundled photograph, and
