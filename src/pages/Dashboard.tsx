@@ -19,6 +19,7 @@ import { useAppStore } from '@/store/appStore';
 import { ContinueWatching } from '@/components/dashboard/ContinueWatching';
 import { RecentlyAdded } from '@/components/dashboard/RecentlyAdded';
 import { QuickActions } from '@/components/dashboard/QuickActions';
+import { Hero } from '@/components/home/Hero';
 import { formatBytes } from '@/utils/formatBytes';
 import { formatDurationLong } from '@/utils/formatTime';
 import { useI18n } from '@/i18n';
@@ -83,6 +84,8 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="page-container">
       <div className="content-max-width">
+        <Hero />
+
         <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <div className="premium-pill mb-2">
