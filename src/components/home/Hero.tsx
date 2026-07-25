@@ -45,6 +45,7 @@ export const Hero: React.FC = () => {
   return (
     <section className="hero mb-6">
       <div className="hero-ground" aria-hidden="true" />
+      <div className="hero-scene" aria-hidden="true" />
       <div className="hero-girih" aria-hidden="true" />
       <div className="hero-arch" aria-hidden="true" />
       <div className="hero-scrim" aria-hidden="true" />
