@@ -211,10 +211,10 @@ const SurahRow: React.FC<{ surah: SurahMeta; active: boolean; onOpen: () => void
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium text-text-primary">{surah.transliteration}</span>
           <span className="block truncate text-[11px] text-muted-text">
-            {surah.totalVerses} {t('quranVerses')}
+            <bdi>{surah.totalVerses}</bdi> {t('quranVerses')}
           </span>
         </span>
-        <span className="quran-script arabic-text shrink-0 text-base text-accent-gold">{surah.name}</span>
+        <span className="arabic-text shrink-0 text-base text-muted-text">{surah.name}</span>
       </button>
     );
   },
@@ -607,14 +607,14 @@ const SurahReader: React.FC = () => {
   return (
     <div>
       {/* Slim glass toolbar: stays out of the way of the mushaf page. */}
-      <div className="sticky top-0 z-20 mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-panel/75 px-3 py-2 backdrop-blur">
+      <div className="quran-toolbar sticky top-0 z-20 mb-4 flex flex-wrap items-center justify-between gap-2 px-3 py-2">
         <p className="flex min-w-0 flex-wrap items-center gap-2 text-[11px] text-muted-text">
           <span className="truncate">
-            {surah.id}. {surah.transliteration} · {surah.total_verses} {t('quranVerses')}
+            {surah.id}. {surah.transliteration} · <bdi>{surah.total_verses}</bdi> {t('quranVerses')}
           </span>
           {syncActive && synced && (
             <span className="inline-flex items-center gap-1 rounded-full bg-success-green/15 px-2 py-0.5 font-medium text-success-green">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success-green" />
+              <span className="h-1.5 w-1.5 rounded-full bg-success-green" />
               {t('quranSyncBadge')}
               {activeAyah !== null && <span className="tabular-nums" dir="ltr"> · {activeAyah}</span>}
             </span>
@@ -826,7 +826,7 @@ const SurahReader: React.FC = () => {
             dir="rtl"
             role="img"
             aria-label={BASMALA_TEXT}
-            style={{ fontSize: fontSize * 1.5 }}
+            style={{ fontSize: `min(${fontSize * 1.5}px, 11vw)` }}
           >
             {BASMALA_LIGATURE}
           </p>

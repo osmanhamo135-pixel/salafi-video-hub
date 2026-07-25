@@ -90,7 +90,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
         <div className="flex shrink-0 items-center gap-2 pe-1">
           <button
             onClick={() => onContinue(playlist)}
-            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary-blue px-3 text-xs font-semibold text-[#03110f] transition-colors hover:bg-primary-blue-hover"
+            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary-blue px-3 text-xs font-semibold text-background transition-colors hover:bg-primary-blue-hover"
           >
             <Play className="h-3.5 w-3.5 fill-current" />
             {t('continue')}
@@ -193,7 +193,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
         <div className="flex items-center justify-between pt-1.5 mt-auto">
           <button
             onClick={() => onContinue(playlist)}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary-blue px-3 py-1.5 text-xs font-semibold text-[#03110f] transition-colors hover:bg-primary-blue-hover"
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary-blue px-3 py-1.5 text-xs font-semibold text-background transition-colors hover:bg-primary-blue-hover"
           >
             <Play className="w-3.5 h-3.5 fill-current" />
             {t('continue')}

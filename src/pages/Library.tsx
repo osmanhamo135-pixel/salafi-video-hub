@@ -536,7 +536,7 @@ const ViewButton: React.FC<{
     onClick={onClick}
     className={`flex h-8 w-8 items-center justify-center rounded transition-colors ${
       active
-        ? 'bg-primary-blue text-[#03110f]'
+        ? 'bg-primary-blue text-background'
         : 'text-muted-text hover:bg-panel-hover hover:text-text-primary'
     }`}
   >

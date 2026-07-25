@@ -243,7 +243,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
               }}
               className={`flex-1 py-2 text-xs font-medium transition-colors ${
                 form.targetType === 'playlist'
-                  ? 'bg-primary-blue text-[#03110f]'
+                  ? 'bg-primary-blue text-background'
                   : 'text-muted-text hover:text-text-primary'
               }`}
             >
@@ -258,7 +258,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
               }}
               className={`flex-1 py-2 text-xs font-medium transition-colors ${
                 form.targetType === 'video'
-                  ? 'bg-primary-blue text-[#03110f]'
+                  ? 'bg-primary-blue text-background'
                   : 'text-muted-text hover:text-text-primary'
               }`}
             >
@@ -433,7 +433,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
             onChange={(e) => updateField('volume', Number(e.target.value))}
             className="flex-1 h-1.5 bg-border rounded-full appearance-none cursor-pointer accent-primary-blue"
             style={{
-              background: `linear-gradient(to right, #0FB9B1 ${form.volume}%, rgba(45, 207, 200, 0.12) ${form.volume}%)`,
+              background: `linear-gradient(to right, rgb(var(--accent-gold-rgb)) ${form.volume}%, rgb(var(--accent-gold-rgb) / 0.12) ${form.volume}%)`,
             }}
           />
           <button

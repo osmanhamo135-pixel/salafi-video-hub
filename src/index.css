@@ -41,6 +41,11 @@
   src: url('./assets/fonts/PlexArabic-500-arabic.woff2') format('woff2');
   font-weight: 500; font-style: normal; font-display: swap;
 }
+@font-face {
+  font-family: 'Plex Arabic';
+  src: url('./assets/fonts/PlexArabic-600-arabic.woff2') format('woff2');
+  font-weight: 600; font-style: normal; font-display: swap;
+}
 
 /* Amiri Quran (OFL) — calligraphic fallback (basmala ligature and glyph gaps). */
 @font-face {
@@ -72,6 +77,9 @@
     --warning-rgb: 214 181 109;
     --success-rgb: 16 185 129;
     --quran-green-rgb: 54 199 124;
+    /* Print-mushaf convention: the ayah medallion stays warm gold in every
+       theme, even where the UI accent is blue or bronze. */
+    --mushaf-gold-rgb: 224 190 116;
     --bg-main: rgb(var(--bg-main-rgb));
     --bg-sidebar: rgb(var(--bg-sidebar-rgb));
     --bg-panel: rgb(var(--bg-panel-rgb));
@@ -370,6 +378,25 @@
     overflow: hidden;
   }
 
+  /* Tailwind's text-* utilities pin a Latin line-height; Arabic needs more
+     room or the tashkeel collides. Restore the Arabic leading for text that
+     is not mushaf script (which sets its own). */
+  html[data-language='ar'] p,
+  html[data-language='ar'] h1,
+  html[data-language='ar'] h2,
+  html[data-language='ar'] h3,
+  html[data-language='ar'] label,
+  html[data-language='ar'] li {
+    line-height: var(--lh-arabic);
+  }
+
+  html[data-language='ar'] .quran-script,
+  html[data-language='ar'] .quran-flow,
+  html[data-language='ar'] .hero-basmala,
+  html[data-language='ar'] .hero-mark {
+    line-height: inherit;
+  }
+
   html[data-language='ar'] body {
     font-family: 'Plex Arabic', 'Segoe UI', Tahoma, 'Noto Naskh Arabic', system-ui, sans-serif;
     letter-spacing: 0;
@@ -464,10 +491,15 @@
 
   .arabic-text {
     direction: rtl;
-    font-family: 'Segoe UI', Tahoma, 'Noto Naskh Arabic', 'Amiri', 'Scheherazade New', system-ui, sans-serif;
+    font-family: 'Plex Arabic', 'Segoe UI', Tahoma, 'Noto Naskh Arabic', system-ui, sans-serif;
     line-height: 1.85;
     letter-spacing: 0;
     text-rendering: geometricPrecision;
+  }
+
+  .quran-toolbar {
+    background: rgb(var(--bg-main-rgb));
+    border-bottom: 1px solid var(--hair);
   }
 
   /* Mushaf-style Quranic script (Amiri Quran with graceful fallbacks). */
@@ -504,7 +536,6 @@
     justify-content: center;
     gap: clamp(1.5rem, 5vw, 4rem);
     color: rgb(var(--accent-gold-rgb));
-    text-shadow: 0 0 0.5em rgb(var(--accent-gold-rgb) / 0.18);
   }
 
   .quran-surah-heading::before,
@@ -516,7 +547,6 @@
 
   .quran-basmala {
     color: rgb(var(--text-main-rgb));
-    text-shadow: 0 0 0.45em rgb(var(--text-main-rgb) / 0.08);
   }
 
   /* The traditional elongated calligraphic basmala (U+FDFD) — the same form
@@ -524,11 +554,11 @@
      room, so the tall calligraphy can never collide with surrounding lines. */
   .quran-basmala-calligraphy {
     display: block;
+    max-width: 100%;
     line-height: 1.9;
     padding-block: 0.08em;
     white-space: nowrap;
     color: rgb(var(--text-main-rgb));
-    text-shadow: 0 0 0.45em rgb(var(--text-main-rgb) / 0.08);
   }
 
   .quran-flow {
@@ -546,7 +576,6 @@
     margin-inline: 0.05em;
     vertical-align: 0.02em;
     white-space: nowrap;
-    text-shadow: 0 0 0.4em rgb(var(--accent-gold-rgb) / 0.2);
   }
 
   /* Inline ayah: clickable and highlightable without ever moving the layout.
@@ -571,9 +600,8 @@
     /* Amiri Quran composes ۝ + digits into one medallion (KFGQPC draws them
        as two separate marks), so the marker keeps the Amiri glyph. */
     font-family: 'Amiri Quran', 'Noto Naskh Arabic', serif;
-    color: rgb(var(--accent-gold-rgb));
+    color: rgb(var(--mushaf-gold-rgb));
     font-size: 0.95em;
-    text-shadow: 0 0 0.35em rgb(var(--accent-gold-rgb) / 0.18);
   }
 
   .quran-bookmarked {
@@ -596,18 +624,14 @@
 
 
   .quran-word {
-    position: relative;
-    z-index: 1;
-    border-radius: 0.16em;
     color: inherit;
-    transition: color 120ms ease, text-shadow 120ms ease;
+    transition: color 120ms ease;
   }
 
   /* The exact spoken word turns recitation-green; the gliding cue pill slides
      underneath it. Tashkeel stays fully visible — nothing covers the text. */
   .quran-word-active {
     color: rgb(var(--quran-green-rgb));
-    text-shadow: 0 0 0.4em rgb(var(--quran-green-rgb) / 0.32);
   }
 
   /* The gliding recitation cue: a single pill positioned from the exact word's
@@ -617,7 +641,7 @@
     position: absolute;
     top: 0;
     left: 0;
-    z-index: 0;
+    z-index: -1;
     width: 0;
     height: 0;
     opacity: 0;
@@ -641,11 +665,10 @@
 
   /* Refined translation typography under each ayah. */
   .quran-translation {
-    font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif;
+    font-family: 'Plex Arabic', Georgia, 'Palatino Linotype', 'Times New Roman', serif;
     border-inline-start: 2px solid rgb(var(--accent-gold-rgb) / 0.35);
     padding-inline-start: 0.75rem;
     color: rgb(var(--text-soft-rgb));
-    letter-spacing: 0.01em;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -837,7 +860,6 @@
     font-size: var(--fs-lg);
     font-weight: 400;
     line-height: 1.5;
-    letter-spacing: 0.08em;
     color: rgb(var(--text-soft-rgb));
   }
 
@@ -929,47 +951,44 @@
     @apply max-w-content mx-auto w-full pb-10;
   }
 
+  /* Surfaces separate by a hairline and a value step — never by a drop
+     shadow. Depth comes from the one key light per screen. */
   .premium-surface {
-    @apply border border-border shadow-subtle;
-    background: var(--surface-wash);
-    box-shadow: inset 0 1px 0 rgba(245, 247, 250, 0.035), 0 16px 42px rgba(0, 0, 0, 0.22);
+    border: 1px solid var(--hair);
+    background: rgb(var(--bg-card-rgb) / 0.55);
+    box-shadow: none;
   }
 
   .premium-card {
-    @apply border border-border shadow-subtle transition-colors;
-    background: var(--card-wash);
-    box-shadow: inset 0 1px 0 rgba(245, 247, 250, 0.03), 0 8px 24px rgba(0, 0, 0, 0.18);
-  }
-
-  .premium-card-hover {
-    @apply hover:border-border-strong hover:shadow-teal;
+    border: 1px solid var(--hair);
+    background: rgb(var(--bg-card-rgb) / 0.42);
+    box-shadow: none;
+    transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease);
   }
 
   .premium-card-hover:hover {
-    background: linear-gradient(
-      180deg,
-      rgb(var(--bg-card-rgb) / 0.98),
-      rgb(var(--bg-main-rgb) / 0.98)
-    );
+    border-color: rgb(var(--accent-gold-rgb) / 0.26);
+  }
+
+  .premium-card-hover:hover {
+    background: rgb(var(--bg-card-hover-rgb) / 0.55);
   }
 
   .premium-pill {
-    @apply inline-flex items-center gap-2 rounded-md border border-primary-blue/20 px-2.5 py-1 text-xs font-medium text-primary-blue;
-    background: linear-gradient(
-      135deg,
-      rgb(var(--accent-teal-rgb) / 0.12),
-      rgb(var(--accent-blue-rgb) / 0.055)
-    );
+    @apply inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-xs font-medium;
+    border: 1px solid var(--hair);
+    color: rgb(var(--accent-gold-rgb));
+    background: rgb(var(--accent-gold-rgb) / 0.07);
   }
 
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-background transition-colors disabled:cursor-not-allowed disabled:opacity-60;
-    background: linear-gradient(135deg, var(--accent-gold), #f6df8f 58%, rgba(28, 173, 111, 0.92));
-    box-shadow: 0 10px 24px rgba(236, 195, 102, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+    background: rgb(var(--accent-gold-rgb));
+    box-shadow: none;
   }
 
   .btn-primary:hover {
-    background: linear-gradient(135deg, #f8e7aa, var(--accent-gold) 62%, rgba(28, 173, 111, 0.96));
+    background: rgb(var(--accent-gold-rgb) / 0.88);
   }
 
   .btn-secondary {
@@ -996,8 +1015,8 @@
 
   .islamic-pattern {
     background-image:
-      linear-gradient(45deg, rgba(45, 207, 200, 0.07) 25%, transparent 25%, transparent 75%, rgba(45, 207, 200, 0.07) 75%),
-      linear-gradient(-45deg, rgba(214, 181, 109, 0.055) 25%, transparent 25%, transparent 75%, rgba(214, 181, 109, 0.055) 75%);
+      linear-gradient(45deg, rgb(var(--accent-teal-rgb) / 0.07) 25%, transparent 25%, transparent 75%, rgb(var(--accent-teal-rgb) / 0.07) 75%),
+      linear-gradient(-45deg, rgb(var(--accent-gold-rgb) / 0.055) 25%, transparent 25%, transparent 75%, rgb(var(--accent-gold-rgb) / 0.055) 75%);
     background-position: 0 0, 12px 12px;
     background-size: 24px 24px;
   }
@@ -1014,20 +1033,20 @@
   .ornate-corner::before {
     top: 0.65rem;
     left: 0.65rem;
-    border-top: 1px solid rgba(214, 181, 109, 0.45);
-    border-left: 1px solid rgba(214, 181, 109, 0.45);
+    border-top: 1px solid rgb(var(--accent-gold-rgb) / 0.45);
+    border-left: 1px solid rgb(var(--accent-gold-rgb) / 0.45);
   }
 
   .ornate-corner::after {
     right: 0.65rem;
     bottom: 0.65rem;
-    border-right: 1px solid rgba(15, 185, 177, 0.35);
-    border-bottom: 1px solid rgba(15, 185, 177, 0.35);
+    border-right: 1px solid rgb(var(--accent-teal-rgb) / 0.35);
+    border-bottom: 1px solid rgb(var(--accent-teal-rgb) / 0.35);
   }
 
   .thumbnail-fallback {
     @apply relative flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br from-background via-panel to-elevated-panel;
-    box-shadow: inset 0 0 0 1px rgba(45, 207, 200, 0.08);
+    box-shadow: inset 0 0 0 1px rgb(var(--accent-teal-rgb) / 0.08);
   }
 
   .thumbnail-fallback::before {
@@ -1036,9 +1055,9 @@
     inset: 0;
     opacity: 0.45;
     background-image:
-      radial-gradient(circle at center, rgba(214, 181, 109, 0.12) 0 1px, transparent 1px 100%),
-      linear-gradient(45deg, rgba(45, 207, 200, 0.075) 25%, transparent 25%, transparent 75%, rgba(45, 207, 200, 0.075) 75%),
-      linear-gradient(-45deg, rgba(45, 207, 200, 0.055) 25%, transparent 25%, transparent 75%, rgba(45, 207, 200, 0.055) 75%);
+      radial-gradient(circle at center, rgb(var(--accent-gold-rgb) / 0.12) 0 1px, transparent 1px 100%),
+      linear-gradient(45deg, rgb(var(--accent-teal-rgb) / 0.075) 25%, transparent 25%, transparent 75%, rgb(var(--accent-teal-rgb) / 0.075) 75%),
+      linear-gradient(-45deg, rgb(var(--accent-teal-rgb) / 0.055) 25%, transparent 25%, transparent 75%, rgb(var(--accent-teal-rgb) / 0.055) 75%);
     background-position: 0 0, 0 0, 11px 11px;
     background-size: 22px 22px;
   }
@@ -1056,44 +1075,44 @@
 
   .icon-medallion {
     @apply relative flex items-center justify-center rounded-lg border border-primary-blue/20 bg-primary-blue/10 text-primary-blue;
-    box-shadow: inset 0 0 0 1px rgba(214, 181, 109, 0.08), 0 8px 24px rgba(0, 0, 0, 0.18);
+    box-shadow: inset 0 0 0 1px rgb(var(--accent-gold-rgb) / 0.08);
   }
 
   .icon-medallion::after {
     content: '';
     position: absolute;
     inset: 4px;
-    border: 1px solid rgba(214, 181, 109, 0.14);
+    border: 1px solid rgb(var(--accent-gold-rgb) / 0.14);
     border-radius: 6px;
     pointer-events: none;
   }
 
   .brand-mark {
     @apply relative flex items-center justify-center rounded-full border border-accent-gold/35 bg-black text-accent-gold;
-    box-shadow: inset 0 0 0 1px rgba(255, 240, 180, 0.08), 0 10px 28px rgba(0, 0, 0, 0.28);
+    box-shadow: inset 0 0 0 1px rgb(var(--accent-gold-rgb) / 0.08);
   }
 
   .brand-mark::after {
     content: '';
     position: absolute;
     inset: 3px;
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    border: 1px solid rgb(var(--text-main-rgb) / 0.16);
     border-radius: 9999px;
     pointer-events: none;
   }
 
   .gold-thread {
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(236, 195, 102, 0.5), rgba(28, 173, 111, 0.24), transparent);
+    background: linear-gradient(90deg, transparent, rgb(var(--accent-gold-rgb) / 0.5), rgb(var(--accent-emerald-rgb) / 0.24), transparent);
   }
 
   .salafi-dashboard-hero {
-    border: 1px solid rgba(236, 195, 102, 0.2);
+    border: 1px solid rgb(var(--accent-gold-rgb) / 0.2);
     background:
-      radial-gradient(circle at 12% 12%, rgba(236, 195, 102, 0.15), transparent 18rem),
-      radial-gradient(circle at 88% 0%, rgba(28, 173, 111, 0.11), transparent 22rem),
-      linear-gradient(135deg, rgba(20, 24, 18, 0.98), rgba(5, 8, 7, 0.98));
-    box-shadow: inset 0 1px 0 rgba(255, 240, 180, 0.07), 0 22px 60px rgba(0, 0, 0, 0.28);
+      radial-gradient(circle at 12% 12%, rgb(var(--accent-gold-rgb) / 0.15), transparent 18rem),
+      radial-gradient(circle at 88% 0%, rgb(var(--accent-emerald-rgb) / 0.11), transparent 22rem),
+      linear-gradient(135deg, rgb(var(--bg-card-rgb) / 0.98), rgb(var(--bg-main-rgb) / 0.98));
+    box-shadow: inset 0 1px 0 rgb(var(--accent-gold-rgb) / 0.07);
   }
 
   .salafi-dashboard-hero::before {
@@ -1103,14 +1122,14 @@
     opacity: 0.18;
     pointer-events: none;
     background-image:
-      linear-gradient(45deg, rgba(236, 195, 102, 0.12) 25%, transparent 25%, transparent 75%, rgba(236, 195, 102, 0.12) 75%),
-      linear-gradient(-45deg, rgba(28, 173, 111, 0.08) 25%, transparent 25%, transparent 75%, rgba(28, 173, 111, 0.08) 75%);
+      linear-gradient(45deg, rgb(var(--accent-gold-rgb) / 0.12) 25%, transparent 25%, transparent 75%, rgb(var(--accent-gold-rgb) / 0.12) 75%),
+      linear-gradient(-45deg, rgb(var(--accent-emerald-rgb) / 0.08) 25%, transparent 25%, transparent 75%, rgb(var(--accent-emerald-rgb) / 0.08) 75%);
     background-size: 34px 34px;
     background-position: 0 0, 17px 17px;
   }
 
   .download-batch-card {
-    box-shadow: inset 0 1px 0 rgba(255, 240, 180, 0.04), 0 14px 34px rgba(0, 0, 0, 0.2);
+    box-shadow: inset 0 1px 0 rgb(var(--accent-gold-rgb) / 0.04);
   }
 
   .surface-input {
@@ -1119,6 +1138,6 @@
 
   .media-badge {
     @apply rounded-md border border-white/10 bg-black/70 px-1.5 py-0.5 text-[11px] font-medium text-white;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgb(var(--text-main-rgb) / 0.08);
   }
 }

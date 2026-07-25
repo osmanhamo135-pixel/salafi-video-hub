@@ -644,7 +644,7 @@ const dictionaries = {
     heroOpenMushaf: 'افتح المصحف',
     heroRadio: 'الإذاعة',
     heroContinue: 'تابع القراءة',
-    heroBasmalaMeaning: 'بسم الله الرحمن الرحيم',
+    heroBasmalaMeaning: 'افتتاح باسم الله الرحمن الرحيم',
     heroMarkLabel: 'نور',
     applied: 'مطبق',
     retry: 'إعادة المحاولة',
