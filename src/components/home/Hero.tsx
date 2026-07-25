@@ -54,6 +54,13 @@ export const Hero: React.FC = () => {
           {BASMALA_LIGATURE}
         </p>
 
+        {/* The نور mark, on the same two-group system as the Basmala:
+            strokes take the text colour, the accent detail takes the theme
+            accent. Swaps to the supplied vector without markup changes. */}
+        <p className="hero-mark" role="img" aria-label={t('heroMarkLabel')}>
+          نور
+        </p>
+
         <h1 className="hero-wordmark">
           {language === 'ar' ? (
             'سلفي هَب'

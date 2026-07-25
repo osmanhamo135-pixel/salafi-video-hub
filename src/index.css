@@ -750,13 +750,23 @@
     color: rgb(var(--text-main-rgb));
   }
 
+  .hero-mark {
+    margin: 0 0 var(--s5);
+    padding-bottom: 0.18em;
+    font-family: 'Aref Ruqaa', 'Amiri Quran', serif;
+    font-size: clamp(28px, 3.4vw, 54px);
+    line-height: 1.1;
+    color: rgb(var(--text-main-rgb));
+  }
+
   .hero-wordmark {
     margin: 0 0 var(--s3);
     font-family: 'Aref Ruqaa', 'Amiri Quran', serif;
-    font-size: var(--fs-2xl);
+    font-size: var(--fs-lg);
     font-weight: 400;
     line-height: 1.5;
-    color: rgb(var(--text-main-rgb));
+    letter-spacing: 0.08em;
+    color: rgb(var(--text-soft-rgb));
   }
 
   .hero-wordmark-latin {
