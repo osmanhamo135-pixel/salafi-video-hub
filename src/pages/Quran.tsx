@@ -3,9 +3,12 @@ import {
   AlertTriangle,
   BookMarked,
   BookOpen,
+  Check,
+  ChevronDown,
   Headphones,
   Loader2,
   Minus,
+  MoreHorizontal,
   Pause,
   Play,
   Plus,
@@ -28,6 +31,7 @@ const BASMALA_LIGATURE = '﷽';
 
 type QuranTab = 'read' | 'listen';
 type QuranRepeatMode = 'off' | 'ayah' | 'range' | 'surah';
+type QuranToolbarMenu = 'none' | 'reciter' | 'repeat' | 'more';
 
 interface QuranRepeatSelection {
   mode: QuranRepeatMode;
@@ -142,47 +146,54 @@ const ReadTab: React.FC = () => {
   }, [currentSurah]);
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-      <aside className="premium-surface flex max-h-[70vh] flex-col overflow-hidden rounded-lg">
-        <div className="border-b border-border p-3">
-          <div className="relative">
-            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
+    <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
+      <aside className="flex max-h-[70vh] flex-col overflow-hidden border-border pb-1 xl:border-e xl:pe-5">
+        <div className="shrink-0">
+          <div className="rule-head">
+            <span className="text-xs font-semibold tracking-wide text-text-primary" dir="auto">
+              {t('quranSurahs')}
+            </span>
+            <span className="text-[11px] tabular-nums text-muted-text">
+              <bdi>{filtered.length}</bdi>
+            </span>
+          </div>
+          <div className="relative mt-1">
+            <Search className="pointer-events-none absolute start-0 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
             <input
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t('quranSearchSurah')}
-              className="surface-input w-full py-2 ps-10"
+              className="field-quiet ps-6 text-sm"
             />
           </div>
           {lastRead && (
             <button
               type="button"
               onClick={handleContinue}
-              className="btn-secondary mt-2 w-full justify-center px-3 py-1.5 text-xs"
+              className="mt-2 inline-flex items-center gap-1.5 py-1 text-[11px] font-medium text-muted-text transition-colors hover:text-text-primary"
             >
               <BookMarked className="h-3.5 w-3.5" />
               {t('quranContinue')}
             </button>
           )}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-2">
+        <div className="rule-list min-h-0 flex-1 overflow-y-auto">
           {filtered.map((surah) => (
             <SurahRow key={surah.id} surah={surah} active={currentSurah?.id === surah.id} onOpen={() => void openSurah(surah.id)} />
           ))}
         </div>
       </aside>
 
-      <section className="premium-surface ornate-corner relative min-h-[50vh] rounded-lg p-5">
-        <div className="gold-thread absolute inset-x-5 top-0" />
+      <section className="min-h-[50vh]">
         {loadingSurah && (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-7 w-7 animate-spin text-primary-blue" />
+            <Loader2 className="h-7 w-7 animate-spin text-muted-text" />
           </div>
         )}
         {!loadingSurah && !currentSurah && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <BookOpen className="mb-3 h-10 w-10 text-primary-blue" />
+            <BookOpen className="mb-3 h-9 w-9 text-text-faint" />
             <p className="text-sm text-muted-text">{t('quranSelectSurah')}</p>
           </div>
         )}
@@ -199,22 +210,25 @@ const SurahRow: React.FC<{ surah: SurahMeta; active: boolean; onOpen: () => void
       <button
         type="button"
         onClick={onOpen}
-        className={`mb-1 flex w-full items-center gap-3 rounded-md border px-3 py-2 text-start transition-colors ${
-          active
-            ? 'border-primary-blue/40 bg-primary-blue/10'
-            : 'border-transparent hover:bg-panel-hover'
-        }`}
+        aria-current={active ? 'true' : undefined}
+        className={`rule-row w-full py-2.5 text-start ${active ? 'rule-row-active' : ''}`}
       >
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-blue/12 text-xs font-semibold tabular-nums text-primary-blue">
-          {surah.id}
+        {/* Fixed-width numeral gutter: the ids line up as a ruled column. */}
+        <span className="w-6 shrink-0 text-end text-[11px] tabular-nums text-text-faint">
+          <bdi>{surah.id}</bdi>
         </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium text-text-primary">{surah.transliteration}</span>
-          <span className="block truncate text-[11px] text-muted-text">
-            <bdi>{surah.totalVerses}</bdi> {t('quranVerses')}
-          </span>
+        <span className="min-w-0 flex-1 truncate text-sm text-text-primary" dir="auto">
+          {surah.transliteration}
         </span>
-        <span className="arabic-text shrink-0 text-base text-muted-text">{surah.name}</span>
+        <span className="arabic-text shrink-0 truncate text-sm text-muted-text" dir="auto">
+          {surah.name}
+        </span>
+        <span
+          className="w-7 shrink-0 text-end text-[11px] tabular-nums text-text-faint"
+          title={t('quranVerses')}
+        >
+          <bdi>{surah.totalVerses}</bdi>
+        </span>
       </button>
     );
   },
@@ -418,6 +432,40 @@ const QuranVerseWords: React.FC<{
 
 QuranVerseWords.displayName = 'QuranVerseWords';
 
+/**
+ * A quiet toolbar popover: one hairline-bordered panel that sits on the page's
+ * own darkness. Nothing it contains ever covers Quranic text permanently — the
+ * backdrop dismisses it on the first click anywhere else.
+ */
+const ToolbarPanel: React.FC<{
+  label: string;
+  align?: 'start' | 'end';
+  onClose: () => void;
+  children: React.ReactNode;
+}> = ({ label, align = 'start', onClose, children }) => (
+  <>
+    <button
+      type="button"
+      tabIndex={-1}
+      aria-hidden="true"
+      onClick={onClose}
+      className="fixed inset-0 z-30 cursor-default"
+    />
+    <div
+      role="group"
+      aria-label={label}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') onClose();
+      }}
+      className={`absolute top-full z-40 mt-2 min-w-[11rem] rounded-md border border-border bg-background p-1.5 ${
+        align === 'end' ? 'end-0' : 'start-0'
+      }`}
+    >
+      {children}
+    </div>
+  </>
+);
+
 const SurahReader: React.FC = () => {
   const { t, language } = useI18n();
   const surah = useQuranStore((state) => state.currentSurah);
@@ -441,11 +489,15 @@ const SurahReader: React.FC = () => {
   const playStation = useRadioStore((state) => state.play);
   const setLooping = useRadioStore((state) => state.setLooping);
   const currentStation = useRadioStore((state) => state.current);
+  const playing = useRadioStore((state) => state.playing);
+  const togglePlay = useRadioStore((state) => state.togglePlay);
   const [followPaused, setFollowPaused] = useState(false);
   const [preparingAudio, setPreparingAudio] = useState(false);
   const [repeatMode, setRepeatMode] = useState<QuranRepeatMode>('off');
   const [repeatStart, setRepeatStart] = useState(1);
   const [repeatEnd, setRepeatEnd] = useState(1);
+  // Only one toolbar panel is ever open, so the mushaf is never covered twice.
+  const [openMenu, setOpenMenu] = useState<QuranToolbarMenu>('none');
   const programmaticScrollRef = useRef(false);
   const pendingInitialSeekRef = useRef<number | null>(null);
 
@@ -604,187 +656,261 @@ const SurahReader: React.FC = () => {
   const isBookmarked = (bookmark: QuranBookmark) =>
     bookmarks.some((b) => b.surahId === bookmark.surahId && b.verseId === bookmark.verseId);
 
+  const closeMenu = () => setOpenMenu('none');
+  const toggleMenu = (menu: QuranToolbarMenu) =>
+    setOpenMenu((current) => (current === menu ? 'none' : menu));
+  const syncPlaying = syncActive && playing;
+  const repeatOptions: Array<{ mode: QuranRepeatMode; label: string }> = [
+    { mode: 'off', label: t('quranRepeatOff') },
+    { mode: 'ayah', label: t('quranRepeatAyah') },
+    { mode: 'range', label: t('quranRepeatRange') },
+    { mode: 'surah', label: t('quranRepeatSurah') },
+  ];
+
   return (
     <div>
-      {/* Slim glass toolbar: stays out of the way of the mushaf page. */}
-      <div className="quran-toolbar sticky top-0 z-20 mb-4 flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-        <p className="flex min-w-0 flex-wrap items-center gap-2 text-[11px] text-muted-text">
-          <span className="truncate">
-            {surah.id}. {surah.transliteration} · <bdi>{surah.total_verses}</bdi> {t('quranVerses')}
-          </span>
-          {syncActive && synced && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-success-green/15 px-2 py-0.5 font-medium text-success-green">
-              <span className="h-1.5 w-1.5 rounded-full bg-success-green" />
-              {t('quranSyncBadge')}
-              {activeAyah !== null && <span className="tabular-nums" dir="ltr"> · {activeAyah}</span>}
-            </span>
+      {/* Toolbar: three primary objects on the line — play, reciter, riwayah —
+          everything else folds into a panel, so the mushaf keeps the page. */}
+      <div className="quran-toolbar sticky top-0 z-20 mb-4 px-1 py-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          {!warshMode && read && (
+            <div className="relative flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => (syncActive ? togglePlay() : void handlePlaySurah())}
+                disabled={preparingAudio}
+                title={t('quranPlaySurah')}
+                aria-label={t('quranPlaySurah')}
+                className="inline-flex items-center gap-1.5 rounded-sm py-1 text-[11px] font-medium text-text-primary transition-colors hover:text-accent-gold disabled:opacity-60"
+              >
+                {preparingAudio ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-text" />
+                ) : syncPlaying ? (
+                  <Pause className="h-3.5 w-3.5 text-accent-gold" fill="currentColor" />
+                ) : (
+                  <Play className="h-3.5 w-3.5 text-accent-gold" fill="currentColor" />
+                )}
+                {!syncPlaying && (
+                  <span>{preparingAudio ? t('quranPreparingAudio') : t('quranPlaySurah')}</span>
+                )}
+              </button>
+
+              {/* Repeat lives with the play control. It stays available before
+                  playback too: setting a start ayah here is what seeds the
+                  initial seek on the first press. */}
+              <button
+                type="button"
+                onClick={() => toggleMenu('repeat')}
+                aria-haspopup="dialog"
+                aria-expanded={openMenu === 'repeat'}
+                title={t('quranRepeat')}
+                aria-label={t('quranRepeat')}
+                className={`icon-btn h-7 w-7 ${repeatMode === 'off' ? '' : 'text-text-primary'}`}
+              >
+                <Repeat className="h-3.5 w-3.5" />
+              </button>
+              {openMenu === 'repeat' && (
+                <ToolbarPanel label={t('quranRepeat')} onClose={closeMenu}>
+                      <div className="rule-list" role="radiogroup" aria-label={t('quranRepeat')}>
+                        {repeatOptions.map((option) => (
+                          <button
+                            key={option.mode}
+                            type="button"
+                            role="radio"
+                            aria-checked={repeatMode === option.mode}
+                            onClick={() => handleRepeatMode(option.mode)}
+                            className={`rule-row w-full py-2 text-start text-[11px] ${
+                              repeatMode === option.mode ? 'rule-row-active' : 'text-muted-text'
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                      {repeatMode === 'ayah' && (
+                        <label className="mt-2 flex items-center justify-between gap-2 px-0.5 text-[11px] text-muted-text">
+                          {t('quranAyah')}
+                          <input
+                            type="number"
+                            min={1}
+                            max={surah.total_verses}
+                            value={repeatStart}
+                            onChange={(event) => {
+                              const next = clampAyah(Number(event.target.value));
+                              setRepeatStart(next);
+                              setRepeatEnd(next);
+                            }}
+                            className="field-quiet w-16 py-1 text-center text-[11px] tabular-nums"
+                          />
+                        </label>
+                      )}
+                      {repeatMode === 'range' && (
+                        <div className="mt-2 flex items-center justify-between gap-1.5 px-0.5 text-[11px] text-muted-text">
+                          <input
+                            type="number"
+                            min={1}
+                            max={surah.total_verses}
+                            value={repeatStart}
+                            aria-label={t('quranRepeatFrom')}
+                            title={t('quranRepeatFrom')}
+                            onChange={(event) => {
+                              const next = clampAyah(Number(event.target.value));
+                              setRepeatStart(next);
+                              if (next > repeatEnd) setRepeatEnd(next);
+                            }}
+                            className="field-quiet w-16 py-1 text-center text-[11px] tabular-nums"
+                          />
+                          <span aria-hidden="true">–</span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={surah.total_verses}
+                            value={repeatEnd}
+                            aria-label={t('quranRepeatTo')}
+                            title={t('quranRepeatTo')}
+                            onChange={(event) => {
+                              const next = clampAyah(Number(event.target.value));
+                              setRepeatEnd(next);
+                              if (next < repeatStart) setRepeatStart(next);
+                            }}
+                            className="field-quiet w-16 py-1 text-center text-[11px] tabular-nums"
+                          />
+                        </div>
+                      )}
+                </ToolbarPanel>
+              )}
+            </div>
           )}
-          {syncActive && !synced && (
-            <span className="rounded-full bg-muted-text/15 px-2 py-0.5 font-medium text-muted-text">
-              {t('quranSyncUnavailable')}
-            </span>
+
+          {/* The reciter reads as a name, not a form control. */}
+          {!warshMode && timingReads.length > 0 && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => toggleMenu('reciter')}
+                aria-haspopup="listbox"
+                aria-expanded={openMenu === 'reciter'}
+                title={t('quranSyncedReciter')}
+                aria-label={t('quranSyncedReciter')}
+                className="inline-flex max-w-[15rem] items-center gap-1 py-1 text-[11px] text-muted-text transition-colors hover:text-text-primary"
+              >
+                <span className="truncate" dir="auto">
+                  {readName}
+                </span>
+                <ChevronDown className="h-3 w-3 shrink-0" />
+              </button>
+              {openMenu === 'reciter' && (
+                <ToolbarPanel label={t('quranSyncedReciter')} onClose={closeMenu}>
+                  <div className="rule-list max-h-64 overflow-y-auto" role="listbox">
+                    {timingReads.map((entry) => {
+                      const selected = read?.id === entry.id;
+                      return (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          role="option"
+                          aria-selected={selected}
+                          dir="auto"
+                          onClick={() => {
+                            selectTimingRead(entry.id);
+                            closeMenu();
+                          }}
+                          className={`rule-row w-full py-2 text-start text-[11px] ${
+                            selected ? 'rule-row-active' : 'text-muted-text'
+                          }`}
+                        >
+                          {language === 'ar' ? entry.nameAr ?? entry.name : entry.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </ToolbarPanel>
+              )}
+            </div>
           )}
-          {warshMode && (
-            <span className="rounded-full bg-accent-gold/15 px-2 py-0.5 font-medium text-accent-gold">
-              {t('quranWarshNote')}
-            </span>
-          )}
-        </p>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {/* Riwayah switch: text, numbering, bookmarks, and font all follow. */}
-          <div className="flex items-center overflow-hidden rounded-md border border-border" role="group" aria-label={t('quranRiwayah')}>
-            <button
-              type="button"
-              onClick={() => setRiwayah('hafs')}
-              className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                !warshMode ? 'bg-primary-blue/15 text-primary-blue' : 'text-muted-text hover:text-text-primary'
-              }`}
-            >
+
+          {/* Riwayah: both readings stay legible at all times — which riwayah
+              is on screen is a correctness question, never a hidden setting. */}
+          <div className="segmented" role="group" aria-label={t('quranRiwayah')}>
+            <button type="button" aria-pressed={!warshMode} onClick={() => setRiwayah('hafs')}>
               {t('quranRiwayahHafs')}
             </button>
-            <button
-              type="button"
-              onClick={() => setRiwayah('warsh')}
-              className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                warshMode ? 'bg-primary-blue/15 text-primary-blue' : 'text-muted-text hover:text-text-primary'
-              }`}
-            >
+            <button type="button" aria-pressed={warshMode} onClick={() => setRiwayah('warsh')}>
               {t('quranRiwayahWarsh')}
             </button>
           </div>
-          {!warshMode && timingReads.length > 0 && (
-            <select
-              value={read?.id ?? ''}
-              onChange={(event) => selectTimingRead(event.target.value)}
-              className="surface-input max-w-[190px] py-1 text-[11px]"
-              title={t('quranSyncedReciter')}
-            >
-              {timingReads.map((entry) => (
-                <option key={entry.id} value={entry.id}>
-                  {language === 'ar' ? entry.nameAr ?? entry.name : entry.name}
-                </option>
-              ))}
-            </select>
-          )}
-          {!warshMode && read && (
+
+          <div className="relative ms-auto">
             <button
               type="button"
-              onClick={() => void handlePlaySurah()}
-              disabled={preparingAudio}
-              className="btn-primary px-2.5 py-1 text-[11px]"
-              title={t('quranPlaySurah')}
+              onClick={() => toggleMenu('more')}
+              aria-haspopup="menu"
+              aria-expanded={openMenu === 'more'}
+              title={t('quranTranslation')}
+              aria-label={t('quranTranslation')}
+              className="icon-btn"
             >
-              {preparingAudio ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Play className="h-3 w-3" fill="currentColor" />
-              )}
-              {preparingAudio ? t('quranPreparingAudio') : t('quranPlaySurah')}
+              <MoreHorizontal className="h-4 w-4" />
             </button>
-          )}
-          {!warshMode && (
-          <div className="relative">
-            <Repeat
-              className={`pointer-events-none absolute start-2 top-1/2 h-3 w-3 -translate-y-1/2 ${
-                repeatMode === 'off' ? 'text-muted-text' : 'text-success-green'
-              }`}
-            />
-            <select
-              value={repeatMode}
-              onChange={(event) => handleRepeatMode(event.target.value as QuranRepeatMode)}
-              className={`surface-input w-[126px] py-1 ps-7 text-[11px] ${
-                repeatMode === 'off' ? '' : 'border-success-green/40 text-success-green'
-              }`}
-              title={t('quranRepeat')}
-            >
-              <option value="off">{t('quranRepeatOff')}</option>
-              <option value="ayah">{t('quranRepeatAyah')}</option>
-              <option value="range">{t('quranRepeatRange')}</option>
-              <option value="surah">{t('quranRepeatSurah')}</option>
-            </select>
+            {openMenu === 'more' && (
+              <ToolbarPanel label={t('quranTranslation')} align="end" onClose={closeMenu}>
+                <div className="flex items-center justify-between gap-3 px-1 py-1">
+                  <span className="flex items-center gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setFontSize(fontSize - 2)}
+                      className="icon-btn h-7 w-7"
+                      title="A-"
+                      aria-label="A-"
+                    >
+                      <Minus className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFontSize(fontSize + 2)}
+                      className="icon-btn h-7 w-7"
+                      title="A+"
+                      aria-label="A+"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </span>
+                </div>
+                {!warshMode && (
+                  <button
+                    type="button"
+                    role="menuitemcheckbox"
+                    aria-checked={showTranslation}
+                    onClick={() => setShowTranslation(!showTranslation)}
+                    className="mt-1 flex w-full items-center justify-between gap-3 rounded-sm px-1 py-1.5 text-[11px] text-text-primary transition-colors hover:bg-panel-hover"
+                  >
+                    <span>{t('quranTranslation')}</span>
+                    {showTranslation ? (
+                      <Check className="h-3.5 w-3.5 shrink-0 text-text-primary" />
+                    ) : (
+                      <span className="h-3.5 w-3.5 shrink-0" />
+                    )}
+                  </button>
+                )}
+              </ToolbarPanel>
+            )}
           </div>
-          )}
-          {!warshMode && repeatMode === 'ayah' && (
-            <label className="inline-flex items-center gap-1 text-[10px] text-muted-text">
-              {t('quranAyah')}
-              <input
-                type="number"
-                min={1}
-                max={surah.total_verses}
-                value={repeatStart}
-                onChange={(event) => {
-                  const next = clampAyah(Number(event.target.value));
-                  setRepeatStart(next);
-                  setRepeatEnd(next);
-                }}
-                className="surface-input w-14 py-1 text-center text-[11px] tabular-nums"
-              />
-            </label>
-          )}
-          {!warshMode && repeatMode === 'range' && (
-            <div className="inline-flex items-center gap-1 text-[10px] text-muted-text">
-              <input
-                type="number"
-                min={1}
-                max={surah.total_verses}
-                value={repeatStart}
-                aria-label={t('quranRepeatFrom')}
-                onChange={(event) => {
-                  const next = clampAyah(Number(event.target.value));
-                  setRepeatStart(next);
-                  if (next > repeatEnd) setRepeatEnd(next);
-                }}
-                className="surface-input w-14 py-1 text-center text-[11px] tabular-nums"
-              />
-              <span>–</span>
-              <input
-                type="number"
-                min={1}
-                max={surah.total_verses}
-                value={repeatEnd}
-                aria-label={t('quranRepeatTo')}
-                onChange={(event) => {
-                  const next = clampAyah(Number(event.target.value));
-                  setRepeatEnd(next);
-                  if (next < repeatStart) setRepeatStart(next);
-                }}
-                className="surface-input w-14 py-1 text-center text-[11px] tabular-nums"
-              />
-            </div>
-          )}
-          <div className="flex items-center rounded-md border border-border">
-            <button
-              type="button"
-              onClick={() => setFontSize(fontSize - 2)}
-              className="px-1.5 py-1 text-muted-text hover:text-text-primary"
-              title="A-"
-            >
-              <Minus className="h-3 w-3" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setFontSize(fontSize + 2)}
-              className="px-1.5 py-1 text-muted-text hover:text-text-primary"
-              title="A+"
-            >
-              <Plus className="h-3 w-3" />
-            </button>
-          </div>
-          {!warshMode && (
-          <button
-            type="button"
-            onClick={() => setShowTranslation(!showTranslation)}
-            className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-              showTranslation
-                ? 'border-primary-blue/45 bg-primary-blue/15 text-primary-blue'
-                : 'border-border text-muted-text hover:text-text-primary'
-            }`}
-            title={t('quranTranslation')}
-          >
-            {t('quranTranslation')}
-          </button>
-          )}
         </div>
+
+        {/* One quiet status line — only the live following state is accented. */}
+        {(syncActive || warshMode) && (
+          <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 px-1 text-[11px] text-muted-text">
+            {syncActive && synced && (
+              <span className="inline-flex items-center gap-1.5 text-accent-gold">
+                <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent-gold" />
+                {t('quranSyncBadge')}
+                {activeAyah !== null && <bdi className="tabular-nums">{activeAyah}</bdi>}
+              </span>
+            )}
+            {syncActive && !synced && <span>{t('quranSyncUnavailable')}</span>}
+            {warshMode && <span dir="auto">{t('quranWarshNote')}</span>}
+          </p>
+        )}
       </div>
 
       {syncedAudioError && !synced && (
@@ -798,9 +924,9 @@ const SurahReader: React.FC = () => {
         <button
           type="button"
           onClick={handleReturnToAyah}
-          className="btn-primary fixed bottom-24 left-1/2 z-30 -translate-x-1/2 px-4 py-2 text-xs shadow-2xl"
+          className="fixed bottom-24 left-1/2 z-30 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-[11px] text-muted-text transition-colors hover:text-text-primary"
         >
-          <BookOpen className="h-3.5 w-3.5" />
+          <BookOpen className="h-3 w-3" />
           {t('quranFollowAyah')}
         </button>
       )}
@@ -973,42 +1099,52 @@ const ListenTab: React.FC = () => {
 
   return (
     <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-      <aside className="premium-surface flex max-h-[70vh] flex-col overflow-hidden rounded-lg">
-        <div className="border-b border-border p-3">
-          <p className="mb-2 text-xs font-semibold text-text-primary">{t('quranReciters')}</p>
-          <div className="relative">
-            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
+      <aside className="flex max-h-[70vh] flex-col overflow-hidden border-border pb-1 xl:border-e xl:pe-5">
+        <div className="shrink-0">
+          <div className="rule-head">
+            <span className="text-xs font-semibold tracking-wide text-text-primary" dir="auto">
+              {t('quranReciters')}
+            </span>
+            <span className="text-[11px] tabular-nums text-muted-text">
+              <bdi>{filteredReciters.length}</bdi>
+            </span>
+          </div>
+          <div className="relative mt-1">
+            <Search className="pointer-events-none absolute start-0 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
             <input
               type="text"
               value={reciterQuery}
               onChange={(event) => setReciterQuery(event.target.value)}
               placeholder={t('quranSearchReciter')}
-              className="surface-input w-full py-2 ps-10"
+              className="field-quiet ps-6 text-sm"
             />
           </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-2">
+        <div className="rule-list min-h-0 flex-1 overflow-y-auto">
           {recitersLoading && (
             <div className="flex justify-center py-10">
-              <Loader2 className="h-5 w-5 animate-spin text-primary-blue" />
+              <Loader2 className="h-5 w-5 animate-spin text-muted-text" />
             </div>
           )}
           {recitersError && !recitersLoading && (
-            <p className="p-3 text-xs text-danger-red">{recitersError}</p>
+            <p className="py-3 text-xs text-danger-red">{recitersError}</p>
           )}
           {filteredReciters.map((entry) => (
             <button
               key={entry.id}
               type="button"
               onClick={() => selectReciter(entry.id)}
-              className={`mb-1 w-full rounded-md border px-3 py-2 text-start transition-colors ${
-                reciter?.id === entry.id
-                  ? 'border-primary-blue/40 bg-primary-blue/10'
-                  : 'border-transparent hover:bg-panel-hover'
+              aria-current={reciter?.id === entry.id ? 'true' : undefined}
+              className={`rule-row w-full py-2.5 text-start ${
+                reciter?.id === entry.id ? 'rule-row-active' : ''
               }`}
             >
-              <span className="block truncate text-sm font-medium text-text-primary">{entry.name}</span>
-              <span className="block truncate text-[11px] text-muted-text">{entry.moshafName}</span>
+              <span className="min-w-0 flex-1 truncate text-sm text-text-primary" dir="auto">
+                {entry.name}
+              </span>
+              <span className="max-w-[9rem] shrink-0 truncate text-[11px] text-text-faint" dir="auto">
+                {entry.moshafName}
+              </span>
             </button>
           ))}
         </div>
@@ -1017,7 +1153,9 @@ const ListenTab: React.FC = () => {
       <section className="premium-surface rounded-lg p-4">
         {reciter ? (
           <>
-            <p className="mb-3 text-sm font-semibold text-text-primary">{reciter.name}</p>
+            <p className="mb-3 text-sm font-semibold text-text-primary" dir="auto">
+              {reciter.name}
+            </p>
             <div className="grid grid-cols-2 gap-1.5 md:grid-cols-3 xl:grid-cols-4">
               {availableSurahs.map((surah) => {
                 const stationId = `quran-${reciter.id}-${surah.id}`;
@@ -1041,10 +1179,13 @@ const ListenTab: React.FC = () => {
                         : 'border-border bg-background/50 hover:border-border-strong hover:bg-panel-hover'
                     }`}
                   >
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-blue/12 text-[10px] font-semibold tabular-nums text-primary-blue">
-                      {surah.id}
+                    <span className="w-5 shrink-0 text-end text-[10px] tabular-nums text-text-faint">
+                      <bdi>{surah.id}</bdi>
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-xs font-medium text-text-primary">
+                    <span
+                      className="min-w-0 flex-1 truncate text-xs font-medium text-text-primary"
+                      dir="auto"
+                    >
                       {surah.transliteration}
                     </span>
                     {isCurrent && playing ? (
