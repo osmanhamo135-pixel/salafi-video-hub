@@ -38,34 +38,34 @@ export const Radio: React.FC = () => {
           </div>
           <h1 className="text-3xl font-semibold tracking-normal text-text-primary">{t('radioTitle')}</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-text">{t('radioSubtitle')}</p>
-          <p className="mt-2 flex items-center gap-1.5 text-xs text-accent-gold">
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-text">
             <Wifi className="h-3.5 w-3.5" />
             {t('radioOnlineNote')}
           </p>
         </div>
 
-        <div className="premium-surface mb-5 rounded-lg p-3">
+        <div className="mb-5">
           <div className="relative">
-            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
+            <Search className="pointer-events-none absolute start-0 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
             <input
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t('radioSearchPlaceholder')}
-              className="surface-input w-full py-2.5 ps-10"
+              className="field-quiet ps-7 text-sm"
             />
           </div>
         </div>
 
         {loading && (
-          <div className="premium-surface flex items-center gap-3 rounded-lg p-5">
-            <Loader2 className="h-5 w-5 animate-spin text-primary-blue" />
-            <p className="text-sm text-text-primary">{t('radioLoading')}</p>
+          <div className="flex items-center gap-3 py-6">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-text" />
+            <p className="text-sm text-muted-text">{t('radioLoading')}</p>
           </div>
         )}
 
         {loadError && !loading && (
-          <div className="premium-surface rounded-lg p-6 text-center">
+          <div className="py-10 text-center">
             <AlertTriangle className="mx-auto mb-2 h-7 w-7 text-warning-orange" />
             <p className="text-sm text-text-primary">{loadError}</p>
             <button
@@ -105,12 +105,17 @@ const StationSection: React.FC<{
   if (stations.length === 0 && !emptyLabel) return null;
 
   return (
-    <section className="mb-6">
-      <h2 className="mb-2 text-sm font-semibold text-text-primary">{title}</h2>
+    <section className="mb-8">
+      <div className="rule-head mb-1">
+        <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
+        <span className="text-xs tabular-nums text-muted-text">
+          <bdi>{stations.length}</bdi>
+        </span>
+      </div>
       {stations.length === 0 ? (
-        <div className="premium-surface rounded-lg p-8 text-center text-sm text-muted-text">{emptyLabel}</div>
+        <p className="py-10 text-center text-sm text-muted-text">{emptyLabel}</p>
       ) : (
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+        <div className="rule-list">
           {stations.map((station) => (
             <StationCard key={station.id} station={station} />
           ))}
@@ -133,31 +138,28 @@ const StationCard: React.FC<{ station: RadioStation }> = React.memo(({ station }
   const isFavorite = favorites.includes(station.id);
 
   return (
-    <div
-      className={`premium-card flex items-center gap-3 rounded-lg p-3 transition-colors ${
-        isCurrent ? 'border-primary-blue/45' : 'premium-card-hover'
-      }`}
-    >
+    <div className={`rule-row ${isCurrent ? 'rule-row-active' : ''}`}>
       <button
         type="button"
         onClick={() => (isCurrent ? togglePlay() : play(station))}
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${
-          isCurrent && playing
-            ? 'bg-primary-blue text-white'
-            : 'bg-primary-blue/15 text-primary-blue hover:bg-primary-blue hover:text-white'
-        }`}
+        className={`icon-btn shrink-0 ${isCurrent && playing ? 'text-text-primary' : ''}`}
         title={isCurrent && playing ? t('pause') : t('play')}
+        aria-label={isCurrent && playing ? t('pause') : t('play')}
       >
         {isCurrent && playing ? <Pause className="h-4 w-4" fill="currentColor" /> : <Play className="h-4 w-4" fill="currentColor" />}
       </button>
 
-      <p className="min-w-0 flex-1 truncate text-sm font-medium text-text-primary" title={station.name}>
+      <p
+        dir="auto"
+        className="min-w-0 flex-1 truncate text-sm text-text-primary"
+        title={station.name}
+      >
         {station.name}
       </p>
 
       {isCurrent && playing && (
-        <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold text-success-green">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success-green" />
+        <span className="inline-flex shrink-0 items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-text">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
           {t('radioLive')}
         </span>
       )}
@@ -165,10 +167,10 @@ const StationCard: React.FC<{ station: RadioStation }> = React.memo(({ station }
       <button
         type="button"
         onClick={() => toggleFavorite(station.id)}
-        className={`shrink-0 rounded p-1.5 transition-colors ${
-          isFavorite ? 'text-accent-gold' : 'text-muted-text hover:text-accent-gold'
-        }`}
+        className={`icon-btn shrink-0 ${isFavorite ? 'text-accent-gold' : ''}`}
         title={t('favorite')}
+        aria-label={t('favorite')}
+        aria-pressed={isFavorite}
       >
         <Star className="h-4 w-4" fill={isFavorite ? 'currentColor' : 'none'} />
       </button>

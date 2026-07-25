@@ -30,18 +30,19 @@ export const ReminderCard: React.FC<ReminderCardProps> = ({
   const repeatLabel = t(repeatLabelKeys[reminder.repeat]);
 
   return (
-    <div className="premium-card premium-card-hover flex items-center gap-4 rounded-lg p-4">
+    <div className="rule-row gap-4">
       {/* Toggle Switch */}
       <button
         onClick={() => onToggle(reminder.id)}
-        className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-blue/30 ${
-          reminder.enabled ? 'bg-primary-blue' : 'bg-border'
+        className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-accent-gold/40 ${
+          reminder.enabled ? 'bg-accent-gold' : 'bg-border-strong'
         }`}
         aria-label={reminder.enabled ? t('disableReminder') : t('enableReminder')}
+        aria-pressed={reminder.enabled}
       >
         <span
-          className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
-            reminder.enabled ? 'translate-x-5' : 'translate-x-0'
+          className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full transition-transform ${
+            reminder.enabled ? 'translate-x-5 bg-background' : 'translate-x-0 bg-muted-text'
           }`}
         />
       </button>
@@ -50,7 +51,8 @@ export const ReminderCard: React.FC<ReminderCardProps> = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <h3
-            className={`text-sm font-semibold truncate ${
+            dir="auto"
+            className={`text-sm font-medium truncate ${
               reminder.enabled ? 'text-text-primary' : 'text-muted-text line-through'
             }`}
           >
@@ -63,18 +65,18 @@ export const ReminderCard: React.FC<ReminderCardProps> = ({
           )}
         </div>
         <div className="flex items-center gap-3 text-xs text-muted-text">
-          <span className="truncate">{targetName}</span>
-          <span className="flex flex-shrink-0 items-center gap-1 rounded-md border border-primary-blue/15 bg-primary-blue/10 px-2 py-0.5 text-primary-blue">
+          <span dir="auto" className="truncate">{targetName}</span>
+          <span className="flex flex-shrink-0 items-center gap-1">
             <Clock className="w-3 h-3" />
-            {dueLabel}
+            <bdi>{dueLabel}</bdi>
           </span>
-          <span className="flex flex-shrink-0 items-center gap-1 rounded-md border border-accent-gold/20 bg-accent-gold/10 px-2 py-0.5 text-accent-gold">
+          <span className="flex flex-shrink-0 items-center gap-1">
             <Repeat className="w-3 h-3" />
             {repeatLabel}
             {reminder.repeat === 'custom' && reminder.customDays && reminder.customDays.length > 0 && (
-              <span className="text-[10px] ms-0.5">
+              <bdi className="text-[10px] ms-0.5">
                 ({reminder.customDays.map((day) => shortDays[day]).join(', ')})
-              </span>
+              </bdi>
             )}
           </span>
         </div>
@@ -84,14 +86,14 @@ export const ReminderCard: React.FC<ReminderCardProps> = ({
       <div className="flex items-center gap-1 flex-shrink-0">
         <button
           onClick={() => onEdit(reminder)}
-          className="p-2 rounded-md text-muted-text hover:text-text-primary hover:bg-elevated-panel transition-colors"
+          className="icon-btn"
           aria-label={t('edit')}
         >
           <Pencil className="w-4 h-4" />
         </button>
         <button
           onClick={() => onDelete(reminder.id)}
-          className="p-2 rounded-md text-muted-text hover:text-danger-red hover:bg-danger-red/10 transition-colors"
+          className="icon-btn hover:text-danger-red"
           aria-label={t('delete')}
         >
           <Trash2 className="w-4 h-4" />
