@@ -120,7 +120,16 @@ export const Dashboard: React.FC = () => {
             </div>
             <QuickActions />
           </div>
-          <div className="gold-thread mt-8" />
+          {/* A directional thread, brightest at the reading edge and gone by
+              the far margin — the same key light the hero is lit by, rather
+              than a symmetric divider. Flipped for RTL. */}
+          <div
+            aria-hidden="true"
+            className="mt-8 h-px w-full"
+            style={{
+              background: `linear-gradient(${language === 'ar' ? '270deg' : '90deg'}, rgb(var(--accent-gold-rgb) / 0.55), rgb(var(--accent-gold-rgb) / 0.14) 34%, rgb(var(--accent-gold-rgb) / 0.04) 68%, transparent)`,
+            }}
+          />
         </header>
 
         {/* The lesson you were part-way through, first and largest. */}
@@ -160,16 +169,27 @@ export const Dashboard: React.FC = () => {
                 {/* What is next, at half the weight of what is done. */}
                 <div className="lg:border-s lg:border-border lg:ps-16">
                   <p className={eyebrow}>{t('nextSession')}</p>
-                  <p className="mt-3 text-3xl font-semibold leading-none tabular-nums text-accent-gold">
+                  {/* Nothing scheduled is not an alarm: the figure drops out of
+                      the accent and the supporting lines go with it, rather
+                      than shouting "None" in gold. */}
+                  <p
+                    className={`mt-3 text-3xl font-semibold leading-none tabular-nums ${
+                      nextReminder ? 'text-accent-gold' : 'text-text-faint'
+                    }`}
+                  >
                     <bdi>{nextReminder?.time ?? t('none')}</bdi>
                   </p>
-                  <p className="mt-3 truncate text-sm text-text-primary" title={nextReminder?.title}>
-                    <bdi>{nextReminder?.title ?? t('noRemindersSet')}</bdi>
-                  </p>
-                  <p className="mt-1 text-xs text-muted-text">
-                    <bdi>{reminders.length}</bdi>{' '}
-                    {reminders.length === 1 ? t('activeReminder') : t('activeRemindersLower')}
-                  </p>
+                  {nextReminder && (
+                    <>
+                      <p className="mt-3 truncate text-sm text-text-primary" title={nextReminder.title}>
+                        <bdi>{nextReminder.title}</bdi>
+                      </p>
+                      <p className="mt-1 text-xs text-muted-text">
+                        <bdi>{reminders.length}</bdi>{' '}
+                        {reminders.length === 1 ? t('activeReminder') : t('activeRemindersLower')}
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -186,7 +206,10 @@ export const Dashboard: React.FC = () => {
                     <p className="truncate text-[11px] text-muted-text" title={metric.label}>
                       {metric.label}
                     </p>
-                    <p className="mt-1.5 truncate text-sm font-medium tabular-nums text-text-soft">
+                    <p
+                      className="mt-1.5 truncate text-sm font-medium tabular-nums text-text-soft"
+                      title={metric.detail ?? metric.value}
+                    >
                       <bdi>{metric.value}</bdi>
                     </p>
                   </div>
@@ -259,7 +282,7 @@ const TodaysRemindersPanel: React.FC<{
   eyebrow: string;
   t: (key: import('@/i18n').TranslationKey) => string;
 }> = ({ reminders, loading, eyebrow, t }) => (
-  <section className="mt-16">
+  <section className="mt-20">
     <div className="mb-2 flex items-baseline justify-between gap-4 border-b border-border pb-3">
       <h2 className={eyebrow}>{t('todaysReminders')}</h2>
       {!loading && reminders.length > 0 && (

@@ -72,9 +72,7 @@ export const PlaylistGrid: React.FC<PlaylistGridProps> = ({
 
       {playlists.length > 0 && (
         <div>
-          {featured && (
-            <SectionRule label={t('playlists')} count={playlists.length} className="mb-5" />
-          )}
+          <SectionRule label={t('playlists')} count={playlists.length} className="mb-5" />
           {showcase ? (
             <div className="flex flex-col gap-5">
               {playlists.map((playlist) => (

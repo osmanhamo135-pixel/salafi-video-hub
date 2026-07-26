@@ -15,8 +15,17 @@ import {
 } from 'lucide-react';
 import { useWatchStore, WatchHistoryItem, YoutubeSearchItem } from '@/store/watchStore';
 import { useDownloadStore } from '@/store/downloadStore';
+import { CONTENT_CATEGORIES } from '@/utils/constants';
 import { formatTime } from '@/utils/formatTime';
 import { useI18n } from '@/i18n';
+
+/**
+ * What the empty state offers to search for. Taken from the app's own content
+ * taxonomy rather than invented copy, so the labels are already translated and
+ * a new category appears here for free. The first six are the disciplines a
+ * student is most likely to be looking for.
+ */
+const SUGGESTED_CATEGORIES = CONTENT_CATEGORIES.slice(0, 6);
 
 export const Watch: React.FC = () => {
   const { t } = useI18n();
@@ -49,19 +58,24 @@ export const Watch: React.FC = () => {
           <p className="mt-1 max-w-2xl text-sm text-muted-text">{t('watchSubtitle')}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="mb-6 flex items-end gap-3">
+        {/* The search field is what this page IS, so it is set at reading size
+            rather than as one more 14px control. */}
+        <form onSubmit={handleSubmit} className="mb-6 flex items-end gap-4">
           <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute start-0 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
+            <Search className="pointer-events-none absolute start-0 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted-text" />
             <input
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t('watchSearchPlaceholder')}
-              className="field-quiet ps-6 text-sm"
+              className="field-quiet ps-7 text-base"
+              // On an <input> `dir="auto"` is the right tool (unlike on a block
+              // in a row): it flips the caret and alignment once the reader
+              // starts typing Arabic, and follows the placeholder until then.
               dir="auto"
             />
           </div>
-          <button type="submit" disabled={searching || !query.trim()} className="btn-primary shrink-0 justify-center px-5 py-2">
+          <button type="submit" disabled={searching || !query.trim()} className="btn-primary shrink-0 justify-center px-5 py-2.5">
             {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
             {searching ? t('searching') : t('watchSearchButton')}
           </button>
@@ -96,29 +110,137 @@ export const Watch: React.FC = () => {
         <WatchHistoryRow />
 
         {results.length > 0 && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4">
-            {results.map((item) => (
-              <ResultCard key={item.id} item={item} />
-            ))}
-          </div>
+          <section>
+            {/* Results arrived with no header at all — the grid simply appeared
+                where the empty state had been, with nothing saying what it is
+                or how much of it there is. */}
+            <div className="rule-head mb-4">
+              {/* The query itself is the heading — the one label that says what
+                  this grid is without needing a new dictionary string. */}
+              <h2 className="flex min-w-0 items-center gap-2 text-xs font-semibold text-text-primary">
+                <Search className="h-3.5 w-3.5 shrink-0 text-muted-text" />
+                <span className="truncate">
+                  <bdi>{query}</bdi>
+                </span>
+              </h2>
+              <span className="shrink-0 text-xs tabular-nums text-muted-text">
+                <bdi>{results.length}</bdi>
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4">
+              {results.map((item) => (
+                <ResultCard key={item.id} item={item} />
+              ))}
+            </div>
+          </section>
         )}
 
         {!searching && hasSearched && results.length === 0 && !searchError && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Youtube className="mb-3 h-8 w-8 text-text-faint" />
-            <p className="text-sm text-muted-text">{t('watchNoResults')}</p>
-          </div>
+          <WatchPlaceholder icon={Youtube} title={t('watchNoResults')} />
         )}
 
         {!hasSearched && !searching && results.length === 0 && history.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <MonitorPlay className="mb-3 h-9 w-9 text-text-faint" />
-            <p className="text-base font-semibold text-text-primary">{t('watchEmptyTitle')}</p>
-            <p className="mt-1 max-w-md text-sm text-muted-text">{t('watchEmptyHint')}</p>
-            <p className="mt-4 max-w-md text-xs text-muted-text">{t('watchAdFreeNote')}</p>
-          </div>
+          <WatchPlaceholder
+            icon={MonitorPlay}
+            title={t('watchEmptyTitle')}
+            hint={t('watchEmptyHint')}
+            note={t('watchAdFreeNote')}
+            suggestions
+          />
+        )}
+
+        {/* Returning reader, nothing searched yet: the history strip is on
+            screen but everything under it was empty. The same starting points
+            carry the rest of the page. */}
+        {!hasSearched && !searching && results.length === 0 && history.length > 0 && (
+          <section className="mt-2">
+            <SearchSuggestions />
+            <p className="mt-6 flex items-start gap-2 text-xs leading-relaxed text-text-faint">
+              <ShieldCheck className="mt-px h-3.5 w-3.5 shrink-0 text-accent-gold/70" />
+              <span>{t('watchAdFreeNote')}</span>
+            </p>
+          </section>
         )}
       </div>
+    </div>
+  );
+};
+
+/**
+ * The first thing a new user sees on this page. It used to be an icon and two
+ * grey sentences centred in a 1600px void, which told them the page existed but
+ * gave them nothing to do — and the one real promise this page makes (no ads,
+ * ever) was the faintest text on the screen.
+ *
+ * Now: a framed mark, the promise stated plainly, and six real starting points
+ * taken from the app's own taxonomy so the very first click is one keystroke
+ * away. The suggestions are ordinary buttons that fill the field and search —
+ * no behaviour the form does not already have.
+ */
+/**
+ * Six real starting points, one click each. Ordinary buttons that fill the
+ * field and submit — no behaviour the form does not already have.
+ */
+const SearchSuggestions: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const { t } = useI18n();
+  const setQuery = useWatchStore((state) => state.setQuery);
+  const search = useWatchStore((state) => state.search);
+
+  return (
+    <div className={`flex flex-wrap items-center gap-2 ${className}`}>
+      {SUGGESTED_CATEGORIES.map((category) => {
+        const label = t(category.labelKey);
+        return (
+          <button
+            key={category.id}
+            type="button"
+            onClick={() => {
+              setQuery(label);
+              void search();
+            }}
+            className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-text transition-colors hover:border-border-strong hover:text-text-primary motion-reduce:transition-none"
+          >
+            <bdi>{label}</bdi>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+const WatchPlaceholder: React.FC<{
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  hint?: string;
+  note?: string;
+  suggestions?: boolean;
+}> = ({ icon: Icon, title, hint, note, suggestions }) => {
+  return (
+    <div className="mx-auto flex max-w-xl flex-col items-center px-6 py-16 text-center">
+      <span
+        aria-hidden="true"
+        className="mb-6 flex h-16 w-16 items-center justify-center border border-accent-gold/25"
+      >
+        <span className="flex h-[3.25rem] w-[3.25rem] items-center justify-center border border-accent-gold/15">
+          <Icon className="h-6 w-6 text-accent-gold/70" />
+        </span>
+      </span>
+      <p className="text-lg font-semibold text-text-primary">{title}</p>
+      {hint && <p className="mt-2 text-sm leading-relaxed text-muted-text">{hint}</p>}
+
+      {suggestions && (
+        <>
+          <span aria-hidden="true" className="gold-thread mt-7 w-full max-w-xs" />
+          <SearchSuggestions className="mt-5 justify-center" />
+        </>
+      )}
+
+      {note && (
+        <p className="mt-7 flex items-start gap-2 text-xs leading-relaxed text-text-faint">
+          <ShieldCheck className="mt-px h-3.5 w-3.5 shrink-0 text-accent-gold/70" />
+          <span>{note}</span>
+        </p>
+      )}
     </div>
   );
 };

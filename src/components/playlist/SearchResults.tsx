@@ -3,7 +3,8 @@ import { Playlist, Video } from '@/types';
 import { Clock, Play, SearchX } from 'lucide-react';
 import { formatTime } from '@/utils/formatTime';
 import { formatBytes } from '@/utils/formatBytes';
-import { LocalThumbnail } from '@/components/ui/LocalThumbnail';
+import { PlaylistPoster, ProgressMeter, playlistProgress, useCategoryLabel } from './PlaylistCard';
+import { SectionRule } from './PlaylistGrid';
 import { useI18n } from '@/i18n';
 
 interface SearchResultsProps {
@@ -25,59 +26,33 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
 
   if (!hasAnyResults) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <SearchX className="mb-4 h-8 w-8 text-muted-text" />
-        <h3 className="text-base font-semibold text-text-primary mb-1">{t('noResultsFound')}</h3>
-        <p className="text-sm text-muted-text max-w-sm">
-          {t('noSearchResults')}
-        </p>
+      <div className="flex flex-col items-center rounded-xl border border-border bg-panel/40 px-6 py-16 text-center">
+        <SearchX className="h-7 w-7 text-text-faint" />
+        <h3 className="mt-5 text-lg font-semibold tracking-[-0.01em] text-text-primary">{t('noResultsFound')}</h3>
+        <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-text">{t('noSearchResults')}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Playlists section */}
+    <div className="flex flex-col gap-9">
       {hasPlaylists && (
         <section>
-          <div className="rule-head mb-1">
-            <h2 className="text-sm font-semibold text-muted-text uppercase tracking-wider">
-              {t('playlists')}
-            </h2>
-            <span className="text-xs tabular-nums text-muted-text">
-              <bdi>{results.playlists.length}</bdi>
-            </span>
-          </div>
+          <SectionRule label={t('playlists')} count={results.playlists.length} className="mb-1" />
           <div className="rule-list">
             {results.playlists.map((playlist) => (
-              <PlaylistSearchCard
-                key={playlist.id}
-                playlist={playlist}
-                onOpen={onOpenPlaylist}
-              />
+              <PlaylistSearchRow key={playlist.id} playlist={playlist} onOpen={onOpenPlaylist} />
             ))}
           </div>
         </section>
       )}
 
-      {/* Videos section */}
       {hasVideos && (
         <section>
-          <div className="rule-head mb-1">
-            <h2 className="text-sm font-semibold text-muted-text uppercase tracking-wider">
-              {t('videosLower')}
-            </h2>
-            <span className="text-xs tabular-nums text-muted-text">
-              <bdi>{results.videos.length}</bdi>
-            </span>
-          </div>
+          <SectionRule label={t('videosLower')} count={results.videos.length} className="mb-1" />
           <div className="rule-list">
             {results.videos.map((video) => (
-              <VideoSearchCard
-                key={video.id}
-                video={video}
-                onOpen={onOpenVideo}
-              />
+              <VideoSearchRow key={video.id} video={video} onOpen={onOpenVideo} />
             ))}
           </div>
         </section>
@@ -88,38 +63,49 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
 
 // --- Sub-components ---
 
-const PlaylistSearchCard: React.FC<{
+const PlaylistSearchRow: React.FC<{
   playlist: Playlist;
   onOpen: (playlist: Playlist) => void;
 }> = ({ playlist, onOpen }) => {
+  const { t } = useI18n();
+  const categoryLabel = useCategoryLabel(playlist.category);
+  const progressPercent = useMemo(() => playlistProgress(playlist), [playlist]);
+  const isComplete = progressPercent >= 95;
+
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(playlist)}
-      className="rule-row w-full text-start"
-    >
-      <div className="flex h-10 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded bg-background">
-        <LocalThumbnail
-          path={playlist.thumbnailPath}
-          label={playlist.name}
-          className="w-full h-full object-cover"
-          iconClassName="w-4 h-4 text-muted-text"
-          fallbackClassName="thumbnail-fallback"
-        />
+    <button type="button" onClick={() => onOpen(playlist)} className="rule-row w-full text-start">
+      <div className="relative h-[58px] w-[104px] shrink-0 overflow-hidden rounded-md bg-background">
+        <PlaylistPoster path={playlist.thumbnailPath} name={playlist.name} seed={playlist.id} dense />
       </div>
-      <div className="flex-1 min-w-0">
-        <p dir="auto" className="text-sm text-text-primary truncate" title={playlist.name}>
-          {playlist.name}
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[15px] font-medium text-text-primary" title={playlist.name}>
+          <bdi>{playlist.name}</bdi>
         </p>
-        <p dir="auto" className="text-xs text-muted-text truncate" title={playlist.folderPath}>
-          {playlist.folderPath}
-        </p>
+        <div className="mt-1 flex min-w-0 items-center gap-2 text-xs">
+          {categoryLabel && (
+            <>
+              <span className="shrink-0 text-accent-gold/90"><bdi>{categoryLabel}</bdi></span>
+              <span className="shrink-0 text-text-faint">&middot;</span>
+            </>
+          )}
+          <span className="truncate text-text-faint" title={playlist.folderPath}>
+            <bdi>{playlist.folderPath}</bdi>
+          </span>
+        </div>
+      </div>
+
+      <div className="hidden w-36 shrink-0 flex-col gap-1.5 sm:flex">
+        <ProgressMeter percent={progressPercent} done={isComplete} />
+        <span className="text-[11px] tabular-nums text-muted-text">
+          <bdi>{playlist.videoCount}</bdi> {t('videosLower')}
+        </span>
       </div>
     </button>
   );
 };
 
-const VideoSearchCard: React.FC<{
+const VideoSearchRow: React.FC<{
   video: Video;
   onOpen: (video: Video) => void;
 }> = ({ video, onOpen }) => {
@@ -130,60 +116,35 @@ const VideoSearchCard: React.FC<{
   }, [video.progressSeconds, video.durationSeconds]);
 
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(video)}
-      className="rule-row group w-full text-start"
-    >
-      {/* Thumbnail */}
-      <div className="relative h-[54px] w-24 shrink-0 overflow-hidden rounded bg-background">
-        <LocalThumbnail
-          path={video.thumbnailPath}
-          label={video.title}
-          className="w-full h-full object-cover"
-          iconClassName="w-4 h-4 text-muted-text"
-          fallbackClassName="thumbnail-fallback"
-        />
+    <button type="button" onClick={() => onOpen(video)} className="rule-row group w-full text-start">
+      <div className="relative h-[58px] w-[104px] shrink-0 overflow-hidden rounded-md bg-background">
+        <PlaylistPoster path={video.thumbnailPath} name={video.title} seed={video.id} dense />
 
-        {/* Play overlay */}
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/60 opacity-0 transition-opacity group-hover:opacity-100">
-          <Play className="w-5 h-5 text-text-primary fill-current" />
-        </div>
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/65 opacity-0 transition-opacity group-hover:opacity-100">
+          <Play className="h-5 w-5 fill-current text-text-primary" />
+        </span>
 
-        {/* Watched progress bar */}
-        {video.completed && (
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-muted-text" />
-        )}
+        {video.completed && <span className="absolute inset-x-0 bottom-0 block h-[3px] bg-success-green" />}
         {!video.completed && progressPercent > 0 && (
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-background/70">
-            <div
-              className="h-full bg-muted-text"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
+          <span className="absolute inset-x-0 bottom-0 block h-[3px] bg-background/70">
+            <span className="block h-full bg-accent-gold" style={{ width: `${progressPercent}%` }} />
+          </span>
         )}
       </div>
 
-      {/* Info */}
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <h4
-          dir="auto"
-          className="text-sm text-text-primary leading-snug truncate"
-          title={video.title}
-        >
-          {video.title}
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <h4 className="truncate text-[15px] font-medium leading-snug text-text-primary" title={video.title}>
+          <bdi>{video.title}</bdi>
         </h4>
-        <div className="flex items-center gap-2 text-xs text-muted-text">
+        <div className="flex items-center gap-3 text-xs text-muted-text">
           <span className="flex items-center gap-1">
-            <Clock className="w-3 h-3" />
+            <Clock className="h-3 w-3" />
             <bdi>{formatTime(video.durationSeconds)}</bdi>
           </span>
-          {video.fileSize > 0 && (
-            <span><bdi>{formatBytes(video.fileSize)}</bdi></span>
-          )}
+          {video.fileSize > 0 && <span className="text-text-faint"><bdi>{formatBytes(video.fileSize)}</bdi></span>}
           {video.speaker && (
-            <span dir="auto" className="truncate" title={video.speaker}>
-              {video.speaker}
+            <span className="truncate text-text-faint" title={video.speaker}>
+              <bdi>{video.speaker}</bdi>
             </span>
           )}
         </div>

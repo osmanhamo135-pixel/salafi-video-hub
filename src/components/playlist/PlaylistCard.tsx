@@ -127,24 +127,24 @@ export const PlaylistArt: React.FC<PlaylistArtProps> = ({ seed, name, dense = fa
       {!dense && <span className="pointer-events-none absolute inset-[0.9rem] border border-accent-gold/10" />}
 
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className={`relative ${dense ? 'h-[62%]' : 'h-[54%]'} aspect-square`}>
+        <div className={`relative ${dense ? 'h-[66%]' : 'h-[62%]'} aspect-square`}>
           <svg
             className="h-full w-full"
             viewBox="0 0 100 100"
             fill="none"
             stroke="currentColor"
-            strokeWidth={dense ? 2.4 : 1.4}
+            strokeWidth={dense ? 2.6 : 1.2}
             strokeLinejoin="round"
             aria-hidden="true"
             focusable="false"
           >
-            <g opacity={dense ? 0.34 : 0.42} transform={`rotate(${rotation} 50 50)`}>
+            <g opacity={dense ? 0.3 : 0.34} transform={`rotate(${rotation} 50 50)`}>
               {mark}
             </g>
           </svg>
           {!dense && initial && (
             <span
-              className="absolute inset-0 flex items-center justify-center text-[1.6rem] font-semibold leading-none text-text-primary/45"
+              className="absolute inset-0 flex items-center justify-center text-[1.75rem] font-semibold leading-none text-text-primary/40"
               aria-hidden="true"
             >
               <bdi>{initial}</bdi>
@@ -212,10 +212,15 @@ export const ProgressMeter: React.FC<{ percent: number; done?: boolean; thick?: 
 
 /** Category ids are stored as free text; match the taxonomy case-insensitively
  *  and fall back to whatever the folder actually said. */
+export const findCategory = (category: string | null) => {
+  if (!category) return null;
+  return CONTENT_CATEGORIES.find((item) => item.id.toLowerCase() === category.toLowerCase()) ?? null;
+};
+
 export const useCategoryLabel = (category: string | null) => {
   const { t } = useI18n();
   if (!category) return null;
-  const known = CONTENT_CATEGORIES.find((item) => item.id.toLowerCase() === category.toLowerCase());
+  const known = findCategory(category);
   return known ? t(known.labelKey) : category;
 };
 
@@ -370,7 +375,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
           title={t('continue')}
           aria-label={t('continue')}
           className={`relative aspect-video w-full shrink-0 overflow-hidden bg-elevated-panel ${
-            featured ? 'sm:w-[20rem] lg:w-[26rem]' : 'sm:w-[17rem] lg:w-[21rem]'
+            featured ? 'sm:w-[19rem] lg:w-[24rem]' : 'sm:w-[16rem] lg:w-[19rem]'
           }`}
         >
           <span className="absolute inset-0 motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-[1.04]">
@@ -389,62 +394,77 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
           </span>
         </button>
 
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-3.5 p-5 lg:p-6">
-          <div className="flex items-start gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="mb-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] font-semibold uppercase tracking-[0.14em]">
+        {/* Body and actions are separate columns so the row uses its full width
+            instead of trailing 600px of empty panel beside a short title. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-4 p-5 lg:flex-row lg:items-center lg:gap-8 lg:p-6">
+          <div className="flex min-w-0 flex-1 flex-col gap-3">
+            {/* pe-8 keeps the eyebrow clear of the menu button, which is pinned
+                to the card corner until the row goes wide. */}
+            <div className="min-w-0 pe-8 lg:pe-0">
+              <div className="mb-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] font-semibold uppercase tracking-[0.14em]">
                 {featured && <span className="text-accent-gold">{t('continueWatching')}</span>}
                 {featured && categoryLabel && <span className="text-text-faint">/</span>}
                 {categoryLabel && <span className="text-muted-text"><bdi>{categoryLabel}</bdi></span>}
               </div>
               <button type="button" onClick={() => onOpen(playlist)} className="min-w-0 max-w-full text-start">
                 <h3
-                  className={`line-clamp-2 font-semibold leading-tight tracking-[-0.01em] text-text-primary transition-colors group-hover:text-accent-gold ${
-                    featured ? 'text-2xl lg:text-[1.7rem]' : 'text-lg lg:text-xl'
+                  className={`line-clamp-2 font-semibold leading-tight tracking-[-0.015em] text-text-primary transition-colors group-hover:text-accent-gold ${
+                    featured ? 'text-2xl lg:text-[1.7rem]' : 'text-lg lg:text-[1.35rem]'
                   }`}
                   title={playlist.name}
                 >
                   <bdi>{playlist.name}</bdi>
                 </h3>
               </button>
-              <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-text">
-                <span><bdi>{playlist.videoCount}</bdi> {t('videosLower')}</span>
-                <span className="text-text-faint">&middot;</span>
-                <span><bdi>{totalLabel}</bdi></span>
+              <p className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-text">
+                <span className="shrink-0"><bdi>{playlist.videoCount}</bdi> {t('videosLower')}</span>
+                <span className="shrink-0 text-text-faint">&middot;</span>
+                <span className="shrink-0"><bdi>{totalLabel}</bdi></span>
                 {lastUpdated && (
                   <>
-                    <span className="text-text-faint">&middot;</span>
-                    <span className="inline-flex items-center gap-1 text-text-faint" title={t('lastUpdated')}>
+                    <span className="shrink-0 text-text-faint">&middot;</span>
+                    <span className="inline-flex shrink-0 items-center gap-1 text-text-faint" title={t('lastUpdated')}>
                       <CalendarDays className="h-3 w-3" />
                       <bdi>{lastUpdated}</bdi>
                     </span>
                   </>
                 )}
+                <span className="shrink-0 text-text-faint">&middot;</span>
+                <span
+                  className="inline-flex min-w-0 items-center gap-1.5 text-text-faint"
+                  title={playlist.folderPath}
+                >
+                  <FolderClosed className="h-3 w-3 shrink-0" />
+                  <span className="truncate"><bdi>{playlist.folderPath}</bdi></span>
+                </span>
               </p>
             </div>
-            <div className="-me-2 shrink-0">{menu}</div>
-          </div>
 
-          <div className="flex flex-col gap-2">
-            <ProgressMeter percent={progressPercent} done={isComplete} thick={featured} />
-            <div className="flex items-center justify-between gap-3 text-xs">
-              {status}
-              <span className="inline-flex min-w-0 items-center gap-1.5 text-[11px] text-text-faint" title={playlist.folderPath}>
-                <FolderClosed className="h-3 w-3 shrink-0" />
-                <span className="truncate"><bdi>{playlist.folderPath}</bdi></span>
-              </span>
+            <div className="flex max-w-3xl flex-col gap-2">
+              <ProgressMeter percent={progressPercent} done={isComplete} thick={featured} />
+              <div className="flex items-center gap-3 text-xs">{status}</div>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 pt-0.5">
-            <button type="button" onClick={() => onContinue(playlist)} className="btn-primary px-3.5 py-2 text-xs">
+          <div className="flex shrink-0 items-center gap-2 lg:flex-col lg:items-stretch lg:gap-2.5">
+            <button
+              type="button"
+              onClick={() => onContinue(playlist)}
+              className="btn-primary px-4 py-2 text-xs lg:min-w-[9rem]"
+            >
               <Play className="h-3.5 w-3.5 fill-current" />
               {t('continue')}
             </button>
-            <button type="button" onClick={() => onOpen(playlist)} className="btn-secondary px-3.5 py-2 text-xs">
+            <button
+              type="button"
+              onClick={() => onOpen(playlist)}
+              className="btn-secondary px-4 py-2 text-xs lg:min-w-[9rem]"
+            >
               {t('details')}
             </button>
           </div>
+
+          <div className="absolute end-2 top-2 lg:static lg:self-start">{menu}</div>
         </div>
       </article>
     );
@@ -484,7 +504,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
       <div className="flex flex-1 flex-col gap-2.5 p-4">
         <button type="button" onClick={() => onOpen(playlist)} className="min-w-0 text-start">
           <h3
-            className="line-clamp-2 min-h-[2.6rem] text-[15px] font-semibold leading-snug tracking-[-0.01em] text-text-primary transition-colors group-hover:text-accent-gold"
+            className="line-clamp-2 text-[15px] font-semibold leading-snug tracking-[-0.01em] text-text-primary transition-colors group-hover:text-accent-gold"
             title={playlist.name}
           >
             <bdi>{playlist.name}</bdi>

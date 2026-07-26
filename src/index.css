@@ -161,9 +161,15 @@
     --shade-rgb: 15 26 38;
     --bg-main-rgb: 243 246 247;
     --bg-sidebar-rgb: 229 236 238;
-    --bg-panel-rgb: 255 255 255;
-    --bg-card-rgb: 247 250 250;
-    --bg-card-hover-rgb: 235 244 243;
+    /* Panel / card / card-hover are the app's elevation ladder, and every
+       other theme orders them ground < panel < card, with card-hover the
+       response to a pointer. Pearl had panel and card the other way round, so
+       a level-2 card came out DARKER than the level-1 panel under it and the
+       ladder inverted on the one theme where a value step has the least
+       headroom to begin with. Re-ordered; the hue is unchanged. */
+    --bg-panel-rgb: 249 251 251;
+    --bg-card-rgb: 255 255 255;
+    --bg-card-hover-rgb: 238 245 245;
     --border-subtle-rgb: 15 118 110;
     --accent-teal-rgb: 15 118 110;
     --accent-turquoise-rgb: 13 148 136;
@@ -437,35 +443,79 @@
        (border-image cannot) and need no pseudo-element that an overflow or a
        stacking context could eat.
 
-       --edge-* is the SHEEN component; --hair-rgb warms it at the top so the
-       lit corner carries a little of the theme accent rather than reading as
-       a grey line. */
+       Drawn in the ACCENT, not in --sheen. The accent is the one colour that
+       is lighter than the surface on the nine dark themes and darker than it
+       on Pearl, so a single definition reads as a lit edge in both
+       polarities — a white edge would simply vanish on a white card. */
     --edge-1: linear-gradient(
       146deg,
-      rgb(var(--sheen-rgb) / 0.10) 0%,
-      rgb(var(--hair-rgb) / 0.09) 26%,
-      rgb(var(--sheen-rgb) / 0.035) 58%,
-      rgb(var(--sheen-rgb) / 0.015) 100%
+      rgb(var(--hair-rgb) / 0.22) 0%,
+      rgb(var(--hair-rgb) / 0.12) 32%,
+      rgb(var(--hair-rgb) / 0.06) 68%,
+      rgb(var(--hair-rgb) / 0.04) 100%
     );
     --edge-2: linear-gradient(
       146deg,
-      rgb(var(--sheen-rgb) / 0.155) 0%,
-      rgb(var(--hair-rgb) / 0.15) 24%,
-      rgb(var(--sheen-rgb) / 0.055) 56%,
-      rgb(var(--sheen-rgb) / 0.02) 100%
+      rgb(var(--hair-rgb) / 0.36) 0%,
+      rgb(var(--hair-rgb) / 0.19) 30%,
+      rgb(var(--hair-rgb) / 0.09) 66%,
+      rgb(var(--hair-rgb) / 0.055) 100%
     );
     --edge-3: linear-gradient(
       146deg,
-      rgb(var(--sheen-rgb) / 0.24) 0%,
-      rgb(var(--hair-rgb) / 0.30) 22%,
-      rgb(var(--sheen-rgb) / 0.09) 54%,
-      rgb(var(--sheen-rgb) / 0.03) 100%
+      rgb(var(--hair-rgb) / 0.62) 0%,
+      rgb(var(--hair-rgb) / 0.34) 28%,
+      rgb(var(--hair-rgb) / 0.14) 64%,
+      rgb(var(--hair-rgb) / 0.08) 100%
     );
     --edge-accent: linear-gradient(
       146deg,
-      rgb(var(--accent-gold-rgb) / 0.55) 0%,
-      rgb(var(--accent-gold-rgb) / 0.34) 40%,
-      rgb(var(--accent-gold-rgb) / 0.14) 100%
+      rgb(var(--accent-gold-rgb) / 0.62) 0%,
+      rgb(var(--accent-gold-rgb) / 0.36) 40%,
+      rgb(var(--accent-gold-rgb) / 0.16) 100%
+    );
+
+    /* ── Interaction washes ────────────────────────────────────────────
+       Also accent-derived, and for the same reason: a --sheen wash lifts a
+       dark surface and does nothing at all to a white one. A warm wash reads
+       as light arriving on black and as a tint on paper, which is the correct
+       behaviour on both. Directional — strongest at the reading edge, gone by
+       the far one — so a hover reads as light moving across the row. */
+    --wash-hover: linear-gradient(
+      100deg,
+      rgb(var(--accent-gold-rgb) / 0.10) 0%,
+      rgb(var(--accent-gold-rgb) / 0.04) 54%,
+      rgb(var(--accent-gold-rgb) / 0.012) 96%
+    );
+    --wash-hover-rtl: linear-gradient(
+      260deg,
+      rgb(var(--accent-gold-rgb) / 0.10) 0%,
+      rgb(var(--accent-gold-rgb) / 0.04) 54%,
+      rgb(var(--accent-gold-rgb) / 0.012) 96%
+    );
+    --wash-active: linear-gradient(
+      100deg,
+      rgb(var(--accent-gold-rgb) / 0.16) 0%,
+      rgb(var(--accent-gold-rgb) / 0.07) 54%,
+      rgb(var(--accent-gold-rgb) / 0.02) 96%
+    );
+    --wash-active-rtl: linear-gradient(
+      260deg,
+      rgb(var(--accent-gold-rgb) / 0.16) 0%,
+      rgb(var(--accent-gold-rgb) / 0.07) 54%,
+      rgb(var(--accent-gold-rgb) / 0.02) 96%
+    );
+    /* Top-lit version, for controls small enough that a horizontal ramp
+       across them would not read. */
+    --wash-btn: linear-gradient(
+      177deg,
+      rgb(var(--accent-gold-rgb) / 0.13),
+      rgb(var(--accent-gold-rgb) / 0.05)
+    );
+    --wash-btn-strong: linear-gradient(
+      177deg,
+      rgb(var(--accent-gold-rgb) / 0.20),
+      rgb(var(--accent-gold-rgb) / 0.08)
     );
 
     /* ── Elevation ─────────────────────────────────────────────────────
@@ -486,21 +536,25 @@
        becomes a 2011 bevel. */
     --fill-1: linear-gradient(
       177deg,
-      rgb(var(--bg-panel-rgb) / 0.92) 0%,
-      rgb(var(--bg-panel-rgb) / 0.66) 62%,
-      rgb(var(--bg-panel-rgb) / 0.58) 100%
+      color-mix(in srgb, rgb(var(--sheen-rgb)) 3.5%, rgb(var(--bg-panel-rgb))) 0,
+      rgb(var(--bg-panel-rgb)) 150px
     );
     --fill-2: linear-gradient(
       177deg,
-      rgb(var(--bg-card-hover-rgb) / 0.62) 0%,
-      rgb(var(--bg-card-rgb) / 0.72) 46%,
-      rgb(var(--bg-card-rgb) / 0.62) 100%
+      color-mix(in srgb, rgb(var(--sheen-rgb)) 5%, rgb(var(--bg-card-rgb))) 0,
+      rgb(var(--bg-card-rgb)) 130px
     );
     --fill-3: linear-gradient(
       177deg,
-      rgb(var(--bg-card-hover-rgb) / 0.96) 0%,
-      rgb(var(--bg-card-hover-rgb) / 0.80) 52%,
-      rgb(var(--bg-card-rgb) / 0.86) 100%
+      color-mix(in srgb, rgb(var(--sheen-rgb)) 6%, rgb(var(--bg-card-hover-rgb))) 0,
+      rgb(var(--bg-card-hover-rgb)) 130px
+    );
+    /* A recessed plane — a thumbnail well, a video letterbox. One step BELOW
+       its host rather than above it, so the eye reads a cut-out. */
+    --fill-well: linear-gradient(
+      177deg,
+      color-mix(in srgb, rgb(var(--shade-rgb)) 16%, rgb(var(--bg-main-rgb))) 0%,
+      color-mix(in srgb, rgb(var(--shade-rgb)) 7%, rgb(var(--bg-main-rgb))) 100%
     );
 
     --elev-1:
@@ -1013,13 +1067,7 @@
      The marker is now a gradient: full accent at the top of the row, fading
      down its height, so it reads as a lit edge rather than a painted tab. */
   .rule-row-active {
-    background:
-      linear-gradient(
-        100deg,
-        rgb(var(--accent-gold-rgb) / 0.085) 0%,
-        rgb(var(--accent-gold-rgb) / 0.035) 46%,
-        transparent 92%
-      );
+    background: var(--wash-hover);
     box-shadow:
       inset 2px 0 0 rgb(var(--accent-gold-rgb)),
       inset 0 1px 0 rgb(var(--sheen-rgb) / 0.05);
@@ -1031,13 +1079,7 @@
      theme, the open surah, the current nav item. Flipped for RTL, along with
      the direction the row's light falls. */
   [dir='rtl'] .rule-row-active {
-    background:
-      linear-gradient(
-        260deg,
-        rgb(var(--accent-gold-rgb) / 0.085) 0%,
-        rgb(var(--accent-gold-rgb) / 0.035) 46%,
-        transparent 92%
-      );
+    background: var(--wash-hover-rtl);
     box-shadow:
       inset -2px 0 0 rgb(var(--accent-gold-rgb)),
       inset 0 1px 0 rgb(var(--sheen-rgb) / 0.05);
@@ -1108,13 +1150,7 @@
 
   .icon-btn:hover {
     color: rgb(var(--text-main-rgb));
-    background:
-      linear-gradient(
-        177deg,
-        rgb(var(--sheen-rgb) / 0.055),
-        rgb(var(--sheen-rgb) / 0.022)
-      ) padding-box,
-      var(--edge-2) border-box;
+    background: var(--wash-btn) padding-box, var(--edge-2) border-box;
     box-shadow: var(--elev-1);
   }
 
@@ -1665,30 +1701,22 @@
   }
 
   .rule-row:hover {
-    background:
-      linear-gradient(
-        100deg,
-        rgb(var(--sheen-rgb) / 0.045) 0%,
-        rgb(var(--sheen-rgb) / 0.018) 52%,
-        transparent 96%
-      );
+    background: var(--wash-hover);
     border-bottom-color: var(--hair-strong);
-    box-shadow: inset 0 1px 0 rgb(var(--sheen-rgb) / 0.04);
+    box-shadow: inset 0 1px 0 rgb(var(--sheen-rgb) / 0.035);
   }
 
   [dir='rtl'] .rule-row:hover {
-    background:
-      linear-gradient(
-        260deg,
-        rgb(var(--sheen-rgb) / 0.045) 0%,
-        rgb(var(--sheen-rgb) / 0.018) 52%,
-        transparent 96%
-      );
+    background: var(--wash-hover-rtl);
   }
 
   .rule-row:active {
-    background: linear-gradient(100deg, rgb(var(--shade-rgb) / 0.10), rgb(var(--shade-rgb) / 0.04));
-    box-shadow: inset 0 1px 2px rgb(var(--shade-rgb) / 0.18);
+    background: var(--wash-active);
+    box-shadow: inset 0 1px 2px rgb(var(--shade-rgb) / 0.14);
+  }
+
+  [dir='rtl'] .rule-row:active {
+    background: var(--wash-active-rtl);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1729,14 +1757,17 @@
        The two opposing glows were also cancelling into a flat wash, so the warm
        one now leads and the cool one only cools the far corner. */
     background:
-      /* the vignette, first so it sits over the light: the corners fall away
-         to nothing, which is most of what makes the reference plates read as
-         a photographed room rather than a fill */
+      /* The vignette, first so it sits over the light: the corners fall away
+         from the key, which is most of what makes the reference plates read as
+         a photographed room rather than a fill. Held very low deliberately —
+         on the dark themes the ground is already at the floor and this does
+         nothing, and on Pearl anything heavier stops reading as falloff and
+         starts reading as dirt on the paper. */
       radial-gradient(
-        130% 100% at 22% 0%,
-        transparent 34%,
-        rgb(var(--shade-rgb) / 0.16) 78%,
-        rgb(var(--shade-rgb) / 0.34) 100%
+        132% 104% at 22% 0%,
+        transparent 42%,
+        rgb(var(--shade-rgb) / 0.028) 76%,
+        rgb(var(--shade-rgb) / 0.062) 100%
       ),
       /* one warm key, high and to the reading edge, the same direction the
          hero lights from — two opposing glows cancel into a flat wash */
@@ -1748,10 +1779,10 @@
   [dir='rtl'] .page-container {
     background:
       radial-gradient(
-        130% 100% at 78% 0%,
-        transparent 34%,
-        rgb(var(--shade-rgb) / 0.16) 78%,
-        rgb(var(--shade-rgb) / 0.34) 100%
+        132% 104% at 78% 0%,
+        transparent 42%,
+        rgb(var(--shade-rgb) / 0.028) 76%,
+        rgb(var(--shade-rgb) / 0.062) 100%
       ),
       radial-gradient(96% 62% at 78% -8%, rgb(var(--accent-gold-rgb) / 0.085), transparent 68%),
       radial-gradient(130% 88% at 78% -8%, rgb(var(--accent-gold-rgb) / 0.035), transparent 76%),
@@ -1775,10 +1806,66 @@
      padding box and is the body, the second is clipped to the border box and
      paints the 1px transparent border, which is how a gradient edge follows
      border-radius. */
+  /* The public names. .surface-1/2/3 are the ladder; .premium-* are the
+     historical aliases the pages already carry. Compose them with .surface-lift
+     for a card that answers the pointer, and .surface-well for a recessed
+     plane (a thumbnail bed, a letterbox). Nothing else in the app should be
+     hand-rolling a border-plus-fill: if a thing needs to look raised, it takes
+     a level. */
+  .surface-1,
   .premium-surface {
     border: 1px solid transparent;
     background: var(--fill-1) padding-box, var(--edge-1) border-box;
     box-shadow: var(--elev-1);
+  }
+
+  .surface-2 {
+    border: 1px solid transparent;
+    background: var(--fill-2) padding-box, var(--edge-2) border-box;
+    box-shadow: var(--elev-2);
+  }
+
+  .surface-3 {
+    border: 1px solid transparent;
+    background: var(--fill-3) padding-box, var(--edge-3) border-box;
+    box-shadow: var(--elev-3);
+  }
+
+  .surface-well {
+    background: var(--fill-well);
+    box-shadow:
+      inset 0 1px 3px rgb(var(--shade-rgb) / 0.5),
+      inset 0 -1px 0 rgb(var(--sheen-rgb) / 0.045);
+  }
+
+  .surface-lift {
+    transition:
+      background var(--dur-normal) var(--ease-out),
+      box-shadow var(--dur-normal) var(--ease-out),
+      transform var(--dur-normal) var(--ease-out);
+  }
+
+  .surface-lift:hover {
+    background: var(--fill-3) padding-box, var(--edge-3) border-box;
+    box-shadow: var(--elev-3);
+    transform: translateY(-1px);
+  }
+
+  .surface-lift:active {
+    transform: translateY(0);
+    box-shadow: var(--elev-1);
+    transition-duration: var(--dur-press);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .surface-lift {
+      transition: none;
+    }
+
+    .surface-lift:hover,
+    .surface-lift:active {
+      transform: none;
+    }
   }
 
   .premium-card {
@@ -1914,13 +2001,7 @@
 
   .btn-ghost:hover:not(:disabled) {
     color: rgb(var(--text-main-rgb));
-    background:
-      linear-gradient(
-        177deg,
-        rgb(var(--sheen-rgb) / 0.055),
-        rgb(var(--sheen-rgb) / 0.022)
-      ) padding-box,
-      var(--edge-2) border-box;
+    background: var(--wash-btn) padding-box, var(--edge-2) border-box;
     box-shadow: var(--elev-1);
   }
 
@@ -1992,8 +2073,13 @@
      as broken image placeholders rather than ornament. */
   .thumbnail-fallback {
     @apply relative flex h-full w-full items-center justify-center overflow-hidden;
-    background: rgb(var(--bg-card-rgb));
+    background: var(--fill-well);
     color: rgb(var(--text-faint-rgb));
+    /* A well, not a hole: the shade is deepest where the wall meets the floor
+       at the top, and there is a seated highlight at the bottom lip. */
+    box-shadow:
+      inset 0 1px 3px rgb(var(--shade-rgb) / 0.5),
+      inset 0 -1px 0 rgb(var(--sheen-rgb) / 0.045);
   }
 
   .icon-medallion {
@@ -2137,15 +2223,13 @@
   .app-sidebar {
     box-shadow:
       inset 0 1px 0 rgb(var(--sheen-rgb) / 0.04),
-      1px 0 0 rgb(var(--hair-rgb) / 0.10),
-      6px 0 18px -14px rgb(var(--shade-rgb) / 0.9);
+      8px 0 20px -14px rgb(var(--shade-rgb) / 0.95);
   }
 
   [dir='rtl'] .app-sidebar {
     box-shadow:
       inset 0 1px 0 rgb(var(--sheen-rgb) / 0.04),
-      -1px 0 0 rgb(var(--hair-rgb) / 0.10),
-      -6px 0 18px -14px rgb(var(--shade-rgb) / 0.9);
+      -8px 0 20px -14px rgb(var(--shade-rgb) / 0.95);
   }
 }
 

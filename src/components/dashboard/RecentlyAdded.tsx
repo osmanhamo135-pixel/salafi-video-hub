@@ -87,7 +87,7 @@ export const RecentlyAdded: React.FC = () => {
   };
 
   return (
-    <section className="mt-16">
+    <section className="mt-20">
       <div className="mb-2 flex items-baseline justify-between gap-4 border-b border-border pb-3">
         <h2 className={eyebrow}>{t('recentlyAdded')}</h2>
         {!loading && videos.length > 0 && (

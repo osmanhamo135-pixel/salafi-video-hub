@@ -46,7 +46,10 @@ export const Hero: React.FC = () => {
   };
 
   return (
-    <section className="hero mb-6">
+    /* The hero already dissolves into the page through .hero-fade, so the old
+       24px margin on top of that read as a gap rather than a hand-off; the
+       masthead's own top margin carries the separation now. */
+    <section className="hero mb-1">
       <div className="hero-ground" aria-hidden="true" />
       {/* Three depth bands of one room: pitch converges and blur increases with
           distance from the key light. Separate elements rather than clipped
