@@ -32,10 +32,16 @@ export const ReminderCard: React.FC<ReminderCardProps> = ({
   return (
     <div className="rule-row gap-4">
       {/* Toggle Switch */}
+      {/* Smaller, and the "on" track is a tint rather than a solid accent fill.
+          At full saturation it was the loudest thing on the page — a control
+          shouting over the reminder it belongs to. The knob carries the accent
+          instead, which is enough to read state at a glance. */}
       <button
         onClick={() => onToggle(reminder.id)}
-        className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors motion-reduce:transition-none ${
-          reminder.enabled ? 'bg-accent-gold' : 'bg-border-strong'
+        className={`relative h-5 w-9 flex-shrink-0 rounded-full border transition-colors duration-150 motion-reduce:transition-none ${
+          reminder.enabled
+            ? 'border-accent-gold/40 bg-accent-gold/20'
+            : 'border-border-strong/60 bg-border-strong/30 hover:border-border-strong'
         }`}
         aria-label={reminder.enabled ? t('disableReminder') : t('enableReminder')}
         aria-pressed={reminder.enabled}
@@ -43,8 +49,10 @@ export const ReminderCard: React.FC<ReminderCardProps> = ({
         {/* Logical inset and an RTL-flipped travel: with `left` + `translate-x`
             alone the knob slid the wrong way on the Arabic layout. */}
         <span
-          className={`absolute start-0.5 top-0.5 h-5 w-5 rounded-full transition-transform motion-reduce:transition-none ${
-            reminder.enabled ? 'translate-x-5 bg-background rtl:-translate-x-5' : 'translate-x-0 bg-muted-text'
+          className={`absolute start-[3px] top-[3px] h-3 w-3 rounded-full transition-transform duration-150 motion-reduce:transition-none ${
+            reminder.enabled
+              ? 'translate-x-4 bg-accent-gold rtl:-translate-x-4'
+              : 'translate-x-0 bg-muted-text'
           }`}
         />
       </button>
