@@ -790,7 +790,9 @@
        border box; any border here would shift the cue off the spoken word. */
     border: none;
     border-radius: 10px;
-    padding: clamp(2.1rem, 3.4vw, 3.4rem) clamp(1.75rem, 4vw, 3.25rem);
+    /* The inline padding clears the jadwal's inner rule at every width — the
+       band and its rules occupy the first ~32px of the page margin. */
+    padding: clamp(2.1rem, 3.4vw, 3.4rem) clamp(2.4rem, 4.2vw, 3.5rem);
     color: rgb(var(--text-main-rgb));
     background: radial-gradient(
       118% 74% at 50% 0%,
@@ -846,13 +848,79 @@
     border-radius: 0;
   }
 
+  /* The outer rule. */
   .quran-reading-frame::before {
-    inset: clamp(0.5rem, 1vw, 0.85rem);
+    inset: clamp(0.5rem, 0.9vw, 0.7rem);
   }
 
+  /* The inner rule, set just inside the ornamental band. */
   .quran-reading-frame::after {
-    inset: clamp(0.68rem, 1.2vw, 1.02rem);
+    inset: clamp(1.72rem, 2.3vw, 2.05rem);
     border-color: rgb(var(--mushaf-gold-rgb) / 0.14);
+  }
+
+  /* The ornamental band that runs between the two rules, with a khatam — the
+     eight-pointed star of two overlapping squares — closing each corner.
+
+     Painted as a CSS mask rather than as a picture: the tiles are opaque black
+     geometry and the colour comes from the theme's gold underneath, so one set
+     of tiles serves all five themes with no per-theme asset. Eight mask layers
+     ride on this single element — four sides, four corners — and they union
+     where they meet, which is what a real frame does: the corner star
+     terminates both bands that run into it.
+
+     The rules deliberately live on the frame's pseudo-elements rather than on
+     this element. A CSS mask applies to an element's whole subtree, so a
+     hairline drawn on ::before here would be cut to the band's own silhouette
+     and mostly disappear. */
+  .quran-jadwal {
+    --jadwal-h: url('./assets/marks/jadwal-band-h.svg');
+    --jadwal-v: url('./assets/marks/jadwal-band-v.svg');
+    --jadwal-c: url('./assets/marks/jadwal-corner.svg');
+    position: absolute;
+    inset: clamp(0.85rem, 1.35vw, 1.1rem);
+    z-index: 0;
+    pointer-events: none;
+    background: rgb(var(--mushaf-gold-rgb) / 0.40);
+    -webkit-mask-image:
+      var(--jadwal-h), var(--jadwal-h), var(--jadwal-v), var(--jadwal-v),
+      var(--jadwal-c), var(--jadwal-c), var(--jadwal-c), var(--jadwal-c);
+    mask-image:
+      var(--jadwal-h), var(--jadwal-h), var(--jadwal-v), var(--jadwal-v),
+      var(--jadwal-c), var(--jadwal-c), var(--jadwal-c), var(--jadwal-c);
+    -webkit-mask-repeat:
+      repeat-x, repeat-x, repeat-y, repeat-y,
+      no-repeat, no-repeat, no-repeat, no-repeat;
+    mask-repeat:
+      repeat-x, repeat-x, repeat-y, repeat-y,
+      no-repeat, no-repeat, no-repeat, no-repeat;
+    -webkit-mask-position:
+      top center, bottom center, left center, right center,
+      top left, top right, bottom right, bottom left;
+    mask-position:
+      top center, bottom center, left center, right center,
+      top left, top right, bottom right, bottom left;
+    -webkit-mask-size:
+      40px 10px, 40px 10px, 10px 40px, 10px 40px,
+      20px 20px, 20px 20px, 20px 20px, 20px 20px;
+    mask-size:
+      40px 10px, 40px 10px, 10px 40px, 10px 40px,
+      20px 20px, 20px 20px, 20px 20px, 20px 20px;
+    animation: jadwal-in 620ms var(--ease-out) both;
+  }
+
+  /* The frame draws itself in; the text it frames does not. Qur'anic text is
+     never faded in or animated, so the animation is confined to the ornament —
+     the ayat are fully present from the first painted frame. */
+  @keyframes jadwal-in {
+    from {
+      opacity: 0;
+      transform: scale(1.014);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 
   /* Content sits above the frame; the frame is page furniture, not a layer over
@@ -1109,17 +1177,34 @@
     color: rgb(var(--text-muted-rgb));
     background: none;
     border: 0;
-    border-bottom: 1px solid transparent;
     cursor: pointer;
     transition:
       color var(--dur-fast) var(--ease-out),
-      border-color var(--dur-fast) var(--ease-out),
       opacity var(--dur-fast) var(--ease-out);
+  }
+
+  /* The underline grows from the centre of the tab you chose rather than
+     blinking on. Scaling a per-tab rule beats sliding one shared indicator
+     here: the two labels are different widths in both languages, so a shared
+     indicator would have to be measured in JS to land correctly. */
+  .segmented button::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 1.5px;
+    background: rgb(var(--accent-gold-rgb));
+    transform: scaleX(0);
+    transition: transform var(--dur-normal) var(--ease-spring);
   }
 
   .segmented button:hover {
     color: rgb(var(--text-soft-rgb));
-    border-bottom-color: rgb(var(--accent-gold-rgb) / 0.34);
+  }
+
+  .segmented button:hover::after {
+    background: rgb(var(--accent-gold-rgb) / 0.34);
+    transform: scaleX(1);
   }
 
   .segmented button:active {
@@ -1128,7 +1213,12 @@
 
   .segmented button[aria-pressed='true'] {
     color: rgb(var(--text-main-rgb));
-    border-bottom-color: rgb(var(--accent-gold-rgb));
+  }
+
+  .segmented button[aria-pressed='true']::after,
+  .segmented button[aria-pressed='true']:hover::after {
+    background: rgb(var(--accent-gold-rgb));
+    transform: scaleX(1);
   }
 
   /* An icon button is 30px of nothing until you touch it, then it becomes a
