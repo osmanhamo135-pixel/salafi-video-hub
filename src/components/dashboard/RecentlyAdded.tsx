@@ -11,8 +11,7 @@ import { useI18n } from '@/i18n';
 /* .thumbnail-fallback bakes in an .icon-medallion (primary-blue border + fill)
    and a teal underline, which puts a second accent in every un-thumbnailed row.
    Neutralise both from the call site; the primitive itself is not ours to edit. */
-const QUIET_FALLBACK =
-  'thumbnail-fallback after:hidden [&_.icon-medallion]:border-border [&_.icon-medallion]:bg-transparent [&_.icon-medallion]:shadow-none [&_.icon-medallion]:after:hidden';
+const QUIET_FALLBACK = 'thumbnail-fallback thumbnail-fallback-quiet';
 
 export const RecentlyAdded: React.FC = () => {
   const { t } = useI18n();

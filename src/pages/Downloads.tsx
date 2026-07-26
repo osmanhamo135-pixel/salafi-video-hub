@@ -8,6 +8,7 @@ import {
   Download,
   FileVideo,
   FolderOpen,
+  FolderSearch,
   Layers,
   Link,
   Loader2,
@@ -141,8 +142,10 @@ export const Downloads: React.FC = () => {
           <p className="mt-1 max-w-2xl text-sm text-muted-text">{t('downloadsSubtitle')}</p>
           {/* The supported platforms are a caption, not four badges: they are
               information about the field below, and never a call to action. */}
-          <p className="mt-2 text-xs text-muted-text" dir="ltr">
-            YouTube · TikTok · Instagram Reels · X / Twitter
+          <p className="mt-2 text-xs text-muted-text">
+            {/* <bdi>, not dir="ltr": the list renders left-to-right but still
+                sits at the start of the line on the Arabic layout. */}
+            <bdi>YouTube · TikTok · Instagram Reels · X / Twitter</bdi>
           </p>
         </div>
 
@@ -162,7 +165,7 @@ export const Downloads: React.FC = () => {
 
               <Field label={t('downloadFolder')} icon={FolderOpen} action={
                 <button type="button" onClick={handleChooseFolder} className="icon-btn shrink-0" title={t('chooseFolder')} aria-label={t('chooseFolder')}>
-                  <FolderOpen className="h-4 w-4" />
+                  <FolderSearch className="h-4 w-4" />
                 </button>
               }>
                 <input
@@ -193,7 +196,7 @@ export const Downloads: React.FC = () => {
                 <Field label={t('cookiesFile')} icon={Cookie} action={
                   <>
                     <button type="button" onClick={handleChooseCookies} className="icon-btn shrink-0" title={t('chooseCookiesFile')} aria-label={t('chooseCookiesFile')}>
-                      <FolderOpen className="h-4 w-4" />
+                      <FolderSearch className="h-4 w-4" />
                     </button>
                     {cookiesPath && (
                       <button type="button" onClick={() => setCookiesPath('')} className="icon-btn shrink-0" title={t('clear')} aria-label={t('clear')}>

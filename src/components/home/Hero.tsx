@@ -48,7 +48,15 @@ export const Hero: React.FC = () => {
   return (
     <section className="hero mb-6">
       <div className="hero-ground" aria-hidden="true" />
-      <div className="hero-scene" aria-hidden="true" />
+      {/* Three depth bands of one room: pitch converges and blur increases with
+          distance from the key light. Separate elements rather than clipped
+          pseudo-elements so each can carry its own soft-edged mask — a hard
+          clip left a visible vertical seam where the bands met. */}
+      <div className="hero-scene" aria-hidden="true">
+        <div className="hero-band hero-band-near" />
+        <div className="hero-band hero-band-mid" />
+        <div className="hero-band hero-band-far" />
+      </div>
       <div className="hero-girih" aria-hidden="true" />
       <div className="hero-arch" aria-hidden="true" />
       <div className="hero-scrim" aria-hidden="true" />

@@ -418,9 +418,13 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
             max={100}
             value={form.volume}
             onChange={(e) => updateField('volume', Number(e.target.value))}
+            // Pinned LTR: Chromium mirrors a range in RTL but still paints
+            // its accent fill on the left, so the filled part and the thumb
+            // disagreed. See the same note in Settings' VolumeSlider.
+            dir="ltr"
             className="flex-1 h-1 rounded-full cursor-pointer"
-            // `accent-color` instead of a hand-painted `to right` gradient: the
-            // browser fills from the reading side, so this is correct in RTL.
+            // `accent-color` instead of a hand-painted gradient: one theme
+            // token colours the thumb and the filled track together.
             style={{
               background: 'rgb(var(--accent-gold-rgb) / 0.14)',
               accentColor: 'rgb(var(--accent-gold-rgb))',

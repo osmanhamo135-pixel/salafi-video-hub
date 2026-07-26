@@ -512,8 +512,10 @@ export const Settings: React.FC = () => {
               {settings.importedFolders.map((path) => (
                 <div key={path} className="rule-row group">
                   <FolderOpen className="h-4 w-4 shrink-0 text-muted-text" />
-                  <span dir="auto" className="min-w-0 flex-1 truncate text-sm text-text-primary" title={path}>
-                    {path}
+                  {/* <bdi>, not dir="auto" on the flex item: an LTR path must
+                      render left-to-right but still start where the row starts. */}
+                  <span className="min-w-0 flex-1 truncate text-sm text-text-primary" title={path}>
+                    <bdi>{path}</bdi>
                   </span>
                   <button
                     type="button"
@@ -881,10 +883,13 @@ const VolumeSlider: React.FC<{
         onPointerUp={commit}
         onKeyUp={commit}
         onBlur={commit}
+        // Pinned LTR: Chromium mirrors a range in RTL but still paints its
+        // accent fill on the left, so the filled part and the thumb disagreed.
+        // Volume reads low-to-high left-to-right in both languages instead.
+        dir="ltr"
         className="h-1 flex-1 cursor-pointer rounded-full"
-        // `accent-color` rather than a hand-painted gradient: the browser fills
-        // the track from the reading side, so this is correct in RTL too, and
-        // both colours still come from the theme token.
+        // `accent-color` rather than a hand-painted gradient: one theme token
+        // colours the thumb and the filled track together.
         style={{
           background: 'rgb(var(--accent-gold-rgb) / 0.14)',
           accentColor: 'rgb(var(--accent-gold-rgb))',
