@@ -15,6 +15,7 @@ import {
   Plus,
   Repeat,
   Search,
+  Type,
 } from 'lucide-react';
 import {
   AyahTiming,
@@ -1129,8 +1130,12 @@ const SurahReader: React.FC = () => {
             </button>
             {openMenu === 'more' && (
               <ToolbarPanel label={t('quranTranslation')} align="end" onClose={closeMenu}>
+                {/* Two unlabelled ± buttons gave no idea what they changed or
+                    where the size currently sat. The specimen A and the live
+                    value say both without needing a dictionary string. */}
                 <div className="flex items-center justify-between gap-3 px-1 py-1">
-                  <span className="flex items-center gap-0.5">
+                  <Type aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-text" />
+                  <span className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => setFontSize(fontSize - 2)}
@@ -1140,6 +1145,9 @@ const SurahReader: React.FC = () => {
                     >
                       <Minus className="h-3.5 w-3.5" />
                     </button>
+                    <span className="w-6 text-center text-[11px] tabular-nums text-text-faint">
+                      <bdi>{Math.round(fontSize)}</bdi>
+                    </span>
                     <button
                       type="button"
                       onClick={() => setFontSize(fontSize + 2)}

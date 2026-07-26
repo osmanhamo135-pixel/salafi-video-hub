@@ -368,7 +368,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
      reading instead of leaving a void beside it. */
   if (variant === 'wide') {
     return (
-      <article className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-panel/50 transition-colors duration-300 hover:border-accent-gold/30 hover:bg-panel-hover/40 sm:flex-row">
+      <article className="surface-2 surface-lift group relative flex flex-col overflow-hidden rounded-xl sm:flex-row">
         <button
           type="button"
           onClick={() => onContinue(playlist)}
@@ -472,7 +472,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
 
   /* ── Poster card ────────────────────────────────────────────────────────── */
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-panel/50 transition-colors duration-300 hover:border-accent-gold/30 hover:bg-panel-hover/40">
+    <article className="surface-2 surface-lift group relative flex flex-col overflow-hidden rounded-xl">
       <button
         type="button"
         onClick={() => onContinue(playlist)}
