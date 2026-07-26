@@ -2,6 +2,20 @@ use crate::db::{lock_conn, DbState};
 use crate::models::video::Video;
 use rusqlite::{params, params_from_iter, Result, Row};
 
+/// The video columns, in exactly the order `row_to_video` reads them.
+///
+/// Every read of this table selects these names rather than `*`. With `SELECT *`
+/// the column order comes from `CREATE TABLE` on a fresh database but from the
+/// `ensure_column` upgrade order on an existing one, so a database whose
+/// migration history added columns in a different sequence would silently map
+/// `codec_info` into `playable_status` — or fail the query outright on a type
+/// mismatch. Naming them makes the positional `row.get` indices below correct by
+/// construction, whatever the physical layout.
+const VIDEO_COLUMNS: &str = "id, title, file_path, folder_path, file_name, extension, \
+     duration_seconds, thumbnail_path, thumbnail_status, category, speaker, description, \
+     progress_seconds, completed, favorite, watch_later, file_size, modified_at, created_at, \
+     updated_at, last_played_at, playable_status, last_playback_error, codec_info";
+
 fn row_to_video(row: &Row) -> Result<Video> {
     Ok(Video {
         id: row.get(0)?,
@@ -97,7 +111,7 @@ pub fn update_video(db: &DbState, video: &Video) -> Result<()> {
 
 pub fn get_video_by_id(db: &DbState, id: &str) -> Result<Option<Video>> {
     let conn = lock_conn(db);
-    let mut stmt = conn.prepare("SELECT * FROM videos WHERE id = ?1")?;
+    let mut stmt = conn.prepare(&format!("SELECT {} FROM videos WHERE id = ?1", VIDEO_COLUMNS))?;
     let mut rows = stmt.query(params![id])?;
 
     if let Some(row) = rows.next()? {
@@ -109,7 +123,7 @@ pub fn get_video_by_id(db: &DbState, id: &str) -> Result<Option<Video>> {
 
 pub fn get_video_by_path(db: &DbState, file_path: &str) -> Result<Option<Video>> {
     let conn = lock_conn(db);
-    let mut stmt = conn.prepare("SELECT * FROM videos WHERE file_path = ?1")?;
+    let mut stmt = conn.prepare(&format!("SELECT {} FROM videos WHERE file_path = ?1", VIDEO_COLUMNS))?;
     let mut rows = stmt.query(params![file_path])?;
 
     if let Some(row) = rows.next()? {
@@ -122,14 +136,17 @@ pub fn get_video_by_path(db: &DbState, file_path: &str) -> Result<Option<Video>>
 pub fn get_videos_by_folder(db: &DbState, folder_path: &str) -> Result<Vec<Video>> {
     let conn = lock_conn(db);
     let mut stmt =
-        conn.prepare("SELECT * FROM videos WHERE folder_path = ?1 ORDER BY file_name")?;
+        conn.prepare(&format!(
+        "SELECT {} FROM videos WHERE folder_path = ?1 ORDER BY file_name",
+        VIDEO_COLUMNS
+    ))?;
     let rows = stmt.query_map(params![folder_path], row_to_video)?;
     rows.collect()
 }
 
 pub fn get_all_videos(db: &DbState) -> Result<Vec<Video>> {
     let conn = lock_conn(db);
-    let mut stmt = conn.prepare("SELECT * FROM videos ORDER BY title")?;
+    let mut stmt = conn.prepare(&format!("SELECT {} FROM videos ORDER BY title", VIDEO_COLUMNS))?;
     let rows = stmt.query_map([], row_to_video)?;
     rows.collect()
 }
@@ -156,7 +173,8 @@ pub fn get_videos_by_ids(db: &DbState, ids: &[String]) -> Result<Vec<Video>> {
         .collect::<Vec<_>>()
         .join(",");
     let sql = format!(
-        "SELECT * FROM videos WHERE id IN ({}) ORDER BY title",
+        "SELECT {} FROM videos WHERE id IN ({}) ORDER BY title",
+        VIDEO_COLUMNS,
         placeholders
     );
     let mut stmt = conn.prepare(&sql)?;
@@ -173,13 +191,14 @@ pub fn search_videos(db: &DbState, query: &str) -> Result<Vec<Video>> {
         .replace('%', "\\%")
         .replace('_', "\\_");
     let pattern = format!("%{}%", escaped);
-    let mut stmt = conn.prepare(
-        "SELECT * FROM videos WHERE 
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {} FROM videos WHERE
             title LIKE ?1 ESCAPE '\\' OR file_name LIKE ?1 ESCAPE '\\'
             OR category LIKE ?1 ESCAPE '\\' OR speaker LIKE ?1 ESCAPE '\\'
             OR folder_path LIKE ?1 ESCAPE '\\'
         ORDER BY title",
-    )?;
+        VIDEO_COLUMNS
+    ))?;
     let rows = stmt.query_map(params![pattern], row_to_video)?;
     rows.collect()
 }
@@ -230,17 +249,21 @@ pub fn delete_videos_by_folder(db: &DbState, folder_path: &str) -> Result<usize>
 
 pub fn get_continue_watching(db: &DbState, limit: i64) -> Result<Vec<Video>> {
     let conn = lock_conn(db);
-    let mut stmt = conn.prepare(
-        "SELECT * FROM videos WHERE progress_seconds > 0 AND completed = 0 
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {} FROM videos WHERE progress_seconds > 0 AND completed = 0
         ORDER BY last_played_at DESC LIMIT ?1",
-    )?;
+        VIDEO_COLUMNS
+    ))?;
     let rows = stmt.query_map(params![limit], row_to_video)?;
     rows.collect()
 }
 
 pub fn get_recently_added(db: &DbState, limit: i64) -> Result<Vec<Video>> {
     let conn = lock_conn(db);
-    let mut stmt = conn.prepare("SELECT * FROM videos ORDER BY created_at DESC LIMIT ?1")?;
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {} FROM videos ORDER BY created_at DESC LIMIT ?1",
+        VIDEO_COLUMNS
+    ))?;
     let rows = stmt.query_map(params![limit], row_to_video)?;
     rows.collect()
 }
@@ -269,4 +292,129 @@ pub fn get_total_duration(db: &DbState) -> Result<i64> {
         |row| row.get(0),
     )?;
     Ok(total)
+}
+
+#[cfg(test)]
+mod video_row_tests {
+    use super::*;
+    use rusqlite::Connection;
+
+    /// Builds the table with the columns deliberately declared in a *different*
+    /// order from `VIDEO_COLUMNS`, standing in for a database whose upgrade
+    /// history added them in another sequence. Reading back through the named
+    /// column list must still produce the right field in every position — which
+    /// is precisely what `SELECT *` could not guarantee.
+    fn table_with_shuffled_physical_order() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE videos (
+                codec_info TEXT,
+                last_playback_error TEXT,
+                playable_status TEXT,
+                id TEXT PRIMARY KEY,
+                title TEXT,
+                file_path TEXT,
+                folder_path TEXT,
+                file_name TEXT,
+                extension TEXT,
+                duration_seconds INTEGER,
+                thumbnail_path TEXT,
+                thumbnail_status TEXT,
+                category TEXT,
+                speaker TEXT,
+                description TEXT,
+                progress_seconds INTEGER,
+                completed INTEGER,
+                favorite INTEGER,
+                watch_later INTEGER,
+                file_size INTEGER,
+                modified_at INTEGER,
+                created_at INTEGER,
+                updated_at INTEGER,
+                last_played_at INTEGER
+            );",
+        )
+        .unwrap();
+        conn
+    }
+
+    #[test]
+    fn video_columns_covers_every_field_once() {
+        let names: Vec<&str> = VIDEO_COLUMNS.split(',').map(str::trim).collect();
+        assert_eq!(names.len(), 24, "column list must match row_to_video's indices");
+        let mut sorted = names.clone();
+        sorted.sort_unstable();
+        sorted.dedup();
+        assert_eq!(sorted.len(), names.len(), "duplicate column in VIDEO_COLUMNS");
+    }
+
+    #[test]
+    fn rows_map_to_the_right_fields_whatever_the_physical_column_order() {
+        let conn = table_with_shuffled_physical_order();
+        conn.execute(
+            &format!(
+                "INSERT INTO videos ({}) VALUES \
+                 (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, \
+                  ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24)",
+                VIDEO_COLUMNS
+            ),
+            params![
+                "vid-1",
+                "The Title",
+                "C:/a/b.mp4",
+                "C:/a",
+                "b.mp4",
+                "mp4",
+                610_i64,
+                "C:/thumbs/b.jpg",
+                "ready",
+                "aqeedah",
+                "A Speaker",
+                "A description",
+                120_i64,
+                1_i64,
+                1_i64,
+                0_i64,
+                4096_i64,
+                11_i64,
+                22_i64,
+                33_i64,
+                44_i64,
+                "playable",
+                "no error",
+                "{\"width\":1920}",
+            ],
+        )
+        .unwrap();
+
+        let mut stmt = conn
+            .prepare(&format!("SELECT {} FROM videos", VIDEO_COLUMNS))
+            .unwrap();
+        let video = stmt.query_row([], row_to_video).unwrap();
+
+        assert_eq!(video.id, "vid-1");
+        assert_eq!(video.title, "The Title");
+        assert_eq!(video.file_path, "C:/a/b.mp4");
+        assert_eq!(video.folder_path, "C:/a");
+        assert_eq!(video.file_name, "b.mp4");
+        assert_eq!(video.extension, "mp4");
+        assert_eq!(video.duration_seconds, 610);
+        assert_eq!(video.thumbnail_path.as_deref(), Some("C:/thumbs/b.jpg"));
+        assert_eq!(video.thumbnail_status, "ready");
+        assert_eq!(video.category.as_deref(), Some("aqeedah"));
+        assert_eq!(video.speaker.as_deref(), Some("A Speaker"));
+        assert_eq!(video.description.as_deref(), Some("A description"));
+        assert_eq!(video.progress_seconds, 120);
+        assert!(video.completed);
+        assert!(video.favorite);
+        assert!(!video.watch_later);
+        assert_eq!(video.file_size, 4096);
+        assert_eq!(video.modified_at, 11);
+        assert_eq!(video.created_at, 22);
+        assert_eq!(video.updated_at, 33);
+        assert_eq!(video.last_played_at, Some(44));
+        assert_eq!(video.playable_status, "playable");
+        assert_eq!(video.last_playback_error.as_deref(), Some("no error"));
+        assert_eq!(video.codec_info.as_deref(), Some("{\"width\":1920}"));
+    }
 }
