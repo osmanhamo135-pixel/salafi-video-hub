@@ -36,6 +36,7 @@ export const RadioMiniPlayer: React.FC = () => {
   const retry = useRadioStore((state) => state.retry);
   const markPlaybackError = useRadioStore((state) => state.markPlaybackError);
   const markPlaying = useRadioStore((state) => state.markPlaying);
+  const markEnded = useRadioStore((state) => state.markEnded);
   const setVolume = useRadioStore((state) => state.setVolume);
   const toggleLooping = useRadioStore((state) => state.toggleLooping);
   const setSleepMinutes = useRadioStore((state) => state.setSleepMinutes);
@@ -59,13 +60,20 @@ export const RadioMiniPlayer: React.FC = () => {
     audio.volume = volume / 100;
   }, [volume, current]);
 
+  // The element is keyed on the station, so changing station unmounts it and
+  // rejects any pending play() with AbortError. Reporting that as a playback
+  // error would set playbackError globally and pause the station the user just
+  // picked — a healthy stream showing "stream problem". Only report a rejection
+  // that belongs to the element still mounted, and never an abort.
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !current) return;
 
     if (playing) {
       setBuffering(true);
-      audio.play().catch(() => {
+      audio.play().catch((error: unknown) => {
+        if (audioRef.current !== audio) return;
+        if (error instanceof DOMException && error.name === 'AbortError') return;
         setBuffering(false);
         markPlaybackError();
       });
@@ -74,6 +82,14 @@ export const RadioMiniPlayer: React.FC = () => {
       setBuffering(false);
     }
   }, [playing, current, markPlaybackError]);
+
+  // Clock state belongs to the element that produced it. Without this reset a
+  // recorded surah's duration survives into a live stream, which then renders a
+  // seek bar and an enabled loop button for something that cannot seek.
+  useEffect(() => {
+    setPosition(0);
+    setDuration(0);
+  }, [current?.id, current?.url]);
 
   if (!current) return null;
 
@@ -99,7 +115,10 @@ export const RadioMiniPlayer: React.FC = () => {
         onStalled={() => setBuffering(true)}
         onTimeUpdate={(event) => setPosition(event.currentTarget.currentTime)}
         onDurationChange={(event) => setDuration(event.currentTarget.duration)}
-        onEnded={() => setPosition(0)}
+        onEnded={() => {
+          setPosition(0);
+          markEnded();
+        }}
       />
   );
 

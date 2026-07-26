@@ -22,14 +22,6 @@ export type SleepMinutes = 0 | 15 | 30 | 60 | 90;
  */
 export const audioElementHolder: { current: HTMLAudioElement | null } = { current: null };
 
-/** Seeks the global audio element (recordings only — live streams can't seek). */
-export const seekToSeconds = (seconds: number) => {
-  const element = audioElementHolder.current;
-  if (element && Number.isFinite(element.duration)) {
-    element.currentTime = Math.max(0, Math.min(seconds, element.duration));
-  }
-};
-
 interface RadioState {
   stations: RadioStation[];
   loading: boolean;
@@ -52,6 +44,7 @@ interface RadioState {
   retry: () => void;
   markPlaybackError: () => void;
   markPlaying: () => void;
+  markEnded: () => void;
   setVolume: (volume: number) => void;
   setLooping: (looping: boolean) => void;
   toggleLooping: () => void;
@@ -75,6 +68,15 @@ const loadVolume = (): number => {
   const value = Number(localStorage.getItem(VOLUME_KEY));
   return Number.isFinite(value) && value >= 0 && value <= 100 ? value : 80;
 };
+
+/**
+ * Catalog fetches are superseded rather than dropped. The old `loading` guard
+ * meant that switching language while the first fetch was in flight returned
+ * immediately, and nothing ever re-triggered — the user was left looking at the
+ * other language's catalog with no error and no retry.
+ */
+let stationsRequestId = 0;
+let stationsInFlightLanguage: string | null = null;
 
 let sleepTimerId: ReturnType<typeof setTimeout> | null = null;
 
@@ -101,18 +103,25 @@ export const useRadioStore = create<RadioState>((set, get) => ({
   sleepUntil: null,
 
   loadStations: async (language) => {
-    const { loading, loadedLanguage, stations } = get();
-    if (loading || (loadedLanguage === language && stations.length > 0)) return;
+    const { loadedLanguage, stations } = get();
+    if (loadedLanguage === language && stations.length > 0) return;
+    if (stationsInFlightLanguage === language) return;
 
+    const requestId = ++stationsRequestId;
+    stationsInFlightLanguage = language;
     set({ loading: true, loadError: null });
     try {
       const catalog = await invoke<RadioCatalog>('get_radio_stations', { language });
+      if (requestId !== stationsRequestId) return;
       set({ stations: catalog.stations, loading: false, loadedLanguage: language, loadError: null });
     } catch (error) {
+      if (requestId !== stationsRequestId) return;
       set({
         loading: false,
         loadError: error instanceof Error ? error.message : String(error),
       });
+    } finally {
+      if (requestId === stationsRequestId) stationsInFlightLanguage = null;
     }
   },
 
@@ -147,6 +156,10 @@ export const useRadioStore = create<RadioState>((set, get) => ({
 
   markPlaybackError: () => set({ playing: false, playbackError: true }),
   markPlaying: () => set({ playbackError: false }),
+  // A finished recording must clear `playing`, or the mini-player keeps showing
+  // Pause, the Quran page keeps believing sync is live, and the user's next
+  // press only toggles the stale flag instead of restarting.
+  markEnded: () => set({ playing: false }),
 
   setVolume: (volume) => {
     const clamped = Math.min(Math.max(Math.round(volume), 0), 100);

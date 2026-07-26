@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   BookMarked,
@@ -23,7 +23,7 @@ import {
   surahAudioUrl,
   useQuranStore,
 } from '@/store/quranStore';
-import { audioElementHolder, seekToSeconds, useRadioStore } from '@/store/radioStore';
+import { audioElementHolder, useRadioStore } from '@/store/radioStore';
 import { useI18n } from '@/i18n';
 
 const BASMALA_TEXT = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
@@ -128,8 +128,23 @@ const ReadTab: React.FC = () => {
     [surahs, normalized, query],
   );
 
+  const scrollToVerse = (surahId: number, verseId: number) => {
+    window.setTimeout(() => {
+      document
+        .getElementById(`quran-verse-${surahId}-${verseId}`)
+        ?.scrollIntoView({ block: 'center' });
+    }, 60);
+  };
+
   const handleContinue = () => {
     if (!lastRead) return;
+    // When the surah is already open `openSurah` is a no-op, so `currentSurah`
+    // never changes identity and the effect below would never fire. Scroll
+    // directly — this is the case where the button is most likely to be used.
+    if (currentSurah?.id === lastRead.surahId) {
+      scrollToVerse(lastRead.surahId, lastRead.verseId);
+      return;
+    }
     pendingScrollRef.current = lastRead.verseId;
     void openSurah(lastRead.surahId);
   };
@@ -138,11 +153,7 @@ const ReadTab: React.FC = () => {
     if (!currentSurah || pendingScrollRef.current === null) return;
     const verse = pendingScrollRef.current;
     pendingScrollRef.current = null;
-    window.setTimeout(() => {
-      document
-        .getElementById(`quran-verse-${currentSurah.id}-${verse}`)
-        ?.scrollIntoView({ block: 'center' });
-    }, 60);
+    scrollToVerse(currentSurah.id, verse);
   }, [currentSurah]);
 
   return (
@@ -535,27 +546,46 @@ const SurahReader: React.FC = () => {
     setLooping(repeatMode === 'surah');
   }, [repeatMode, setLooping, syncActive]);
 
+  /**
+   * Seeks to a position expressed in the timing file's own clock.
+   *
+   * The audio element has no duration until metadata arrives, and the clock
+   * scale is *measured* against that duration rather than assumed — so a seek
+   * requested before metadata cannot be applied yet. Poll for it instead of
+   * dropping the request silently, which is what made an ayah click right after
+   * pressing play appear to do nothing. Bounded to ~10s so a dead stream does
+   * not leave an unbounded retry re-arming for as long as the reader is mounted.
+   */
+  const seekPollRef = useRef(0);
+  const seekToTimingMs = useCallback(
+    (ms: number) => {
+      window.clearTimeout(seekPollRef.current);
+      let attemptsLeft = 100;
+      const attempt = () => {
+        const element = audioElementHolder.current;
+        if (element && Number.isFinite(element.duration) && element.duration > 0) {
+          // Without timings to measure against there is no safe guess at the
+          // scale, so drop the seek rather than risk landing on a wrong ayah.
+          if (!synced) return;
+          element.currentTime = ms / detectClockScale(synced.ayahTimings, element.duration);
+          return;
+        }
+        if (attemptsLeft-- <= 0) return;
+        seekPollRef.current = window.setTimeout(attempt, 100);
+      };
+      attempt();
+    },
+    [synced],
+  );
+
+  useEffect(() => () => window.clearTimeout(seekPollRef.current), []);
+
   useEffect(() => {
     if (!syncActive || pendingInitialSeekRef.current === null) return;
-    let cancelled = false;
-    let timer = 0;
-    const applyPendingSeek = () => {
-      if (cancelled || pendingInitialSeekRef.current === null) return;
-      const element = audioElementHolder.current;
-      if (element && Number.isFinite(element.duration) && element.duration > 0) {
-        const scale = synced ? detectClockScale(synced.ayahTimings, element.duration) : 1000;
-        element.currentTime = pendingInitialSeekRef.current / scale;
-        pendingInitialSeekRef.current = null;
-        return;
-      }
-      timer = window.setTimeout(applyPendingSeek, 100);
-    };
-    applyPendingSeek();
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [currentStation?.url, syncActive]);
+    const target = pendingInitialSeekRef.current;
+    pendingInitialSeekRef.current = null;
+    seekToTimingMs(target);
+  }, [currentStation?.url, syncActive, seekToTimingMs]);
 
   // Follow the recitation: gently keep the active ayah visible, but never
   // fight the user — manual scrolling pauses auto-follow until they return.
@@ -568,7 +598,14 @@ const SurahReader: React.FC = () => {
     const timer = window.setTimeout(() => {
       programmaticScrollRef.current = false;
     }, 700);
-    return () => window.clearTimeout(timer);
+    // Reset the flag as well as cancelling the timer. Where ayahs are shorter
+    // than 700ms of audio the timer is cleared and rescheduled forever, so
+    // clearing alone leaves the flag stuck true and the user can never pause
+    // auto-follow — the page keeps yanking them back to the active ayah.
+    return () => {
+      window.clearTimeout(timer);
+      programmaticScrollRef.current = false;
+    };
   }, [activeAyah, syncActive, followPaused, surah]);
 
   useEffect(() => {
@@ -621,12 +658,7 @@ const SurahReader: React.FC = () => {
     if (syncActive && synced) {
       const segment = synced.ayahTimings.find((timing) => timing.ayah === verseId);
       if (segment) {
-        const element = audioElementHolder.current;
-        const scale =
-          element && Number.isFinite(element.duration) && element.duration > 0
-            ? detectClockScale(synced.ayahTimings, element.duration)
-            : 1000;
-        seekToSeconds(segment.startMs / scale);
+        seekToTimingMs(segment.startMs);
         setFollowPaused(false);
       }
     }
