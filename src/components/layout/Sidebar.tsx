@@ -65,7 +65,7 @@ export const Sidebar: React.FC = () => {
               key={item.path}
               to={item.path}
               className={({ isActive: linkActive }) => 
-                `relative flex items-center gap-3 rounded-md border px-3 py-2.5 text-sm font-medium transition-colors ${
+                `relative flex items-center gap-3 border px-3 py-2.5 text-sm font-medium transition-colors ${
                   linkActive || isActive
                     // Matches .rule-row-active exactly: an inset marker and one
                     // value step, never a filled box. The active item used to be

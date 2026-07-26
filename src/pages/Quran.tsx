@@ -62,7 +62,7 @@ export const Quran: React.FC = () => {
           <p className="mt-1 max-w-2xl text-sm text-muted-text">{t('quranSubtitle')}</p>
         </div>
 
-        <div className="mb-5 flex gap-2">
+        <div className="mb-5 flex gap-5 border-b border-border">
           <TabButton active={tab === 'read'} icon={BookOpen} label={t('quranRead')} onClick={() => setTab('read')} />
           <TabButton active={tab === 'listen'} icon={Headphones} label={t('quranListen')} onClick={() => setTab('listen')} />
         </div>
@@ -90,13 +90,18 @@ const TabButton: React.FC<{
   label: string;
   onClick: () => void;
 }> = ({ active, icon: Icon, label, onClick }) => (
+  // Read / Listen share a baseline rule instead of being filled bordered
+  // pills. They were the last pair of Language-B chips left in the app: a
+  // 15%-fill box with a 45% border and a 12px radius, sitting directly above a
+  // page built entirely from rules and value steps.
   <button
     type="button"
     onClick={onClick}
-    className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+    aria-pressed={active}
+    className={`inline-flex items-center gap-2 border-b-2 px-1 pb-2 pt-1 text-sm font-medium transition-colors ${
       active
-        ? 'border-accent-gold/45 bg-accent-gold/15 text-accent-gold'
-        : 'border-border bg-panel text-muted-text hover:border-border-strong hover:text-text-primary'
+        ? 'border-accent-gold text-text-primary'
+        : 'border-transparent text-muted-text hover:text-text-primary'
     }`}
   >
     <Icon className="h-4 w-4" />
