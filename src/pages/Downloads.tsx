@@ -441,21 +441,32 @@ const ToggleRow: React.FC<{
   disabled?: boolean;
   onChange: (checked: boolean) => void;
 }> = ({ icon: Icon, label, checked, disabled, onChange }) => (
-  <label className={`rule-row justify-between text-sm ${disabled ? 'opacity-55' : 'cursor-pointer'}`}>
-    <span className="flex min-w-0 items-center gap-2.5 text-text-primary">
+  <div className={`rule-row justify-between text-sm ${disabled ? 'opacity-55' : ''}`}>
+    <span className="flex min-w-0 items-center gap-2.5 text-text-primary" id={`dl-${label}`}>
       <Icon className="h-4 w-4 shrink-0 text-muted-text" />
       <span className="truncate" dir="auto">{label}</span>
     </span>
-    <input
-      type="checkbox"
-      checked={checked}
+    {/* The same switch the rest of the app uses. A native checkbox painted its
+        unchecked box in the platform's white, which is a hardcoded colour that
+        ignores the theme entirely. */}
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-labelledby={`dl-${label}`}
       disabled={disabled}
-      onChange={(event) => onChange(event.target.checked)}
-      className="h-4 w-4 shrink-0"
-      // Token-derived so the tick recolours with every theme.
-      style={{ accentColor: 'rgb(var(--accent-gold-rgb))' }}
-    />
-  </label>
+      onClick={() => onChange(!checked)}
+      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors motion-reduce:transition-none ${
+        checked ? 'bg-accent-gold' : 'bg-border-strong'
+      } ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+    >
+      <span
+        className={`pointer-events-none absolute start-0.5 top-0.5 inline-block h-5 w-5 rounded-full transition-transform motion-reduce:transition-none ${
+          checked ? 'translate-x-5 bg-background rtl:-translate-x-5' : 'translate-x-0 bg-muted-text'
+        }`}
+      />
+    </button>
+  </div>
 );
 
 // Mirrors `looks_like_collection_url` in the Rust downloader. A `list=` beside a

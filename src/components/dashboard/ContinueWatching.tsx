@@ -158,12 +158,14 @@ const ContinueRow: React.FC<{
         </p>
         <div className="flex min-w-0 items-center gap-2 text-xs text-muted-text">
           <span className="truncate" title={title}><bdi>{title}</bdi></span>
-          {count > 1 && <span className="shrink-0 tabular-nums">+<bdi>{count - 1}</bdi></span>}
+          {count > 1 && <bdi className="shrink-0 tabular-nums">+{count - 1}</bdi>}
         </div>
       </div>
 
-      <span className="shrink-0 text-xs tabular-nums text-muted-text">
-        <bdi>{formatTime(item.video.progressSeconds)}</bdi> / <bdi>{formatTime(item.video.durationSeconds)}</bdi>
+      {/* One LTR run: two <bdi>s either side of a neutral slash swap places
+          under the bidi algorithm and report the wrong elapsed time. */}
+      <span dir="ltr" className="shrink-0 text-xs tabular-nums text-muted-text">
+        {formatTime(item.video.progressSeconds)} / {formatTime(item.video.durationSeconds)}
       </span>
     </button>
   );

@@ -171,7 +171,7 @@ const RecentRow: React.FC<{
           <span className="truncate">
             <bdi>{video.speaker || video.category || uncategorizedLabel}</bdi>
           </span>
-          {count > 1 && <span className="shrink-0 tabular-nums">+<bdi>{count - 1}</bdi></span>}
+          {count > 1 && <bdi className="shrink-0 tabular-nums">+{count - 1}</bdi>}
         </div>
       </div>
 

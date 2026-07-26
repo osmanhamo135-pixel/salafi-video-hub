@@ -168,21 +168,16 @@ export const Reminders: React.FC = () => {
     <div className="page-container">
       <div className="content-max-width">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="icon-medallion h-9 w-9">
-              <Bell className="h-5 w-5 text-primary-blue" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-semibold text-text-primary">{t('remindersTitle')}</h1>
-              <p className="text-xs text-muted-text">
-                <bdi>{reminders.length}</bdi> {t('remindersCount')}
-              </p>
-            </div>
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-semibold tracking-normal text-text-primary">{t('remindersTitle')}</h1>
+            <p className="mt-1 text-sm text-muted-text">
+              <bdi>{reminders.length}</bdi> {t('remindersCount')}
+            </p>
           </div>
           <button
             onClick={handleCreate}
-            className="btn-primary px-4 py-2"
+            className="btn-primary shrink-0 px-4 py-2"
           >
             <Plus className="w-4 h-4" />
             {t('createReminder')}
@@ -190,7 +185,7 @@ export const Reminders: React.FC = () => {
         </div>
 
         {!showInitialLoading && reminders.length > 0 && (
-          <div className="mb-5 grid gap-3 md:grid-cols-3">
+          <div className="mb-6 grid gap-x-10 md:grid-cols-3">
             <ReminderMetric icon={Bell} label={t('activeReminders')} value={activeCount.toLocaleString()} />
             <ReminderMetric icon={Clock} label={t('nextDue')} value={nextDueLabel} />
             <ReminderMetric icon={AlertTriangle} label={t('brokenTargets')} value={brokenReminders.length.toLocaleString()} tone={brokenReminders.length > 0 ? 'warning' : 'normal'} />
@@ -198,9 +193,9 @@ export const Reminders: React.FC = () => {
         )}
 
         {remindersError && (
-          <div className="mb-4 flex items-start gap-2 rounded-lg border border-warning-orange/20 bg-warning-orange/10 p-3 text-sm text-warning-orange">
+          <div className="mb-4 flex items-start gap-2 border-b border-warning-orange/30 pb-3 text-sm text-warning-orange">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{remindersError}</span>
+            <span dir="auto">{remindersError}</span>
           </div>
         )}
 
@@ -214,7 +209,7 @@ export const Reminders: React.FC = () => {
         {/* Empty State */}
         {!showInitialLoading && reminders.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20">
-            <Clock className="mb-4 h-8 w-8 text-muted-text" />
+            <Clock className="mb-4 h-8 w-8 text-text-faint" />
             <h3 className="text-base font-semibold text-text-primary mb-1">
               {t('noRemindersYet')}
             </h3>
@@ -249,7 +244,7 @@ export const Reminders: React.FC = () => {
 
         {/* Broken references warning */}
         {!showInitialLoading && brokenReminders.length > 0 && (
-          <div className="mt-4 flex items-start gap-2 p-3 rounded-lg bg-warning-orange/10 border border-warning-orange/20">
+          <div className="mt-5 flex items-start gap-2 border-t border-warning-orange/30 pt-3">
             <AlertTriangle className="w-4 h-4 text-warning-orange flex-shrink-0 mt-0.5" />
             <div className="text-xs text-warning-orange">
               <span className="font-medium">{t('brokenTargets')}:</span>{' '}
@@ -285,8 +280,8 @@ const ReminderMetric: React.FC<{
   value: string;
   tone?: 'normal' | 'warning';
 }> = ({ icon: Icon, label, value, tone = 'normal' }) => (
-  <div className="flex min-w-0 items-center gap-3 border-b border-border py-3">
-    <Icon className={`h-5 w-5 shrink-0 ${tone === 'warning' ? 'text-warning-orange' : 'text-muted-text'}`} />
+  <div className="rule-row min-w-0 gap-3">
+    <Icon className={`h-4 w-4 shrink-0 ${tone === 'warning' ? 'text-warning-orange' : 'text-muted-text'}`} />
     <div className="min-w-0">
       <p className="text-xs text-muted-text">{label}</p>
       <p

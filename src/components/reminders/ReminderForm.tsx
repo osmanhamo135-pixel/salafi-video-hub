@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { Reminder, Playlist, Video } from '@/types';
-import { Volume2, Volume1, VolumeX, Play, AlertCircle } from 'lucide-react';
+import { Volume2, Volume1, VolumeX, Play, AlertCircle, FolderOpen, X } from 'lucide-react';
 import { playReminderSound, stopReminderSound } from '@/utils/reminderAudio';
 import { useI18n } from '@/i18n';
 
@@ -213,12 +213,11 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
         </label>
         <input
           type="text"
+          dir="auto"
           value={form.title}
           onChange={(e) => updateField('title', e.target.value)}
           placeholder={t('reminderTitlePlaceholder')}
-          className={`surface-input w-full ${
-            errors.title ? 'border-danger-red' : 'border-border'
-          }`}
+          className={`field-quiet text-sm ${errors.title ? 'border-b-danger-red' : ''}`}
         />
         {errors.title && (
           <p className="mt-1 text-xs text-danger-red flex items-center gap-1">
@@ -234,33 +233,25 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
           <label className="block text-xs font-medium text-muted-text mb-1.5">
             {t('targetType')}
           </label>
-          <div className="flex overflow-hidden rounded-md border border-border bg-background">
+          <div className="segmented py-1.5" role="group" aria-label={t('targetType')}>
             <button
               type="button"
+              aria-pressed={form.targetType === 'playlist'}
               onClick={() => {
                 updateField('targetType', 'playlist');
                 updateField('targetId', '');
               }}
-              className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                form.targetType === 'playlist'
-                  ? 'bg-primary-blue text-background'
-                  : 'text-muted-text hover:text-text-primary'
-              }`}
             >
               {t('playlist')}
             </button>
             <button
               type="button"
+              aria-pressed={form.targetType === 'video'}
               onClick={() => {
                 updateField('targetType', 'video');
                 updateField('targetId', '');
                 void onNeedVideos?.();
               }}
-              className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                form.targetType === 'video'
-                  ? 'bg-primary-blue text-background'
-                  : 'text-muted-text hover:text-text-primary'
-              }`}
             >
               {t('video')}
             </button>
@@ -270,13 +261,13 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
           <label className="block text-xs font-medium text-muted-text mb-1.5">
             {t('selectTarget')}
           </label>
+          {/* The chevron is the platform's own again: the hand-drawn one was a
+              hardcoded #7E8AA1 pinned to the right edge — invisible on the
+              light theme and on the wrong side in Arabic. */}
           <select
             value={form.targetId}
             onChange={(e) => updateField('targetId', e.target.value)}
-            className={`surface-input w-full ${
-              errors.targetId ? 'border-danger-red' : 'border-border'
-            } appearance-none`}
-            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237E8AA1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
+            className={`field-quiet text-sm ${errors.targetId ? 'border-b-danger-red' : ''}`}
           >
             <option value="" disabled>
               {t('choose')}
@@ -306,7 +297,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
             <button
               type="button"
               onClick={setTestReminderTime}
-              className="rounded px-1.5 py-0.5 text-[10px] font-medium text-primary-blue hover:bg-primary-blue/10"
+              className="py-0.5 text-[10px] font-medium text-muted-text transition-colors hover:text-text-primary motion-reduce:transition-none"
             >
               {t('testInOneMinute')}
             </button>
@@ -315,9 +306,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
             type="time"
             value={form.time}
             onChange={(e) => updateField('time', e.target.value)}
-            className={`surface-input w-full ${
-              errors.time ? 'border-danger-red' : 'border-border'
-            }`}
+            className={`field-quiet text-sm ${errors.time ? 'border-b-danger-red' : ''}`}
           />
           {errors.time && (
             <p className="mt-1 text-xs text-danger-red flex items-center gap-1">
@@ -338,8 +327,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
                 e.target.value as ReminderFormData['repeat']
               )
             }
-            className="surface-input w-full appearance-none"
-            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237E8AA1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
+            className="field-quiet text-sm"
           >
             <option value="none">{t('noRepeat')}</option>
             <option value="daily">{t('daily')}</option>
@@ -355,24 +343,20 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
           <label className="block text-xs font-medium text-muted-text mb-1.5">
             {t('days')}
           </label>
-          <div className="flex gap-1.5">
-            {DAYS.map((day) => {
-              const isSelected = form.customDays.includes(day.value);
-              return (
-                <button
-                  key={day.value}
-                  type="button"
-                  onClick={() => toggleDay(day.value)}
-                  className={`flex-1 py-1.5 rounded-md text-[10px] font-semibold transition-colors ${
-                    isSelected
-                      ? 'bg-primary-blue text-background'
-                      : 'border border-border bg-background text-muted-text hover:text-text-primary'
-                  }`}
-                >
-                  {shortDays[day.value]}
-                </button>
-              );
-            })}
+          {/* Seven labels sharing one baseline rule, the selected days marked
+              by the accent under them — not seven filled chips. */}
+          <div className="segmented w-full justify-between" role="group" aria-label={t('days')}>
+            {DAYS.map((day) => (
+              <button
+                key={day.value}
+                type="button"
+                aria-pressed={form.customDays.includes(day.value)}
+                onClick={() => toggleDay(day.value)}
+                className="flex-1"
+              >
+                {shortDays[day.value]}
+              </button>
+            ))}
           </div>
           {errors.customDays && (
             <p className="mt-1 text-xs text-danger-red flex items-center gap-1">
@@ -388,32 +372,35 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
         <label className="block text-xs font-medium text-muted-text mb-1.5">
           {t('soundFileOptional')}
         </label>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex items-center gap-1">
           <input
             type="text"
+            dir="auto"
             value={form.soundPath || ''}
             onChange={(e) =>
               updateField('soundPath', e.target.value || null)
             }
             placeholder={t('leaveEmptyDefaultSound')}
-            className="surface-input min-w-0 flex-1"
+            className="field-quiet min-w-0 flex-1 text-sm"
           />
-          <div className="flex shrink-0 gap-2">
-            <button
-              type="button"
-              onClick={handlePickSound}
-              className="btn-secondary px-3 py-2 text-xs"
-            >
-              {t('browse')}
-            </button>
-            <button
-              type="button"
-              onClick={() => updateField('soundPath', null)}
-              className="btn-secondary px-3 py-2 text-xs"
-            >
-              {t('clear')}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handlePickSound}
+            className="icon-btn shrink-0"
+            aria-label={t('browse')}
+            title={t('browse')}
+          >
+            <FolderOpen className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => updateField('soundPath', null)}
+            className="icon-btn shrink-0"
+            aria-label={t('clear')}
+            title={t('clear')}
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -431,34 +418,37 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
             max={100}
             value={form.volume}
             onChange={(e) => updateField('volume', Number(e.target.value))}
-            className="flex-1 h-1.5 bg-border rounded-full appearance-none cursor-pointer accent-primary-blue"
+            className="flex-1 h-1 rounded-full cursor-pointer"
+            // `accent-color` instead of a hand-painted `to right` gradient: the
+            // browser fills from the reading side, so this is correct in RTL.
             style={{
-              background: `linear-gradient(to right, rgb(var(--accent-gold-rgb)) ${form.volume}%, rgb(var(--accent-gold-rgb) / 0.12) ${form.volume}%)`,
+              background: 'rgb(var(--accent-gold-rgb) / 0.14)',
+              accentColor: 'rgb(var(--accent-gold-rgb))',
             }}
           />
           <button
             type="button"
             onClick={handleTestSound}
             disabled={testingSound}
-            className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-border bg-elevated-panel px-3 py-1.5 text-xs text-muted-text transition-colors hover:border-border-strong hover:text-text-primary disabled:opacity-50"
+            className="inline-flex flex-shrink-0 items-center gap-1.5 py-1 text-xs font-medium text-muted-text transition-colors hover:text-text-primary disabled:opacity-50 motion-reduce:transition-none"
           >
-            <Play className={`w-3 h-3 ${testingSound ? 'text-primary-blue' : ''}`} />
+            <Play className="w-3 h-3" />
             {testingSound ? t('playing') : t('test')}
           </button>
         </div>
         {soundMessage && (
-          <p className="mt-2 text-xs text-warning-orange">
+          <p className="mt-2 text-xs text-warning-orange" dir="auto">
             {soundMessage}
           </p>
         )}
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+      <div className="flex items-center justify-end gap-4 pt-4 border-t border-border">
         <button
           type="button"
           onClick={onCancel}
-          className="btn-secondary px-4 py-2"
+          className="inline-flex items-center py-1 text-sm font-medium text-muted-text transition-colors hover:text-text-primary motion-reduce:transition-none"
         >
           {t('cancel')}
         </button>

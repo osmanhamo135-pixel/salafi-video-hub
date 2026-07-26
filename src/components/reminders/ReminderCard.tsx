@@ -34,15 +34,17 @@ export const ReminderCard: React.FC<ReminderCardProps> = ({
       {/* Toggle Switch */}
       <button
         onClick={() => onToggle(reminder.id)}
-        className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-accent-gold/40 ${
+        className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors motion-reduce:transition-none ${
           reminder.enabled ? 'bg-accent-gold' : 'bg-border-strong'
         }`}
         aria-label={reminder.enabled ? t('disableReminder') : t('enableReminder')}
         aria-pressed={reminder.enabled}
       >
+        {/* Logical inset and an RTL-flipped travel: with `left` + `translate-x`
+            alone the knob slid the wrong way on the Arabic layout. */}
         <span
-          className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full transition-transform ${
-            reminder.enabled ? 'translate-x-5 bg-background' : 'translate-x-0 bg-muted-text'
+          className={`absolute start-0.5 top-0.5 h-5 w-5 rounded-full transition-transform motion-reduce:transition-none ${
+            reminder.enabled ? 'translate-x-5 bg-background rtl:-translate-x-5' : 'translate-x-0 bg-muted-text'
           }`}
         />
       </button>

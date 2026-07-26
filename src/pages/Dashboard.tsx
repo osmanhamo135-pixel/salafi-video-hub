@@ -194,7 +194,7 @@ const ProgressRing: React.FC<{
       <div
         className="relative flex h-32 w-32 items-center justify-center rounded-full"
         style={{
-          background: `conic-gradient(rgb(var(--accent-gold-rgb)) ${safeValue * 3.6}deg, rgb(var(--border-subtle-rgb) / 0.18) 0deg)`,
+          background: `conic-gradient(rgb(var(--accent-gold-rgb)) ${safeValue * 3.6}deg, rgb(var(--text-muted-rgb) / 0.22) 0deg)`,
         }}
       >
         <div className="absolute inset-[7px] rounded-full bg-background" />

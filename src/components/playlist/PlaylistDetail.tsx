@@ -181,8 +181,8 @@ export const PlaylistDetail: React.FC<PlaylistDetailProps> = ({
       <section>
         <div className="rule-head mb-1">
           <h3 className="text-sm font-semibold text-text-primary">{t('videosInPlaylist')}</h3>
-          <span className="text-xs tabular-nums text-muted-text">
-            <bdi>{visibleVideos.length}</bdi> / <bdi>{videos.length}</bdi>
+          <span dir="ltr" className="text-xs tabular-nums text-muted-text">
+            {visibleVideos.length} / {videos.length}
           </span>
         </div>
 

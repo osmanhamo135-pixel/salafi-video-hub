@@ -115,10 +115,7 @@ export const Watch: React.FC = () => {
             <MonitorPlay className="mb-3 h-9 w-9 text-text-faint" />
             <p className="text-base font-semibold text-text-primary">{t('watchEmptyTitle')}</p>
             <p className="mt-1 max-w-md text-sm text-muted-text">{t('watchEmptyHint')}</p>
-            <p className="mt-4 flex max-w-md items-center justify-center gap-1.5 text-xs text-muted-text">
-              <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-              {t('watchAdFreeNote')}
-            </p>
+            <p className="mt-4 max-w-md text-xs text-muted-text">{t('watchAdFreeNote')}</p>
           </div>
         )}
       </div>
@@ -386,7 +383,7 @@ const ResultCard: React.FC<{ item: YoutubeSearchItem }> = React.memo(({ item }) 
       type="button"
       onClick={() => void play(item)}
       disabled={resolving}
-      className="premium-card premium-card-hover group overflow-hidden rounded-lg text-start transition-transform disabled:opacity-60"
+      className="premium-card premium-card-hover group overflow-hidden rounded-lg text-start disabled:opacity-60"
     >
       <div className="relative aspect-video w-full overflow-hidden bg-elevated-panel">
         <img
@@ -394,12 +391,12 @@ const ResultCard: React.FC<{ item: YoutubeSearchItem }> = React.memo(({ item }) 
           alt=""
           loading="lazy"
           decoding="async"
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
           draggable={false}
         />
-        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/35">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary-blue/90 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-            <Play className="h-5 w-5 text-white" fill="currentColor" />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/35 motion-reduce:transition-none">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-accent-gold opacity-0 transition-opacity group-hover:opacity-100 motion-reduce:transition-none">
+            <Play className="h-5 w-5 text-background" fill="currentColor" />
           </span>
         </div>
         {item.durationSeconds > 0 && (
@@ -409,7 +406,7 @@ const ResultCard: React.FC<{ item: YoutubeSearchItem }> = React.memo(({ item }) 
         )}
       </div>
       <div className="p-3">
-        <p className="line-clamp-2 text-sm font-medium leading-snug text-text-primary" title={item.title}>
+        <p className="line-clamp-2 text-sm font-medium leading-snug text-text-primary" title={item.title} dir="auto">
           {item.title}
         </p>
         {/* <bdi> isolates each segment so Arabic channel names never scramble
