@@ -1415,3 +1415,27 @@
     box-shadow: inset 0 1px 0 rgb(var(--text-main-rgb) / 0.08);
   }
 }
+
+/* ── Reduced motion ───────────────────────────────────────────────────────
+   The brief requires motion to be REMOVED under prefers-reduced-motion, not
+   shortened. The per-component rules above only cover the transitions declared
+   in this file; the components carry ~70 Tailwind `transition-*` utilities that
+   nothing here reached. This is deliberately outside @layer and uses
+   !important so it wins over utilities regardless of source order.
+
+   Animations are collapsed rather than set to `none`: `animation: none` on a
+   spinner would drop it back to its unrotated frame mid-cycle, whereas a single
+   0.01ms iteration leaves it visible and simply static. Purely decorative
+   pulses stop the same way. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}

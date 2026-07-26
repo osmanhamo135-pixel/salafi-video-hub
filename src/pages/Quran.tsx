@@ -594,7 +594,14 @@ const SurahReader: React.FC = () => {
     const element = document.getElementById(`quran-verse-${surah.id}-${activeAyah}`);
     if (!element) return;
     programmaticScrollRef.current = true;
-    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Smooth scrolling is motion too. CSS `scroll-behavior` cannot override a
+    // behaviour passed explicitly to scrollIntoView, so the preference has to
+    // be read here — otherwise the page keeps gliding for a reader who asked
+    // the system for no animation.
+    element.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'center',
+    });
     const timer = window.setTimeout(() => {
       programmaticScrollRef.current = false;
     }, 700);
