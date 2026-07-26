@@ -44,9 +44,9 @@ export default {
         'xl': '16px',
       },
       boxShadow: {
-        'subtle': '0 1px 3px rgba(0,0,0,0.35)',
-        'panel': '0 18px 50px rgba(0,0,0,0.36)',
-        'teal': '0 0 0 1px rgba(15,185,177,0.18), 0 16px 44px rgba(0,0,0,0.35)',
+        subtle: '0 0 0 1px rgb(var(--accent-gold-rgb) / 0.10)',
+        panel: '0 0 0 1px rgb(var(--accent-gold-rgb) / 0.14)',
+        teal: '0 0 0 1px rgb(var(--accent-gold-rgb) / 0.22)',
       }
     },
   },

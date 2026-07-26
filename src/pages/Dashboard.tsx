@@ -19,6 +19,7 @@ import { useAppStore } from '@/store/appStore';
 import { ContinueWatching } from '@/components/dashboard/ContinueWatching';
 import { RecentlyAdded } from '@/components/dashboard/RecentlyAdded';
 import { QuickActions } from '@/components/dashboard/QuickActions';
+import { Hero } from '@/components/home/Hero';
 import { formatBytes } from '@/utils/formatBytes';
 import { formatDurationLong } from '@/utils/formatTime';
 import { useI18n } from '@/i18n';
@@ -83,6 +84,8 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="page-container">
       <div className="content-max-width">
+        <Hero />
+
         <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <div className="premium-pill mb-2">
@@ -202,7 +205,7 @@ const ProgressRing: React.FC<{
   const safeValue = Math.min(Math.max(value, 0), 100);
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-accent-gold/20 bg-black/20 p-5 text-center">
+    <div className="flex flex-col items-center justify-center rounded-lg border border-accent-gold/20 bg-background/50 p-5 text-center">
       <div
         className="relative flex h-36 w-36 items-center justify-center rounded-full"
         style={{

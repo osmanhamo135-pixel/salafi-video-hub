@@ -415,18 +415,32 @@ fn should_retry_after_update(error: &str) -> bool {
         || lower.contains("404")
         || lower.contains("removed")
         || lower.contains("copyright")
+        // Offline, unreachable, or simply not a URL. A newer yt-dlp cannot help,
+        // and retrying costs the user minutes of apparent "downloading..." with
+        // no way to cancel.
+        || lower.contains("name or service not known")
+        || lower.contains("getaddrinfo")
+        || lower.contains("failed to resolve")
+        || lower.contains("temporary failure in name resolution")
+        || lower.contains("connection refused")
+        || lower.contains("network is unreachable")
+        || lower.contains("is not a valid url")
     {
         return false;
     }
 
+    // Deliberately no bare "failed": every non-zero exit is wrapped as
+    // "Download failed:\n…", so matching it made this function return true for
+    // essentially everything and defeated the terminal list above. Match the
+    // yt-dlp phrasing that a refreshed extractor actually fixes.
     lower.contains("unable to extract")
+        || lower.contains("extraction failed")
         || lower.contains("unsupported url")
         || lower.contains("no video")
         || lower.contains("could not")
         || lower.contains("http error")
         || lower.contains("unable to download")
         || lower.contains("json")
-        || lower.contains("failed")
         || lower.contains("rate-limit")
         || lower.contains("empty")
         || lower.contains("extractor")
@@ -906,6 +920,10 @@ fn run_ytdlp_once(
         Some(0.0),
     );
 
+    // Recorded before the child starts so the fallback file discovery below can
+    // tell this job's output from everything already sitting in the folder.
+    let started_at = SystemTime::now();
+
     let mut child = command
         .spawn()
         .map_err(|e| format!("Could not start the downloader: {}", e))?;
@@ -980,7 +998,7 @@ fn run_ytdlp_once(
     }
 
     if downloaded_files.is_empty() {
-        downloaded_files = discover_downloaded_files(output_dir, request.audio_only)?;
+        downloaded_files = discover_downloaded_files(output_dir, request.audio_only, started_at)?;
     }
 
     downloaded_files.sort();
@@ -1124,10 +1142,18 @@ fn format_download_errors(errors: Vec<String>) -> String {
 
 fn looks_like_collection_url(url: &str) -> bool {
     let lower = url.to_lowercase();
-    if lower.contains("youtube.com/playlist")
-        || lower.contains("music.youtube.com/playlist")
-        || lower.contains("?list=")
-        || lower.contains("&list=")
+    if lower.contains("youtube.com/playlist") || lower.contains("music.youtube.com/playlist") {
+        return true;
+    }
+
+    // A `list=` parameter alongside `v=` is an ordinary video link copied from a
+    // playlist page — one video in a playlist context. Treating that as a
+    // collection overrode the user's unchecked "download playlist" box and
+    // pulled down the entire playlist, potentially gigabytes they did not ask
+    // for. Only a bare `list=` with no video id is unambiguously a collection.
+    if (lower.contains("?list=") || lower.contains("&list="))
+        && !lower.contains("?v=")
+        && !lower.contains("&v=")
     {
         return true;
     }
@@ -1282,17 +1308,44 @@ fn extract_existing_path(line: &str, output_dir: &Path) -> Option<String> {
         .map(|path| path.to_string_lossy().to_string())
 }
 
+/// Last-resort discovery for when yt-dlp's `after_move:filepath` lines were not
+/// recognised.
+///
+/// Restricted to files written since the job started. Without that bound this
+/// returned *every* video ever downloaded into the folder, all of which were
+/// then reported as this job's output, re-imported, and used for the preview
+/// thumbnail — so a single unrecognised line turned into a full re-import of the
+/// download folder showing an unrelated old video.
 fn discover_downloaded_files(
     output_dir: &Path,
     include_audio: bool,
+    started_at: SystemTime,
 ) -> Result<Vec<String>, String> {
+    // Filesystem timestamps are coarser than the job clock on some volumes, so
+    // allow a small grace period rather than missing the file we just wrote.
+    let cutoff = started_at
+        .checked_sub(Duration::from_secs(2))
+        .unwrap_or(started_at);
     let mut files = Vec::new();
     let entries = WalkDir::new(output_dir).into_iter();
 
     for entry in entries.filter_map(Result::ok) {
         let path = entry.path();
-        if path.is_file() && is_supported_download_file(path, include_audio) {
-            files.push(path.to_string_lossy().to_string());
+        if !path.is_file() || !is_supported_download_file(path, include_audio) {
+            continue;
+        }
+        let modified = entry
+            .metadata()
+            .ok()
+            .and_then(|metadata| metadata.modified().ok());
+        match modified {
+            Some(modified) if modified >= cutoff => {
+                files.push(path.to_string_lossy().to_string());
+            }
+            // A file whose mtime cannot be read is not attributed to this job:
+            // over-reporting re-imports the whole folder, under-reporting only
+            // loses a fallback that was already a guess.
+            _ => {}
         }
     }
 
@@ -1397,4 +1450,93 @@ fn emit_progress(
             percent,
         },
     );
+}
+
+#[cfg(test)]
+mod downloader_tests {
+    use super::*;
+
+    #[test]
+    fn a_watch_link_carrying_a_list_is_not_a_collection() {
+        // Copied from a playlist page — one video, in a playlist context. The
+        // user's checkbox decides whether the rest comes too.
+        assert!(!looks_like_collection_url(
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLabc123"
+        ));
+        assert!(!looks_like_collection_url(
+            "https://youtube.com/watch?list=PLabc123&v=dQw4w9WgXcQ"
+        ));
+    }
+
+    #[test]
+    fn a_bare_playlist_link_is_a_collection() {
+        assert!(looks_like_collection_url(
+            "https://www.youtube.com/playlist?list=PLabc123"
+        ));
+        assert!(looks_like_collection_url(
+            "https://music.youtube.com/playlist?list=OLAK5uy_abc"
+        ));
+        assert!(looks_like_collection_url("https://youtube.com/?list=PLabc123"));
+    }
+
+    #[test]
+    fn non_youtube_collection_rules_still_hold() {
+        assert!(looks_like_collection_url("https://www.instagram.com/someuser/"));
+        assert!(!looks_like_collection_url(
+            "https://www.instagram.com/reel/Cabc123/"
+        ));
+        assert!(looks_like_collection_url("https://www.tiktok.com/@someuser"));
+        assert!(!looks_like_collection_url(
+            "https://www.tiktok.com/@someuser/video/123"
+        ));
+        assert!(looks_like_collection_url("https://x.com/someuser"));
+        assert!(!looks_like_collection_url("https://x.com/someuser/status/123"));
+    }
+
+    #[test]
+    fn the_generic_failure_wrapper_does_not_trigger_a_self_update() {
+        // Every non-zero exit is wrapped like this, so matching it would make
+        // the predicate true for essentially every failure.
+        assert!(!should_retry_after_update("Download failed:\nsomething"));
+    }
+
+    #[test]
+    fn offline_and_malformed_urls_are_terminal() {
+        assert!(!should_retry_after_update(
+            "Download failed:\nURLError: <urlopen error [Errno -2] Name or service not known>"
+        ));
+        assert!(!should_retry_after_update(
+            "Download failed:\nTemporary failure in name resolution"
+        ));
+        assert!(!should_retry_after_update(
+            "Download failed:\nConnection refused"
+        ));
+        assert!(!should_retry_after_update(
+            "ERROR: 'htps://typo' is not a valid URL"
+        ));
+    }
+
+    #[test]
+    fn stale_extractor_errors_still_trigger_a_self_update() {
+        assert!(should_retry_after_update(
+            "ERROR: Unable to extract js player"
+        ));
+        assert!(should_retry_after_update(
+            "WARNING: nsig extraction failed: Some formats may be missing"
+        ));
+        assert!(should_retry_after_update("ERROR: Unsupported URL: https://…"));
+        assert!(should_retry_after_update("ERROR: HTTP Error 403: Forbidden"));
+    }
+
+    #[test]
+    fn terminal_video_states_are_never_retried() {
+        assert!(!should_retry_after_update("ERROR: Video unavailable. This video is private"));
+        assert!(!should_retry_after_update("ERROR: Video was not found"));
+        assert!(!should_retry_after_update(
+            "ERROR: This video has been removed for copyright reasons"
+        ));
+        assert!(!should_retry_after_update(
+            "ERROR: Sign in to confirm your age"
+        ));
+    }
 }

@@ -22,6 +22,31 @@
   font-display: swap;
 }
 
+/* Aref Ruqaa (OFL) — Arabic DISPLAY only: hero wordmark and surah bands.
+   Never used for body copy, never for Quranic text. */
+@font-face {
+  font-family: 'Aref Ruqaa';
+  src: url('./assets/fonts/ArefRuqaa-400-arabic.woff2') format('woff2');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+
+/* IBM Plex Sans Arabic (OFL) — Arabic UI body text. */
+@font-face {
+  font-family: 'Plex Arabic';
+  src: url('./assets/fonts/PlexArabic-400-arabic.woff2') format('woff2');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Plex Arabic';
+  src: url('./assets/fonts/PlexArabic-500-arabic.woff2') format('woff2');
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Plex Arabic';
+  src: url('./assets/fonts/PlexArabic-600-arabic.woff2') format('woff2');
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+
 /* Amiri Quran (OFL) — calligraphic fallback (basmala ligature and glyph gaps). */
 @font-face {
   font-family: 'Amiri Quran';
@@ -52,6 +77,9 @@
     --warning-rgb: 214 181 109;
     --success-rgb: 16 185 129;
     --quran-green-rgb: 54 199 124;
+    /* Print-mushaf convention: the ayah medallion stays warm gold in every
+       theme, even where the UI accent is blue or bronze. */
+    --mushaf-gold-rgb: 224 190 116;
     --bg-main: rgb(var(--bg-main-rgb));
     --bg-sidebar: rgb(var(--bg-sidebar-rgb));
     --bg-panel: rgb(var(--bg-panel-rgb));
@@ -227,6 +255,106 @@
     --card-wash: linear-gradient(180deg, rgba(20, 20, 24, 0.97), rgba(8, 8, 10, 0.98));
   }
 
+  /* ── Plate themes ───────────────────────────────────────────────────────
+     Sampled from the calligraphy plates: one warm-gold, one amber, one night
+     sky. Each defines the complete variable set so every existing component
+     works unchanged. */
+  html[data-theme='mushaf-gold'] {
+    --quran-green-rgb: 84 199 124;
+    --bg-main-rgb: 20 16 12;
+    --bg-sidebar-rgb: 26 21 15;
+    --bg-panel-rgb: 30 24 17;
+    --bg-card-rgb: 34 27 19;
+    --bg-card-hover-rgb: 44 35 25;
+    --border-subtle-rgb: 240 210 150;
+    --accent-teal-rgb: 216 184 122;
+    --accent-turquoise-rgb: 246 226 182;
+    --accent-emerald-rgb: 84 199 124;
+    --accent-blue-rgb: 226 198 146;
+    --accent-gold-rgb: 240 210 150;
+    --text-main-rgb: 242 237 230;
+    --text-soft-rgb: 214 207 196;
+    --text-muted-rgb: 134 126 113;
+    --text-faint-rgb: 110 101 88;
+    --border-subtle: rgba(240, 210, 150, 0.14);
+    --border-strong: rgba(240, 210, 150, 0.34);
+    --teal-glass: rgba(216, 184, 122, 0.1);
+    --gold-glass: rgba(240, 210, 150, 0.12);
+    --surface-wash: linear-gradient(180deg, rgba(34, 27, 19, 0.98), rgba(18, 14, 10, 0.98));
+    --card-wash: linear-gradient(180deg, rgba(40, 32, 23, 0.97), rgba(22, 18, 13, 0.98));
+  }
+
+  html[data-theme='maktabah'] {
+    --quran-green-rgb: 96 190 132;
+    --bg-main-rgb: 26 20 16;
+    --bg-sidebar-rgb: 32 25 20;
+    --bg-panel-rgb: 37 29 23;
+    --bg-card-rgb: 42 33 26;
+    --bg-card-hover-rgb: 54 43 34;
+    --border-subtle-rgb: 239 161 99;
+    --accent-teal-rgb: 214 143 88;
+    --accent-turquoise-rgb: 245 191 146;
+    --accent-emerald-rgb: 96 190 132;
+    --accent-blue-rgb: 235 158 110;
+    --accent-gold-rgb: 239 161 99;
+    --text-main-rgb: 242 237 230;
+    --text-soft-rgb: 216 205 194;
+    --text-muted-rgb: 142 126 112;
+    --text-faint-rgb: 115 98 85;
+    --border-subtle: rgba(239, 161, 99, 0.15);
+    --border-strong: rgba(239, 161, 99, 0.34);
+    --teal-glass: rgba(214, 143, 88, 0.11);
+    --gold-glass: rgba(239, 161, 99, 0.12);
+    --surface-wash: linear-gradient(180deg, rgba(42, 33, 26, 0.98), rgba(24, 18, 14, 0.98));
+    --card-wash: linear-gradient(180deg, rgba(48, 38, 30, 0.97), rgba(28, 22, 17, 0.98));
+  }
+
+  html[data-theme='samaa'] {
+    --quran-green-rgb: 64 207 154;
+    --bg-main-rgb: 27 40 54;
+    --bg-sidebar-rgb: 32 47 62;
+    --bg-panel-rgb: 36 52 68;
+    --bg-card-rgb: 40 57 75;
+    --bg-card-hover-rgb: 52 72 93;
+    --border-subtle-rgb: 79 195 247;
+    --accent-teal-rgb: 79 195 247;
+    --accent-turquoise-rgb: 141 216 250;
+    --accent-emerald-rgb: 64 207 154;
+    --accent-blue-rgb: 108 190 240;
+    --accent-gold-rgb: 79 195 247;
+    --text-main-rgb: 237 242 246;
+    --text-soft-rgb: 205 217 227;
+    --text-muted-rgb: 122 147 163;
+    --text-faint-rgb: 92 118 135;
+    --border-subtle: rgba(79, 195, 247, 0.14);
+    --border-strong: rgba(79, 195, 247, 0.34);
+    --teal-glass: rgba(79, 195, 247, 0.12);
+    --gold-glass: rgba(79, 195, 247, 0.1);
+    --surface-wash: linear-gradient(180deg, rgba(40, 57, 75, 0.98), rgba(22, 33, 45, 0.98));
+    --card-wash: linear-gradient(180deg, rgba(46, 65, 85, 0.97), rgba(26, 38, 51, 0.98));
+  }
+
+  /* ── Design tokens ──────────────────────────────────────────────────────
+     Derived from whichever theme is active, so the hero and every primitive
+     re-colour themselves correctly in ALL themes without per-theme code. */
+  :root {
+    --accent: rgb(var(--accent-gold-rgb));
+    --base: rgb(var(--bg-main-rgb));
+    --surface: rgb(var(--bg-card-rgb));
+    --text: rgb(var(--text-main-rgb));
+    --muted: rgb(var(--text-muted-rgb));
+    --dim: rgb(var(--text-faint-rgb));
+    --hair: rgb(var(--accent-gold-rgb) / 0.12);
+
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px;
+    --s5: 24px; --s6: 36px; --s7: 56px; --s8: 88px;
+    --r-sm: 4px; --r-md: 8px; --r-lg: 14px;
+    --fs-cap: 12px; --fs-sm: 14px; --fs-base: 16px;
+    --fs-lg: 20px; --fs-xl: 26px; --fs-2xl: 33px; --fs-3xl: 41px;
+    --lh-latin: 1.5; --lh-arabic: 1.85;
+    --dur: 280ms; --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
   * {
     box-sizing: border-box;
   }
@@ -241,8 +369,8 @@
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background:
-      radial-gradient(circle at top left, rgba(236, 195, 102, 0.08), transparent 32rem),
-      radial-gradient(circle at 82% 6%, rgba(28, 173, 111, 0.06), transparent 24rem),
+      radial-gradient(circle at top left, rgb(var(--accent-gold-rgb) / 0.08), transparent 32rem),
+      radial-gradient(circle at 82% 6%, rgb(var(--accent-emerald-rgb) / 0.06), transparent 24rem),
       linear-gradient(180deg, var(--bg-sidebar) 0%, var(--bg-main) 28rem);
     color: var(--text-main);
     -webkit-font-smoothing: antialiased;
@@ -250,9 +378,29 @@
     overflow: hidden;
   }
 
+  /* Tailwind's text-* utilities pin a Latin line-height; Arabic needs more
+     room or the tashkeel collides. Restore the Arabic leading for text that
+     is not mushaf script (which sets its own). */
+  html[data-language='ar'] p,
+  html[data-language='ar'] h1,
+  html[data-language='ar'] h2,
+  html[data-language='ar'] h3,
+  html[data-language='ar'] label,
+  html[data-language='ar'] li {
+    line-height: var(--lh-arabic);
+  }
+
+  html[data-language='ar'] .quran-script,
+  html[data-language='ar'] .quran-flow,
+  html[data-language='ar'] .hero-basmala,
+  html[data-language='ar'] .hero-mark {
+    line-height: inherit;
+  }
+
   html[data-language='ar'] body {
-    font-family: 'Segoe UI', Tahoma, 'Noto Naskh Arabic', 'Amiri', 'Scheherazade New', system-ui, sans-serif;
+    font-family: 'Plex Arabic', 'Segoe UI', Tahoma, 'Noto Naskh Arabic', system-ui, sans-serif;
     letter-spacing: 0;
+    line-height: var(--lh-arabic);
   }
 
   html[data-language='ar'] :where(input, textarea, select, button) {
@@ -290,7 +438,7 @@
   select:focus-visible,
   textarea:focus-visible,
   a:focus-visible {
-    outline: 2px solid rgba(15, 185, 177, 0.72);
+    outline: 2px solid rgb(var(--accent-gold-rgb) / 0.85);
     outline-offset: 2px;
   }
   
@@ -304,12 +452,12 @@
   }
   
   ::-webkit-scrollbar-thumb {
-    background: rgba(45, 207, 200, 0.18);
+    background: rgb(var(--accent-gold-rgb) / 0.18);
     border-radius: 4px;
   }
   
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(45, 207, 200, 0.34);
+    background: rgb(var(--accent-gold-rgb) / 0.34);
   }
 }
 
@@ -343,10 +491,15 @@
 
   .arabic-text {
     direction: rtl;
-    font-family: 'Segoe UI', Tahoma, 'Noto Naskh Arabic', 'Amiri', 'Scheherazade New', system-ui, sans-serif;
+    font-family: 'Plex Arabic', 'Segoe UI', Tahoma, 'Noto Naskh Arabic', system-ui, sans-serif;
     line-height: 1.85;
     letter-spacing: 0;
     text-rendering: geometricPrecision;
+  }
+
+  .quran-toolbar {
+    background: rgb(var(--bg-main-rgb));
+    border-bottom: 1px solid var(--hair);
   }
 
   /* Mushaf-style Quranic script (Amiri Quran with graceful fallbacks). */
@@ -383,7 +536,6 @@
     justify-content: center;
     gap: clamp(1.5rem, 5vw, 4rem);
     color: rgb(var(--accent-gold-rgb));
-    text-shadow: 0 0 0.5em rgb(var(--accent-gold-rgb) / 0.18);
   }
 
   .quran-surah-heading::before,
@@ -395,7 +547,6 @@
 
   .quran-basmala {
     color: rgb(var(--text-main-rgb));
-    text-shadow: 0 0 0.45em rgb(var(--text-main-rgb) / 0.08);
   }
 
   /* The traditional elongated calligraphic basmala (U+FDFD) — the same form
@@ -403,11 +554,11 @@
      room, so the tall calligraphy can never collide with surrounding lines. */
   .quran-basmala-calligraphy {
     display: block;
+    max-width: 100%;
     line-height: 1.9;
     padding-block: 0.08em;
     white-space: nowrap;
     color: rgb(var(--text-main-rgb));
-    text-shadow: 0 0 0.45em rgb(var(--text-main-rgb) / 0.08);
   }
 
   .quran-flow {
@@ -425,7 +576,6 @@
     margin-inline: 0.05em;
     vertical-align: 0.02em;
     white-space: nowrap;
-    text-shadow: 0 0 0.4em rgb(var(--accent-gold-rgb) / 0.2);
   }
 
   /* Inline ayah: clickable and highlightable without ever moving the layout.
@@ -450,9 +600,8 @@
     /* Amiri Quran composes ۝ + digits into one medallion (KFGQPC draws them
        as two separate marks), so the marker keeps the Amiri glyph. */
     font-family: 'Amiri Quran', 'Noto Naskh Arabic', serif;
-    color: rgb(var(--accent-gold-rgb));
+    color: rgb(var(--mushaf-gold-rgb));
     font-size: 0.95em;
-    text-shadow: 0 0 0.35em rgb(var(--accent-gold-rgb) / 0.18);
   }
 
   .quran-bookmarked {
@@ -475,18 +624,14 @@
 
 
   .quran-word {
-    position: relative;
-    z-index: 1;
-    border-radius: 0.16em;
     color: inherit;
-    transition: color 120ms ease, text-shadow 120ms ease;
+    transition: color 120ms ease;
   }
 
   /* The exact spoken word turns recitation-green; the gliding cue pill slides
      underneath it. Tashkeel stays fully visible — nothing covers the text. */
   .quran-word-active {
     color: rgb(var(--quran-green-rgb));
-    text-shadow: 0 0 0.4em rgb(var(--quran-green-rgb) / 0.32);
   }
 
   /* The gliding recitation cue: a single pill positioned from the exact word's
@@ -496,7 +641,7 @@
     position: absolute;
     top: 0;
     left: 0;
-    z-index: 0;
+    z-index: -1;
     width: 0;
     height: 0;
     opacity: 0;
@@ -520,11 +665,10 @@
 
   /* Refined translation typography under each ayah. */
   .quran-translation {
-    font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif;
+    font-family: 'Plex Arabic', Georgia, 'Palatino Linotype', 'Times New Roman', serif;
     border-inline-start: 2px solid rgb(var(--accent-gold-rgb) / 0.35);
     padding-inline-start: 0.75rem;
     color: rgb(var(--text-soft-rgb));
-    letter-spacing: 0.01em;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -541,6 +685,337 @@
     }
   }
   
+  /* ── Shared primitives ──────────────────────────────────────────────────
+     One family for every list, control group, and quiet field, so the Quran
+     page, Radio, Reminders and the Library visibly belong together. All
+     token-derived, so they re-colour in every theme. */
+
+  .rule-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .rule-list > .rule-row:last-child {
+    border-bottom: 0;
+  }
+
+  /* Active row: an inset marker and one value step — never a filled box. */
+  .rule-row-active {
+    background: rgb(var(--accent-gold-rgb) / 0.05);
+    box-shadow: inset 2px 0 0 rgb(var(--accent-gold-rgb));
+    color: rgb(var(--text-main-rgb));
+  }
+
+  /* Segmented control: labels sharing a baseline rule, not boxes. */
+  .segmented {
+    display: inline-flex;
+    align-items: stretch;
+    gap: var(--s4);
+  }
+
+  .segmented button {
+    padding: 4px 2px;
+    font: inherit;
+    font-size: var(--fs-cap);
+    color: rgb(var(--text-muted-rgb));
+    background: none;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    cursor: pointer;
+    transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  }
+
+  .segmented button[aria-pressed='true'] {
+    color: rgb(var(--text-main-rgb));
+    border-bottom-color: rgb(var(--accent-gold-rgb));
+  }
+
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: var(--r-sm);
+    background: none;
+    color: rgb(var(--text-muted-rgb));
+    cursor: pointer;
+    transition: color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+  }
+
+  .icon-btn:hover {
+    color: rgb(var(--text-main-rgb));
+    background: rgb(var(--accent-gold-rgb) / 0.06);
+  }
+
+  /* Quiet field: a baseline rule instead of a boxed input. */
+  .field-quiet {
+    width: 100%;
+    padding: 8px 2px;
+    color: rgb(var(--text-main-rgb));
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--hair);
+    outline: none;
+    transition: border-color var(--dur) var(--ease);
+  }
+
+  .field-quiet:focus {
+    border-bottom-color: rgb(var(--accent-gold-rgb));
+  }
+
+  .field-quiet::placeholder {
+    color: rgb(var(--text-faint-rgb));
+  }
+
+  /* Every interactive element gets the same focus ring. */
+  .rule-row:focus-visible,
+  .segmented button:focus-visible,
+  .icon-btn:focus-visible,
+  .field-quiet:focus-visible {
+    outline: 2px solid rgb(var(--accent-gold-rgb));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .segmented button,
+    .icon-btn,
+    .field-quiet {
+      transition: none;
+    }
+  }
+
+  /* ── Hero ───────────────────────────────────────────────────────────────
+     Five layers, all derived from theme tokens so the hero re-colours itself
+     in every theme. The background is procedural: no bundled photograph, and
+     by construction it cannot contain any depiction of animate beings. */
+  .hero {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 26rem;
+    height: 62vh;
+    max-height: 40rem;
+    overflow: hidden;
+    isolation: isolate;
+    border-radius: var(--r-lg);
+  }
+
+  /* layer 1 — ground + one warm key light */
+  .hero-ground {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+      radial-gradient(80% 55% at 50% 30%, rgb(var(--accent-gold-rgb) / 0.13), transparent 70%),
+      linear-gradient(180deg, rgb(var(--bg-card-rgb)), rgb(var(--bg-main-rgb)) 78%);
+  }
+
+  /* layer 1b — the out-of-focus scene behind the light.
+     Each theme gets its own depth, echoing its plate: blurred mushaf covers,
+     lamp-lit shelves, night sky. Built from gradients, so it stays at zero
+     bundle bytes and cannot contain any depiction of animate beings. */
+  .hero-scene {
+    position: absolute;
+    inset: -8%;
+    z-index: 0;
+    filter: blur(22px) saturate(115%);
+    opacity: 0.75;
+    background:
+      radial-gradient(22% 30% at 18% 26%, rgb(var(--accent-gold-rgb) / 0.20), transparent 70%),
+      radial-gradient(26% 34% at 78% 22%, rgb(var(--accent-gold-rgb) / 0.14), transparent 72%),
+      radial-gradient(30% 40% at 62% 74%, rgb(var(--accent-emerald-rgb) / 0.10), transparent 72%),
+      radial-gradient(24% 32% at 30% 78%, rgb(var(--accent-gold-rgb) / 0.10), transparent 74%);
+  }
+
+  /* Mushaf Gold — stacked mushaf covers, thrown out of focus. */
+  html[data-theme='mushaf-gold'] .hero-scene {
+    filter: blur(26px) saturate(120%);
+    background:
+      linear-gradient(114deg, transparent 12%, rgb(var(--accent-gold-rgb) / 0.13) 16%, transparent 21%),
+      linear-gradient(114deg, transparent 34%, rgb(var(--accent-gold-rgb) / 0.09) 39%, transparent 45%),
+      linear-gradient(70deg, transparent 58%, rgb(var(--accent-gold-rgb) / 0.11) 63%, transparent 69%),
+      radial-gradient(30% 42% at 22% 30%, rgb(var(--accent-gold-rgb) / 0.22), transparent 70%),
+      radial-gradient(34% 46% at 80% 66%, rgb(var(--accent-gold-rgb) / 0.16), transparent 72%),
+      radial-gradient(40% 40% at 50% 96%, rgb(var(--bg-card-hover-rgb)), transparent 70%);
+  }
+
+  /* Maktabah — a wall of turath spines under one lamp. */
+  html[data-theme='maktabah'] .hero-scene {
+    filter: blur(18px) saturate(125%);
+    background:
+      repeating-linear-gradient(
+        90deg,
+        rgb(var(--accent-gold-rgb) / 0.10) 0 7px,
+        transparent 7px 13px,
+        rgb(var(--accent-emerald-rgb) / 0.07) 13px 19px,
+        transparent 19px 27px
+      ),
+      repeating-linear-gradient(
+        180deg,
+        rgb(var(--accent-gold-rgb) / 0.16) 0 3px,
+        transparent 3px 88px
+      ),
+      radial-gradient(46% 52% at 50% 26%, rgb(var(--accent-gold-rgb) / 0.26), transparent 74%);
+  }
+
+  /* Samaa — high cloud, lit from below the horizon. */
+  html[data-theme='samaa'] .hero-scene {
+    filter: blur(34px) saturate(105%);
+    opacity: 0.85;
+    background:
+      radial-gradient(38% 26% at 26% 36%, rgb(var(--text-main-rgb) / 0.13), transparent 72%),
+      radial-gradient(44% 30% at 72% 28%, rgb(var(--text-main-rgb) / 0.10), transparent 74%),
+      radial-gradient(52% 34% at 46% 64%, rgb(var(--accent-gold-rgb) / 0.16), transparent 76%),
+      linear-gradient(180deg, rgb(var(--bg-main-rgb)), rgb(var(--bg-card-hover-rgb)) 62%, rgb(var(--bg-main-rgb)));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-scene {
+      filter: blur(22px);
+    }
+  }
+
+  /* procedural khatam geometry, masked into the light pool */
+  .hero-girih {
+    position: absolute;
+    inset: -40px;
+    z-index: 1;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1'%3E%3Cpath d='M80 8 L104 56 L152 80 L104 104 L80 152 L56 104 L8 80 L56 56 Z'/%3E%3Crect x='34' y='34' width='92' height='92' transform='rotate(45 80 80)'/%3E%3Crect x='34' y='34' width='92' height='92'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 150px 150px;
+    -webkit-mask-image: radial-gradient(70% 60% at 50% 34%, black, transparent 78%);
+    mask-image: radial-gradient(70% 60% at 50% 34%, black, transparent 78%);
+  }
+
+  /* the mihrab arch — used exactly once in the whole application */
+  .hero-arch {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    left: 50%;
+    width: min(760px, 68%);
+    aspect-ratio: 1 / 1.16;
+    transform: translate(-50%, -62%);
+    border: 1px solid var(--hair);
+    border-bottom: none;
+    border-radius: 50% 50% 0 0 / 58% 58% 0 0;
+    box-shadow: inset 0 40px 90px -50px rgb(var(--accent-gold-rgb) / 0.22);
+  }
+
+  /* layer 2 — scrim */
+  .hero-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background:
+      radial-gradient(
+        120% 88% at 50% 34%,
+        transparent 34%,
+        rgb(var(--bg-main-rgb) / 0.62) 88%,
+        rgb(var(--bg-main-rgb) / 0.86) 100%
+      ),
+      linear-gradient(
+        180deg,
+        rgb(var(--bg-main-rgb) / 0.45),
+        transparent 28%,
+        transparent 60%,
+        rgb(var(--bg-main-rgb)) 100%
+      );
+  }
+
+  .hero-inner {
+    position: relative;
+    z-index: 3;
+    max-width: 62rem;
+    padding: 0 var(--s6);
+    text-align: center;
+  }
+
+  /* The Basmala. Complete, static, never clipped, never restyled: the warm
+     light lives in the background layer, never as a shadow on the glyph. */
+  .hero-basmala {
+    margin: 0 0 var(--s7);
+    padding-bottom: 0.42em;
+    max-width: 100%;
+    font-family: 'Amiri Quran', 'Noto Naskh Arabic', serif;
+    font-size: clamp(38px, 6.2vw, 108px);
+    line-height: 1;
+    white-space: nowrap;
+    color: rgb(var(--text-main-rgb));
+  }
+
+  .hero-mark {
+    margin: 0 0 var(--s5);
+    padding-bottom: 0.18em;
+    font-family: 'Aref Ruqaa', 'Amiri Quran', serif;
+    font-size: clamp(30px, 3.8vw, 60px);
+    line-height: 1.1;
+    color: rgb(var(--text-main-rgb));
+  }
+
+  .hero-wordmark {
+    margin: 0 0 var(--s3);
+    font-family: 'Aref Ruqaa', 'Amiri Quran', serif;
+    font-size: var(--fs-lg);
+    font-weight: 400;
+    line-height: 1.5;
+    color: rgb(var(--text-soft-rgb));
+  }
+
+  .hero-wordmark-latin {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+
+  .hero-purpose {
+    margin: 0 auto var(--s5);
+    max-width: 46ch;
+    font-size: var(--fs-base);
+    color: rgb(var(--text-muted-rgb));
+  }
+
+  .hero-fade {
+    position: absolute;
+    z-index: 4;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 7rem;
+    background: linear-gradient(180deg, transparent, rgb(var(--bg-main-rgb)));
+  }
+
+  /* ── The ruled page (mistara) — the app's signature.
+     Sections are separated by rules and value steps, never boxes. */
+  .rule-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: var(--s3);
+    border-bottom: 1px solid var(--hair);
+  }
+
+  .rule-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s4);
+    padding: 0.875rem 0.125rem;
+    border-bottom: 1px solid var(--hair);
+    transition: background-color var(--dur) var(--ease);
+  }
+
+  .rule-row:hover {
+    background: rgb(var(--accent-gold-rgb) / 0.04);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rule-row {
+      transition: none;
+    }
+  }
+
   @keyframes page-enter {
     from {
       opacity: 0;
@@ -565,10 +1040,10 @@
   .page-container {
     @apply relative h-full min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-6;
     background:
-      radial-gradient(circle at 88% 0%, rgba(236, 195, 102, 0.09), transparent 28rem),
-      radial-gradient(circle at 12% 18%, rgba(28, 173, 111, 0.055), transparent 22rem),
-      linear-gradient(90deg, rgba(214, 181, 109, 0.022) 1px, transparent 1px),
-      linear-gradient(180deg, rgba(214, 181, 109, 0.016) 1px, transparent 1px),
+      radial-gradient(circle at 88% 0%, rgb(var(--accent-gold-rgb) / 0.09), transparent 28rem),
+      radial-gradient(circle at 12% 18%, rgb(var(--accent-emerald-rgb) / 0.055), transparent 22rem),
+      linear-gradient(90deg, rgb(var(--border-subtle-rgb) / 0.022) 1px, transparent 1px),
+      linear-gradient(180deg, rgb(var(--border-subtle-rgb) / 0.016) 1px, transparent 1px),
       var(--bg-main);
     background-size: auto, auto, 42px 42px, 42px 42px, auto;
   }
@@ -577,48 +1052,61 @@
     @apply max-w-content mx-auto w-full pb-10;
   }
 
+  /* Surfaces separate by a hairline and a value step — never by a drop
+     shadow. Depth comes from the one key light per screen. */
   .premium-surface {
-    @apply border border-border shadow-subtle;
-    background: var(--surface-wash);
-    box-shadow: inset 0 1px 0 rgba(245, 247, 250, 0.035), 0 16px 42px rgba(0, 0, 0, 0.22);
+    border: 1px solid var(--hair);
+    background: rgb(var(--bg-card-rgb) / 0.55);
+    box-shadow: none;
   }
 
   .premium-card {
-    @apply border border-border shadow-subtle transition-colors;
-    background: var(--card-wash);
-    box-shadow: inset 0 1px 0 rgba(245, 247, 250, 0.03), 0 8px 24px rgba(0, 0, 0, 0.18);
-  }
-
-  .premium-card-hover {
-    @apply hover:border-border-strong hover:shadow-teal;
+    border: 1px solid var(--hair);
+    background: rgb(var(--bg-card-rgb) / 0.42);
+    box-shadow: none;
+    transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease);
   }
 
   .premium-card-hover:hover {
-    background: linear-gradient(180deg, rgba(24, 34, 27, 0.98), rgba(10, 15, 12, 0.98));
+    border-color: rgb(var(--accent-gold-rgb) / 0.26);
+  }
+
+  .premium-card-hover:hover {
+    background: rgb(var(--bg-card-hover-rgb) / 0.55);
   }
 
   .premium-pill {
-    @apply inline-flex items-center gap-2 rounded-md border border-primary-blue/20 px-2.5 py-1 text-xs font-medium text-primary-blue;
-    background: linear-gradient(135deg, rgba(15, 185, 177, 0.12), rgba(79, 125, 255, 0.055));
+    @apply inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-xs font-medium;
+    border: 1px solid var(--hair);
+    color: rgb(var(--accent-gold-rgb));
+    background: rgb(var(--accent-gold-rgb) / 0.07);
   }
 
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-background transition-colors disabled:cursor-not-allowed disabled:opacity-60;
-    background: linear-gradient(135deg, var(--accent-gold), #f6df8f 58%, rgba(28, 173, 111, 0.92));
-    box-shadow: 0 10px 24px rgba(236, 195, 102, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+    background: rgb(var(--accent-gold-rgb));
+    box-shadow: none;
   }
 
   .btn-primary:hover {
-    background: linear-gradient(135deg, #f8e7aa, var(--accent-gold) 62%, rgba(28, 173, 111, 0.96));
+    background: rgb(var(--accent-gold-rgb) / 0.88);
   }
 
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2 rounded-md border border-border px-4 py-2.5 text-sm font-medium text-text-primary transition-colors hover:border-border-strong disabled:cursor-not-allowed disabled:opacity-60;
-    background: linear-gradient(180deg, rgba(15, 23, 32, 0.96), rgba(9, 14, 20, 0.96));
+    background: linear-gradient(
+      180deg,
+      rgb(var(--bg-card-rgb) / 0.96),
+      rgb(var(--bg-panel-rgb) / 0.96)
+    );
   }
 
   .btn-secondary:hover {
-    background: linear-gradient(180deg, rgba(19, 32, 42, 0.98), rgba(11, 17, 24, 0.98));
+    background: linear-gradient(
+      180deg,
+      rgb(var(--bg-card-hover-rgb) / 0.98),
+      rgb(var(--bg-card-rgb) / 0.98)
+    );
   }
 
   .btn-ghost {
@@ -628,8 +1116,8 @@
 
   .islamic-pattern {
     background-image:
-      linear-gradient(45deg, rgba(45, 207, 200, 0.07) 25%, transparent 25%, transparent 75%, rgba(45, 207, 200, 0.07) 75%),
-      linear-gradient(-45deg, rgba(214, 181, 109, 0.055) 25%, transparent 25%, transparent 75%, rgba(214, 181, 109, 0.055) 75%);
+      linear-gradient(45deg, rgb(var(--accent-teal-rgb) / 0.07) 25%, transparent 25%, transparent 75%, rgb(var(--accent-teal-rgb) / 0.07) 75%),
+      linear-gradient(-45deg, rgb(var(--accent-gold-rgb) / 0.055) 25%, transparent 25%, transparent 75%, rgb(var(--accent-gold-rgb) / 0.055) 75%);
     background-position: 0 0, 12px 12px;
     background-size: 24px 24px;
   }
@@ -646,20 +1134,20 @@
   .ornate-corner::before {
     top: 0.65rem;
     left: 0.65rem;
-    border-top: 1px solid rgba(214, 181, 109, 0.45);
-    border-left: 1px solid rgba(214, 181, 109, 0.45);
+    border-top: 1px solid rgb(var(--accent-gold-rgb) / 0.45);
+    border-left: 1px solid rgb(var(--accent-gold-rgb) / 0.45);
   }
 
   .ornate-corner::after {
     right: 0.65rem;
     bottom: 0.65rem;
-    border-right: 1px solid rgba(15, 185, 177, 0.35);
-    border-bottom: 1px solid rgba(15, 185, 177, 0.35);
+    border-right: 1px solid rgb(var(--accent-teal-rgb) / 0.35);
+    border-bottom: 1px solid rgb(var(--accent-teal-rgb) / 0.35);
   }
 
   .thumbnail-fallback {
     @apply relative flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br from-background via-panel to-elevated-panel;
-    box-shadow: inset 0 0 0 1px rgba(45, 207, 200, 0.08);
+    box-shadow: inset 0 0 0 1px rgb(var(--accent-teal-rgb) / 0.08);
   }
 
   .thumbnail-fallback::before {
@@ -668,9 +1156,9 @@
     inset: 0;
     opacity: 0.45;
     background-image:
-      radial-gradient(circle at center, rgba(214, 181, 109, 0.12) 0 1px, transparent 1px 100%),
-      linear-gradient(45deg, rgba(45, 207, 200, 0.075) 25%, transparent 25%, transparent 75%, rgba(45, 207, 200, 0.075) 75%),
-      linear-gradient(-45deg, rgba(45, 207, 200, 0.055) 25%, transparent 25%, transparent 75%, rgba(45, 207, 200, 0.055) 75%);
+      radial-gradient(circle at center, rgb(var(--accent-gold-rgb) / 0.12) 0 1px, transparent 1px 100%),
+      linear-gradient(45deg, rgb(var(--accent-teal-rgb) / 0.075) 25%, transparent 25%, transparent 75%, rgb(var(--accent-teal-rgb) / 0.075) 75%),
+      linear-gradient(-45deg, rgb(var(--accent-teal-rgb) / 0.055) 25%, transparent 25%, transparent 75%, rgb(var(--accent-teal-rgb) / 0.055) 75%);
     background-position: 0 0, 0 0, 11px 11px;
     background-size: 22px 22px;
   }
@@ -688,44 +1176,44 @@
 
   .icon-medallion {
     @apply relative flex items-center justify-center rounded-lg border border-primary-blue/20 bg-primary-blue/10 text-primary-blue;
-    box-shadow: inset 0 0 0 1px rgba(214, 181, 109, 0.08), 0 8px 24px rgba(0, 0, 0, 0.18);
+    box-shadow: inset 0 0 0 1px rgb(var(--accent-gold-rgb) / 0.08);
   }
 
   .icon-medallion::after {
     content: '';
     position: absolute;
     inset: 4px;
-    border: 1px solid rgba(214, 181, 109, 0.14);
+    border: 1px solid rgb(var(--accent-gold-rgb) / 0.14);
     border-radius: 6px;
     pointer-events: none;
   }
 
   .brand-mark {
     @apply relative flex items-center justify-center rounded-full border border-accent-gold/35 bg-black text-accent-gold;
-    box-shadow: inset 0 0 0 1px rgba(255, 240, 180, 0.08), 0 10px 28px rgba(0, 0, 0, 0.28);
+    box-shadow: inset 0 0 0 1px rgb(var(--accent-gold-rgb) / 0.08);
   }
 
   .brand-mark::after {
     content: '';
     position: absolute;
     inset: 3px;
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    border: 1px solid rgb(var(--text-main-rgb) / 0.16);
     border-radius: 9999px;
     pointer-events: none;
   }
 
   .gold-thread {
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(236, 195, 102, 0.5), rgba(28, 173, 111, 0.24), transparent);
+    background: linear-gradient(90deg, transparent, rgb(var(--accent-gold-rgb) / 0.5), rgb(var(--accent-emerald-rgb) / 0.24), transparent);
   }
 
   .salafi-dashboard-hero {
-    border: 1px solid rgba(236, 195, 102, 0.2);
+    border: 1px solid rgb(var(--accent-gold-rgb) / 0.2);
     background:
-      radial-gradient(circle at 12% 12%, rgba(236, 195, 102, 0.15), transparent 18rem),
-      radial-gradient(circle at 88% 0%, rgba(28, 173, 111, 0.11), transparent 22rem),
-      linear-gradient(135deg, rgba(20, 24, 18, 0.98), rgba(5, 8, 7, 0.98));
-    box-shadow: inset 0 1px 0 rgba(255, 240, 180, 0.07), 0 22px 60px rgba(0, 0, 0, 0.28);
+      radial-gradient(circle at 12% 12%, rgb(var(--accent-gold-rgb) / 0.15), transparent 18rem),
+      radial-gradient(circle at 88% 0%, rgb(var(--accent-emerald-rgb) / 0.11), transparent 22rem),
+      linear-gradient(135deg, rgb(var(--bg-card-rgb) / 0.98), rgb(var(--bg-main-rgb) / 0.98));
+    box-shadow: inset 0 1px 0 rgb(var(--accent-gold-rgb) / 0.07);
   }
 
   .salafi-dashboard-hero::before {
@@ -735,14 +1223,14 @@
     opacity: 0.18;
     pointer-events: none;
     background-image:
-      linear-gradient(45deg, rgba(236, 195, 102, 0.12) 25%, transparent 25%, transparent 75%, rgba(236, 195, 102, 0.12) 75%),
-      linear-gradient(-45deg, rgba(28, 173, 111, 0.08) 25%, transparent 25%, transparent 75%, rgba(28, 173, 111, 0.08) 75%);
+      linear-gradient(45deg, rgb(var(--accent-gold-rgb) / 0.12) 25%, transparent 25%, transparent 75%, rgb(var(--accent-gold-rgb) / 0.12) 75%),
+      linear-gradient(-45deg, rgb(var(--accent-emerald-rgb) / 0.08) 25%, transparent 25%, transparent 75%, rgb(var(--accent-emerald-rgb) / 0.08) 75%);
     background-size: 34px 34px;
     background-position: 0 0, 17px 17px;
   }
 
   .download-batch-card {
-    box-shadow: inset 0 1px 0 rgba(255, 240, 180, 0.04), 0 14px 34px rgba(0, 0, 0, 0.2);
+    box-shadow: inset 0 1px 0 rgb(var(--accent-gold-rgb) / 0.04);
   }
 
   .surface-input {
@@ -751,6 +1239,6 @@
 
   .media-badge {
     @apply rounded-md border border-white/10 bg-black/70 px-1.5 py-0.5 text-[11px] font-medium text-white;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgb(var(--text-main-rgb) / 0.08);
   }
 }

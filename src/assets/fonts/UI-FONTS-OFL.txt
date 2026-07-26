@@ -1,0 +1,10 @@
+Aref Ruqaa — Copyright (c) Abdullah Aref, Khaled Hosny.
+IBM Plex Sans Arabic — Copyright (c) IBM Corp.
+
+Both licensed under the SIL Open Font License, Version 1.1:
+https://openfontlicense.org
+
+Included as unmodified Arabic subsets (woff2) produced by Google Fonts.
+Aref Ruqaa is used only for display headings; IBM Plex Sans Arabic is used
+for Arabic UI text. Neither is ever used to render Quranic text — mushaf
+text renders only through the bundled official KFGQPC faces.

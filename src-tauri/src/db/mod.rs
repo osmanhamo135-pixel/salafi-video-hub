@@ -9,6 +9,21 @@ use std::sync::{Arc, Mutex};
 
 pub type DbState = Arc<Mutex<Connection>>;
 
+/// Locks the shared connection, recovering from a poisoned mutex.
+///
+/// A panic anywhere while the connection is held — a bad column index, a
+/// non-UTF-8 path — poisons the mutex, and every plain `.lock().unwrap()` after
+/// it panics too. That turned one bad row into a dead session: library,
+/// settings and reminders all failing until the app was restarted.
+///
+/// Recovering is safe here because no application code holds an open
+/// transaction across a point where it could panic; the only `BEGIN` blocks are
+/// single `execute_batch` calls during schema setup. Statements are atomic, so
+/// the connection is not left half-written.
+pub fn lock_conn(db: &DbState) -> std::sync::MutexGuard<'_, Connection> {
+    db.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 pub fn get_db() -> Result<DbState, String> {
     let app_data_dir = dirs::data_dir()
         .ok_or_else(|| "Could not find data directory".to_string())?
@@ -117,7 +132,7 @@ fn ensure_schema_columns(conn: &Connection) -> Result<(), String> {
         ("repeat", "TEXT DEFAULT 'none'"),
         ("custom_days", "TEXT"),
         ("sound_path", "TEXT"),
-        ("volume", "REAL DEFAULT 0.7"),
+        ("volume", "REAL DEFAULT 70.0"),
         ("last_triggered_at", "INTEGER"),
         ("last_fired_key", "TEXT"),
         ("created_at", "INTEGER DEFAULT 0"),
@@ -138,7 +153,7 @@ fn ensure_schema_columns(conn: &Connection) -> Result<(), String> {
         ("automatic_thumbnails_mode", "TEXT DEFAULT 'automatic'"),
         ("performance_mode", "INTEGER DEFAULT 1"),
         ("reminder_sound_path", "TEXT"),
-        ("reminder_volume", "REAL DEFAULT 0.7"),
+        ("reminder_volume", "REAL DEFAULT 70.0"),
         ("run_in_tray", "INTEGER DEFAULT 0"),
         ("last_opened_playlist_id", "TEXT"),
         ("last_played_video_id", "TEXT"),
@@ -146,13 +161,51 @@ fn ensure_schema_columns(conn: &Connection) -> Result<(), String> {
         ensure_column(conn, "settings", column, definition)?;
     }
 
+    migrate_volumes_to_percent(conn)?;
+
+    Ok(())
+}
+
+/// Moves stored reminder volumes onto a single 0-100 scale, once.
+///
+/// Both columns default to `0.7` while the UI has always written 0-100, so the
+/// two scales coexisted in the same column and both sides guessed with a
+/// "<= 1 means it's a fraction" heuristic. That guess is wrong in exactly one
+/// place and it is the worst one: a user who drags the slider to 1% got a
+/// full-volume alarm. It also rendered a legacy `0.7` row as "0.7 %".
+///
+/// Anything <= 1 is a pre-scale value here, because this runs before any newer
+/// value can have been written. `user_version` guards it so a genuine 1% set
+/// afterwards is never re-scaled.
+fn migrate_volumes_to_percent(conn: &Connection) -> Result<(), String> {
+    let version: i64 = conn
+        .query_row("PRAGMA user_version", [], |row| row.get(0))
+        .map_err(|e| format!("Failed to read schema version: {}", e))?;
+    if version >= 1 {
+        return Ok(());
+    }
+
+    conn.execute(
+        "UPDATE settings SET reminder_volume = reminder_volume * 100.0 WHERE reminder_volume <= 1.0",
+        [],
+    )
+    .map_err(|e| format!("Failed to migrate reminder volume: {}", e))?;
+    conn.execute(
+        "UPDATE reminders SET volume = volume * 100.0 WHERE volume <= 1.0",
+        [],
+    )
+    .map_err(|e| format!("Failed to migrate reminder volumes: {}", e))?;
+
+    conn.execute("PRAGMA user_version = 1", [])
+        .map_err(|e| format!("Failed to record schema version: {}", e))?;
+
     Ok(())
 }
 
 pub fn init_database() -> Result<DbState, String> {
     let db = get_db()?;
     {
-        let conn = db.lock().unwrap();
+        let conn = lock_conn(&db);
         conn.execute_batch(
             "BEGIN;
             CREATE TABLE IF NOT EXISTS videos (
@@ -206,7 +259,7 @@ pub fn init_database() -> Result<DbState, String> {
                 repeat TEXT DEFAULT 'none',
                 custom_days TEXT,
                 sound_path TEXT,
-                volume REAL DEFAULT 0.7,
+                volume REAL DEFAULT 70.0,
                 last_triggered_at INTEGER,
                 last_fired_key TEXT,
                 created_at INTEGER DEFAULT 0,
@@ -225,7 +278,7 @@ pub fn init_database() -> Result<DbState, String> {
                 automatic_thumbnails_mode TEXT DEFAULT 'automatic',
                 performance_mode INTEGER DEFAULT 1,
                 reminder_sound_path TEXT,
-                reminder_volume REAL DEFAULT 0.7,
+                reminder_volume REAL DEFAULT 70.0,
                 run_in_tray INTEGER DEFAULT 0,
                 last_opened_playlist_id TEXT,
                 last_played_video_id TEXT

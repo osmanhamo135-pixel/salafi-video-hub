@@ -1,4 +1,4 @@
-use crate::db::DbState;
+use crate::db::{lock_conn, DbState};
 use crate::models::reminder::Reminder;
 use rusqlite::{params, Result, Row};
 use serde_json;
@@ -17,14 +17,9 @@ fn row_to_reminder(row: &Row) -> Result<Reminder> {
         repeat: row.get(6)?,
         custom_days,
         sound_path: row.get(8)?,
-        volume: {
-            let volume: f64 = row.get(9)?;
-            if volume <= 1.0 {
-                volume * 100.0
-            } else {
-                volume
-            }
-        },
+        // Stored strictly as 0-100; legacy 0-1 rows are converted once by
+        // `migrate_volumes_to_percent`, so no scale guessing here.
+        volume: row.get(9)?,
         last_triggered_at: row.get(10)?,
         last_fired_key: row.get(11)?,
         created_at: row.get(12)?,
@@ -33,7 +28,7 @@ fn row_to_reminder(row: &Row) -> Result<Reminder> {
 }
 
 pub fn insert_reminder(db: &DbState, reminder: &Reminder) -> Result<()> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let custom_days_json = reminder
         .custom_days
         .as_ref()
@@ -66,7 +61,7 @@ pub fn insert_reminder(db: &DbState, reminder: &Reminder) -> Result<()> {
 }
 
 pub fn get_all_reminders(db: &DbState) -> Result<Vec<Reminder>> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let mut stmt = conn.prepare(
         "SELECT id, title, enabled, target_type, target_id, time, repeat,
             custom_days, sound_path, volume, last_triggered_at, last_fired_key,
@@ -79,7 +74,7 @@ pub fn get_all_reminders(db: &DbState) -> Result<Vec<Reminder>> {
 }
 
 pub fn get_reminder_by_id(db: &DbState, id: &str) -> Result<Option<Reminder>> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let mut stmt = conn.prepare(
         "SELECT id, title, enabled, target_type, target_id, time, repeat,
             custom_days, sound_path, volume, last_triggered_at, last_fired_key,
@@ -97,7 +92,7 @@ pub fn get_reminder_by_id(db: &DbState, id: &str) -> Result<Option<Reminder>> {
 }
 
 pub fn update_reminder(db: &DbState, reminder: &Reminder) -> Result<()> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let custom_days_json = reminder
         .custom_days
         .as_ref()
@@ -136,7 +131,7 @@ pub fn mark_reminder_triggered(
     triggered_at: i64,
     disable_if_one_time: bool,
 ) -> Result<()> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     conn.execute(
         "UPDATE reminders SET
             last_triggered_at = ?1,
@@ -150,7 +145,7 @@ pub fn mark_reminder_triggered(
 }
 
 pub fn delete_reminder(db: &DbState, id: &str) -> Result<()> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     conn.execute("DELETE FROM reminders WHERE id = ?1", params![id])?;
     Ok(())
 }

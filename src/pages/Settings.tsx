@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { getVersion } from '@tauri-apps/api/app';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -69,7 +69,9 @@ const Toggle: React.FC<{
     } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
   >
     <span
-      className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition ${
+      // bg-background, not bg-white: on the light themes a white knob on a
+      // light track is invisible.
+      className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow transition ${
         checked ? 'translate-x-5' : 'translate-x-0'
       }`}
     />
@@ -132,10 +134,16 @@ export const Settings: React.FC = () => {
   const [testingSound, setTestingSound] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  // Each toast owns the dismissal. Without cancelling the previous timer the
+  // first one's 3s deadline dismissed the second toast early.
+  const toastTimerRef = useRef(0);
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
-    window.setTimeout(() => setToast(null), 3000);
+    window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 3000);
   }, []);
+
+  useEffect(() => () => window.clearTimeout(toastTimerRef.current), []);
 
   useEffect(() => {
     loadSettings();

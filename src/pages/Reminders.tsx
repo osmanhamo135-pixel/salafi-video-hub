@@ -176,7 +176,7 @@ export const Reminders: React.FC = () => {
             <div>
               <h1 className="text-2xl font-semibold text-text-primary">{t('remindersTitle')}</h1>
               <p className="text-xs text-muted-text">
-                {reminders.length} {t('remindersCount')}
+                <bdi>{reminders.length}</bdi> {t('remindersCount')}
               </p>
             </div>
           </div>
@@ -207,16 +207,14 @@ export const Reminders: React.FC = () => {
         {/* Loading */}
         {showInitialLoading && (
           <div className="flex items-center justify-center py-16">
-            <div className="w-6 h-6 border-2 border-border border-t-primary-blue rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-border border-t-muted-text rounded-full animate-spin" />
           </div>
         )}
 
         {/* Empty State */}
         {!showInitialLoading && reminders.length === 0 && (
-          <div className="premium-card ornate-corner relative flex flex-col items-center justify-center rounded-xl border-dashed py-20">
-            <div className="icon-medallion mb-4 h-14 w-14">
-              <Clock className="h-7 w-7 text-primary-blue/70" />
-            </div>
+          <div className="flex flex-col items-center justify-center py-20">
+            <Clock className="mb-4 h-8 w-8 text-muted-text" />
             <h3 className="text-base font-semibold text-text-primary mb-1">
               {t('noRemindersYet')}
             </h3>
@@ -235,7 +233,7 @@ export const Reminders: React.FC = () => {
 
         {/* Reminders List */}
         {!showInitialLoading && reminders.length > 0 && (
-          <div className="space-y-2.5">
+          <div className="rule-list">
             {sortedReminders.map((reminder) => (
               <ReminderCard
                 key={reminder.id}
@@ -287,17 +285,16 @@ const ReminderMetric: React.FC<{
   value: string;
   tone?: 'normal' | 'warning';
 }> = ({ icon: Icon, label, value, tone = 'normal' }) => (
-  <div className={`premium-card flex min-w-0 items-center gap-3 rounded-lg p-4 ${
-    tone === 'warning' ? 'border-warning-orange/25 bg-warning-orange/5' : ''
-  }`}>
-    <div className={`icon-medallion h-10 w-10 shrink-0 ${
-      tone === 'warning' ? 'border-warning-orange/25 bg-warning-orange/10 text-warning-orange' : ''
-    }`}>
-      <Icon className="h-5 w-5" />
-    </div>
+  <div className="flex min-w-0 items-center gap-3 border-b border-border py-3">
+    <Icon className={`h-5 w-5 shrink-0 ${tone === 'warning' ? 'text-warning-orange' : 'text-muted-text'}`} />
     <div className="min-w-0">
       <p className="text-xs text-muted-text">{label}</p>
-      <p className="truncate text-sm font-semibold text-text-primary" title={value}>{value}</p>
+      <p
+        className={`truncate text-sm font-medium ${tone === 'warning' ? 'text-warning-orange' : 'text-text-primary'}`}
+        title={value}
+      >
+        <bdi>{value}</bdi>
+      </p>
     </div>
   </div>
 );

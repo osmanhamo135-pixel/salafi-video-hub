@@ -25,7 +25,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
   onRegenerateThumbnails,
   onRemove,
 }) => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const progressPercent = useMemo(() => {
     if (!playlist.totalDurationSeconds || playlist.totalDurationSeconds <= 0) return 0;
     const pct = (playlist.progressSeconds / playlist.totalDurationSeconds) * 100;
@@ -77,7 +77,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
             </span>
             <span className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
-              {formatDuration(playlist.totalDurationSeconds)}
+              {formatDuration(playlist.totalDurationSeconds, language)}
             </span>
             <span className="flex items-center gap-1">
               <CalendarClock className="h-3.5 w-3.5" />
@@ -90,7 +90,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
         <div className="flex shrink-0 items-center gap-2 pe-1">
           <button
             onClick={() => onContinue(playlist)}
-            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary-blue px-3 text-xs font-semibold text-[#03110f] transition-colors hover:bg-primary-blue-hover"
+            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary-blue px-3 text-xs font-semibold text-background transition-colors hover:bg-primary-blue-hover"
           >
             <Play className="h-3.5 w-3.5 fill-current" />
             {t('continue')}
@@ -166,7 +166,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
         <div className="grid grid-cols-2 gap-2 text-xs text-muted-text mt-auto pt-1">
           <span className="flex items-center gap-1">
             <Clock className="w-3 h-3" />
-            {formatDuration(playlist.totalDurationSeconds)}
+            {formatDuration(playlist.totalDurationSeconds, language)}
           </span>
           <span className="flex items-center gap-1 min-w-0" title={`${t('lastUpdated')} ${lastUpdated}`}>
             <CalendarClock className="w-3 h-3 shrink-0" />
@@ -193,7 +193,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
         <div className="flex items-center justify-between pt-1.5 mt-auto">
           <button
             onClick={() => onContinue(playlist)}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary-blue px-3 py-1.5 text-xs font-semibold text-[#03110f] transition-colors hover:bg-primary-blue-hover"
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary-blue px-3 py-1.5 text-xs font-semibold text-background transition-colors hover:bg-primary-blue-hover"
           >
             <Play className="w-3.5 h-3.5 fill-current" />
             {t('continue')}

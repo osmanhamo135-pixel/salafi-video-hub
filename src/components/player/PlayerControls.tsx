@@ -115,7 +115,7 @@ export const PlayerControls: React.FC = () => {
             title={`${isPlaying ? t('pause') : t('play')} (Space)`}
             className="
               flex items-center justify-center w-14 h-14 rounded-full
-              bg-primary-blue text-[#03110f]
+              bg-primary-blue text-background
               hover:bg-primary-blue-hover active:scale-95
               disabled:opacity-40 disabled:cursor-not-allowed
               transition-all duration-150

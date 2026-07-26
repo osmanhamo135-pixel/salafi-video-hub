@@ -42,7 +42,7 @@ export const PlaylistDetail: React.FC<PlaylistDetailProps> = ({
   onBack,
   onPlayVideo,
 }) => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [videoQuery, setVideoQuery] = useState('');
   const [videoFilter, setVideoFilter] = useState<VideoFilterKey>('all');
   const [videoSort, setVideoSort] = useState<VideoSortKey>('playlist');
@@ -151,7 +151,7 @@ export const PlaylistDetail: React.FC<PlaylistDetailProps> = ({
 
             <div className="grid grid-cols-3 gap-3 max-sm:grid-cols-1">
               <DetailMetric icon={Film} label={t('videosLower')} value={playlist.videoCount.toLocaleString()} />
-              <DetailMetric icon={Clock} label={t('duration')} value={formatDuration(playlist.totalDurationSeconds)} />
+              <DetailMetric icon={Clock} label={t('duration')} value={formatDuration(playlist.totalDurationSeconds, language)} />
               <DetailMetric icon={CheckCircle2} label={t('progress')} value={`${Math.round(progressPercent)}%`} />
             </div>
           </div>
@@ -347,7 +347,7 @@ const PlaylistVideoRow: React.FC<{
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-text-primary group-hover:text-white" title={video.title}>
+        <p className="truncate text-sm font-medium text-text-primary" title={video.title}>
           {video.title}
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-text">
@@ -371,7 +371,7 @@ const PlaylistVideoRow: React.FC<{
         </div>
       </div>
 
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-elevated-panel text-muted-text transition-colors group-hover:border-primary-blue/35 group-hover:bg-primary-blue group-hover:text-[#03110f]">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-elevated-panel text-muted-text transition-colors group-hover:border-primary-blue/35 group-hover:bg-primary-blue group-hover:text-background">
         <Play className="h-4 w-4 fill-current" />
       </div>
     </button>

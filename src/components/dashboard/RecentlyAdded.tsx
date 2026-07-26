@@ -113,7 +113,7 @@ export const RecentlyAdded: React.FC = () => {
       <div className="mt-8 mb-4">
         <h2 className="text-lg font-semibold text-text-primary">{t('recentlyAdded')}</h2>
         <p className="text-xs text-muted-text">
-          {videos.length} {t('videosLower')} {t('groupedInto')} {groups.length} {t('playlistsLower')}
+          <bdi>{videos.length}</bdi> {t('videosLower')} {t('groupedInto')} <bdi>{groups.length}</bdi> {t('playlistsLower')}
         </p>
       </div>
       <div ref={scrollRef} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4">
@@ -141,6 +141,7 @@ const RecentGroupCard: React.FC<{
   uncategorizedLabel: string;
   addedLabel: string;
 }> = ({ title, count, item, onPlay, uncategorizedLabel, addedLabel }) => {
+  const { language } = useI18n();
   const { video, playlist } = item;
   const canPlay = !!playlist;
 
@@ -168,7 +169,7 @@ const RecentGroupCard: React.FC<{
           </div>
         )}
         <div className="media-badge absolute bottom-2 right-2">
-          {formatDuration(video.durationSeconds)}
+          {formatDuration(video.durationSeconds, language)}
         </div>
       </div>
       <div className="p-3">
