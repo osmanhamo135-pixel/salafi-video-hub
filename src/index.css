@@ -2238,20 +2238,11 @@
     background: linear-gradient(90deg, transparent, rgb(var(--accent-gold-rgb) / 0.5), rgb(var(--accent-emerald-rgb) / 0.24), transparent);
   }
 
-  /* The Dashboard's second hero. Reduced to a value step: it used to carry its
-     own gold border, two radial glows, an inset highlight and a 34px argyle
-     texture, competing with the real hero directly above it — and two heroes
-     means neither is one. The real hero has a key light with a direction; this
-     panel does not need to invent another. */
-  .salafi-dashboard-hero {
-    border: 1px solid transparent;
-    background: var(--fill-1) padding-box, var(--edge-1) border-box;
-    box-shadow: var(--elev-1);
-  }
-
-  .download-batch-card {
-    box-shadow: var(--elev-1);
-  }
+  /* `.salafi-dashboard-hero` and `.download-batch-card` were deleted. The first
+     was the Dashboard's second hero — two heroes meant neither was one, so its
+     wrapper went and the rule outlived it by one release. The second lost its
+     call site the same way. Both were still costing a rule and reading as live
+     API to anyone grepping the stylesheet. */
 
   /* Same material as a card, recessed rather than raised: the highlight sits
      on the BOTTOM edge and the occlusion is inset, which is what a well is. */
