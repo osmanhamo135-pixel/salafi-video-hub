@@ -10,6 +10,7 @@ interface AppState {
   selectedPlaylistId: string | null;
   searchQuery: string;
   searchResults: { videos: Video[]; playlists: Playlist[] } | null;
+  searchError: string | null;
   thumbnailJobsRunning: boolean;
   thumbnailQueueLength: number;
   thumbnailProcessedCount: number;
@@ -43,6 +44,7 @@ interface ThumbnailBatchSummary {
 }
 
 let playlistsLoadRequestId = 0;
+let searchRequestId = 0;
 
 export const useAppStore = create<AppState>((set, get) => ({
   playlists: [],
@@ -51,6 +53,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectedPlaylistId: null,
   searchQuery: '',
   searchResults: null,
+  searchError: null,
   thumbnailJobsRunning: false,
   thumbnailQueueLength: 0,
   thumbnailProcessedCount: 0,
@@ -122,10 +125,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   search: async (query: string) => {
     const trimmedQuery = query.trim();
     if (!trimmedQuery) {
-      set({ searchQuery: '', searchResults: null });
+      set({ searchQuery: '', searchResults: null, searchError: null });
       return;
     }
 
+    // Debounced typing puts several searches in flight at once. Without a
+    // request id, a slower earlier query resolving last leaves the store showing
+    // its results — and its searchQuery — over what the user actually typed.
+    const requestId = ++searchRequestId;
     try {
       const [videos, playlists] = await Promise.all([
         withTimeout(invoke<Video[]>('search_videos', { query: trimmedQuery }), 12000, 'Searching videos'),
@@ -136,12 +143,22 @@ export const useAppStore = create<AppState>((set, get) => ({
         p.name.toLowerCase().includes(normalizedQuery) ||
         p.folderPath.toLowerCase().includes(normalizedQuery)
       );
+      if (requestId !== searchRequestId) return;
       set({
         searchQuery: trimmedQuery,
-        searchResults: { videos, playlists: filteredPlaylists }
+        searchResults: { videos, playlists: filteredPlaylists },
+        searchError: null,
       });
     } catch (error) {
+      if (requestId !== searchRequestId) return;
       console.error('Search failed:', error);
+      // Surface the failure instead of leaving the previous query's results on
+      // screen as though they answered this one.
+      set({
+        searchQuery: trimmedQuery,
+        searchResults: { videos: [], playlists: [] },
+        searchError: error instanceof Error ? error.message : String(error),
+      });
     }
   },
 

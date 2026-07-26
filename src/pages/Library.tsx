@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   FileVideo,
   Filter,
@@ -46,6 +47,7 @@ export const Library: React.FC = () => {
   const playlistsError = useAppStore((state) => state.playlistsError);
   const searchQuery = useAppStore((state) => state.searchQuery);
   const searchResults = useAppStore((state) => state.searchResults);
+  const searchError = useAppStore((state) => state.searchError);
   const loadPlaylists = useAppStore((state) => state.loadPlaylists);
   const importFolder = useAppStore((state) => state.importFolder);
   const importSingleVideo = useAppStore((state) => state.importSingleVideo);
@@ -489,12 +491,20 @@ export const Library: React.FC = () => {
             <p className="text-sm text-muted-text">{t('loadingLibrary')}</p>
           </div>
         ) : showSearchResults ? (
-          <SearchResults
-            query={searchQuery}
-            results={searchResults}
-            onOpenPlaylist={openPlaylistDetail}
-            onOpenVideo={handlePlayVideo}
-          />
+          <>
+            {searchError && (
+              <div className="mb-4 flex items-start gap-2 rounded-lg border border-danger-red/25 bg-danger-red/10 p-3 text-xs text-danger-red">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span className="whitespace-pre-wrap">{searchError}</span>
+              </div>
+            )}
+            <SearchResults
+              query={searchQuery}
+              results={searchResults}
+              onOpenPlaylist={openPlaylistDetail}
+              onOpenVideo={handlePlayVideo}
+            />
+          </>
         ) : isSearching ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="mb-3 h-8 w-8 animate-spin text-primary-blue" />

@@ -137,17 +137,21 @@ const WatchPlayer: React.FC = () => {
   const setDownloadUrl = useDownloadStore((state) => state.setUrl);
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastSaveRef = useRef(0);
+  // Last position seen, tagged with the video it belongs to. The cleanup below
+  // cannot read videoRef: the <video> is keyed on the id, so by the time a
+  // passive cleanup runs the ref already points at the *new* element. Reading it
+  // there wrote the new video's clock onto the previous video's history entry
+  // (or, when it was still 0, dropped the resume point entirely).
+  const positionRef = useRef<{ videoId: string; currentTime: number; duration: number } | null>(null);
 
   // Save the position when leaving the page (or switching videos) so coming
   // back resumes exactly where the user stopped.
   useEffect(() => {
     const videoId = current?.videoId;
     return () => {
-      const element = videoRef.current;
-      if (!videoId || !element || !element.currentTime) return;
-      useWatchStore
-        .getState()
-        .recordProgress(videoId, element.currentTime, element.duration || 0);
+      const snapshot = positionRef.current;
+      if (!videoId || !snapshot || snapshot.videoId !== videoId || !snapshot.currentTime) return;
+      useWatchStore.getState().recordProgress(videoId, snapshot.currentTime, snapshot.duration);
     };
   }, [current?.videoId]);
 
@@ -161,6 +165,11 @@ const WatchPlayer: React.FC = () => {
   const saveProgress = (force = false) => {
     const element = videoRef.current;
     if (!element) return;
+    positionRef.current = {
+      videoId: current.videoId,
+      currentTime: element.currentTime,
+      duration: element.duration || current.durationSeconds,
+    };
     const now = Date.now();
     if (!force && now - lastSaveRef.current < PROGRESS_SAVE_MS) return;
     lastSaveRef.current = now;

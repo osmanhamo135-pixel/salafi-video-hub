@@ -63,8 +63,8 @@ interface PlayerState {
   closePlayer: () => void;
 }
 
-let progressSaveTimer: ReturnType<typeof setTimeout> | null = null;
 let lastSavedTime = 0;
+let lastSavedAt = 0;
 let lastStoreTimeUpdateAt = 0;
 let thumbnailResumeTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -194,6 +194,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       const initialQueueIds = queueIds.includes(startVid.id) ? queueIds : [startVid.id, ...queueIds];
       const actualStartIndex = Math.max(initialQueueIds.indexOf(startVid.id), 0);
       lastSavedTime = startVid.progressSeconds || 0;
+      lastSavedAt = 0;
 
       set({
         currentPlaylistId: playlistId,
@@ -224,6 +225,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     setThumbnailGenerationPaused(true);
     const { videos, queueVideoIds, currentPlaylistId } = get();
     let video = videos.get(videoId);
+    // An uncached video has to be fetched first. If the user picks another one
+    // while that is in flight — very easy, since a cached pick applies
+    // instantly — the slower fetch must not come back and overwrite it. Without
+    // this the user ends up watching the first video they clicked.
+    const openRequestIdAtStart = get().playerOpenRequestId;
     if (!video) {
       try {
         video = await invoke<Video | null>('get_video', { id: videoId }) ?? undefined;
@@ -231,12 +237,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         console.error('Failed to load video before playback:', error);
       }
       if (!video) return;
+      if (get().playerOpenRequestId !== openRequestIdAtStart) return;
     }
 
     const index = queueVideoIds.indexOf(videoId);
     const shouldAutoplayOnLoad = options.autoplay ?? true;
     const nextOpenRequestId = get().playerOpenRequestId + 1;
     lastSavedTime = video.progressSeconds || 0;
+    lastSavedAt = 0;
     const updatedVideos = new Map(videos);
     updatedVideos.set(video.id, video);
     
@@ -421,21 +429,19 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       set({ currentTime: time, progressPercent });
     }
     
-    // Throttle progress saves
-    if (currentVideoId && time - lastSavedTime > 5) {
+    // Save at most once per 5s of wall clock, and only once the media clock has
+    // actually moved 5s. The previous version cleared and re-armed a 5s timer on
+    // every advance, so at 1x the re-arm raced the fire and above 1x the timer
+    // was always cancelled first — progress was in practice only ever written on
+    // pause/end/close, and killing the app mid-lesson lost the whole session.
+    if (currentVideoId && time - lastSavedTime > 5 && now - lastSavedAt >= 5000) {
       lastSavedTime = time;
-      if (progressSaveTimer) clearTimeout(progressSaveTimer);
-      progressSaveTimer = setTimeout(async () => {
-        try {
-          await invoke('save_progress', { 
-            videoId: currentVideoId, 
-            progressSeconds: Math.floor(time), 
-            completed: false 
-          });
-        } catch (e) {
-          console.error('Failed to save progress:', e);
-        }
-      }, 5000);
+      lastSavedAt = now;
+      const videoId = currentVideoId;
+      const progressSeconds = Math.floor(time);
+      invoke('save_progress', { videoId, progressSeconds, completed: false }).catch((e) => {
+        console.error('Failed to save progress:', e);
+      });
     }
   },
 
