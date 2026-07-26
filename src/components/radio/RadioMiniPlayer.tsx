@@ -144,7 +144,7 @@ export const RadioMiniPlayer: React.FC = () => {
     return (
       <>
         {audioElement}
-        <div className="fixed bottom-4 end-4 z-40 flex items-center gap-1 rounded-full border border-border bg-panel/85 p-1 shadow-xl backdrop-blur">
+        <div className="fixed bottom-5 end-5 z-40 flex items-center gap-1 rounded-full border border-border/70 bg-panel/80 p-1 backdrop-blur-xl [box-shadow:0_1px_0_0_rgb(var(--text-main-rgb)/0.06)_inset,0_8px_28px_-8px_rgb(0_0_0/0.6),0_2px_8px_-2px_rgb(0_0_0/0.4)]">
           <button
             type="button"
             onClick={playbackError ? retry : togglePlay}
@@ -184,7 +184,7 @@ export const RadioMiniPlayer: React.FC = () => {
         trimming the two fixed-width controls gives the name a readable share
         without the controls ever shrinking.
       */}
-      <div className="fixed bottom-4 end-4 z-40 w-[460px] max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-panel/90 p-3 shadow-2xl backdrop-blur">
+      <div className="fixed bottom-5 end-5 z-40 w-[460px] max-w-[calc(100vw-2.5rem)] rounded-xl border border-border/70 bg-panel/85 p-3.5 backdrop-blur-xl [box-shadow:0_1px_0_0_rgb(var(--text-main-rgb)/0.07)_inset,0_16px_48px_-12px_rgb(0_0_0/0.7),0_4px_12px_-4px_rgb(0_0_0/0.45)]">
         <div className="flex items-center gap-3">
         <button
           type="button"
