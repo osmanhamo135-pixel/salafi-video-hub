@@ -539,9 +539,12 @@
      opening, and the ruled frame (jadwal) a printed page carries. */
   .quran-reading-surface {
     position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    min-height: 19rem;
+    /* MUST NOT become a scroll container. positionWordCue derives the cue's
+       transform from the delta between the word's rect and this element's, and
+       an absolutely positioned child of a scroller moves with the content — so
+       scrolling here would leave the cue scrollTop pixels out. The scroller is
+       .quran-reading-viewport, one level up, where both rects move together. */
+    overflow: visible;
     /* MUST stay 0. The recitation cue is absolutely positioned against this
        element's padding box while its coordinates are measured from the
        border box; any border here would shift the cue off the spoken word. */
@@ -570,8 +573,31 @@
      the element's own background, and only survived because that background is
      a low-alpha gradient. Any future opaque background would have silently
      erased the frame. */
-  .quran-reading-surface::before,
-  .quran-reading-surface::after {
+  /* The frame: fixed height, holds the jadwal, does not scroll.
+     The reading column used to grow to the full height of the surah — 36,000px
+     for Al-Baqarah in a 900px window, 42 screens of page scroll, while the
+     surah sidebar beside it was correctly bounded. The text now scrolls inside
+     a page-shaped box.
+
+     The jadwal lives here rather than on the surface so it frames the visible
+     page instead of scrolling away with the text: a printed page's rule sits at
+     the page margin, not somewhere 36,000px down. */
+  .quran-reading-frame {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: 10px;
+  }
+
+  .quran-reading-viewport {
+    max-height: 70vh;
+    min-height: 19rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .quran-reading-frame::before,
+  .quran-reading-frame::after {
     content: '';
     position: absolute;
     z-index: 0;
@@ -580,11 +606,11 @@
     border-radius: 0;
   }
 
-  .quran-reading-surface::before {
+  .quran-reading-frame::before {
     inset: clamp(0.5rem, 1vw, 0.85rem);
   }
 
-  .quran-reading-surface::after {
+  .quran-reading-frame::after {
     inset: clamp(0.68rem, 1.2vw, 1.02rem);
     border-color: rgb(var(--mushaf-gold-rgb) / 0.14);
   }
