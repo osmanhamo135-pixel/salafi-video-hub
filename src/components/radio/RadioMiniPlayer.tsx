@@ -71,6 +71,13 @@ export const RadioMiniPlayer: React.FC = () => {
 
     if (playing) {
       setBuffering(true);
+      // An element that already failed keeps its MediaError until something
+      // reloads it, and play() on it fails again without touching the network.
+      // `retry` re-sets the same station, which does not remount the element
+      // (the key `${id}-${url}` is unchanged), so without this load() "press to
+      // retry" could never recover a station once it errored — the user was
+      // stuck on the error state even after the stream came back.
+      if (audio.error) audio.load();
       audio.play().catch((error: unknown) => {
         if (audioRef.current !== audio) return;
         if (error instanceof DOMException && error.name === 'AbortError') return;
@@ -108,8 +115,18 @@ export const RadioMiniPlayer: React.FC = () => {
           markPlaying();
         }}
         onWaiting={() => setBuffering(true)}
-        onError={() => {
+        // `error` is not proof that the current stream is broken. With
+        // preload="none" the element loads nothing until play(), so an error
+        // raised while nothing is meant to be playing — a blank/unresolvable
+        // src, or the webview tearing down an idle or paused stream — is not a
+        // failure of the station the user is looking at. Reporting those turned
+        // a healthy (or never-started) station into "stream problem — press to
+        // retry". Only the element still mounted, and only while the user
+        // actually asked for playback, may report a failure.
+        onError={(event) => {
+          if (audioRef.current !== event.currentTarget) return;
           setBuffering(false);
+          if (!playing) return;
           markPlaybackError();
         }}
         onStalled={() => setBuffering(true)}
@@ -160,7 +177,14 @@ export const RadioMiniPlayer: React.FC = () => {
   return (
     <>
       {audioElement}
-      <div className="fixed bottom-4 end-4 z-40 w-[400px] max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-panel/90 p-3 shadow-2xl backdrop-blur">
+      {/*
+        The control cluster below is shrink-0 and ~250px wide, so at the old
+        400px it ate everything the flex row had: the station name column was
+        left with ~60px and truncated to "Radi...". Widening the panel and
+        trimming the two fixed-width controls gives the name a readable share
+        without the controls ever shrinking.
+      */}
+      <div className="fixed bottom-4 end-4 z-40 w-[460px] max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-panel/90 p-3 shadow-2xl backdrop-blur">
         <div className="flex items-center gap-3">
         <button
           type="button"
@@ -186,8 +210,12 @@ export const RadioMiniPlayer: React.FC = () => {
           </p>
           {playbackError ? (
             <p className="mt-0.5 flex items-center gap-1 text-[11px] text-warning-orange">
-              <AlertTriangle className="h-3 w-3" />
-              {t('radioStreamProblem')}
+              <AlertTriangle className="h-3 w-3 shrink-0" />
+              {/* Bare text is an anonymous flex item, which will not shrink
+                  below its longest word and so spills out over the controls in
+                  a narrow panel. Let this message wrap inside the name column
+                  instead. */}
+              <span className="min-w-0 break-words">{t('radioStreamProblem')}</span>
             </p>
           ) : (
             <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-text">
@@ -215,7 +243,8 @@ export const RadioMiniPlayer: React.FC = () => {
               max={100}
               value={volume}
               onChange={(event) => setVolume(Number(event.target.value))}
-              className="h-1 w-16 cursor-pointer appearance-none rounded-lg bg-border accent-primary-blue"
+              className="range-quiet w-14"
+              style={{ '--fill': volume } as React.CSSProperties}
               title={t('volume')}
             />
           </div>
@@ -225,7 +254,7 @@ export const RadioMiniPlayer: React.FC = () => {
             <select
               value={sleepMinutes}
               onChange={(event) => setSleepMinutes(Number(event.target.value) as SleepMinutes)}
-              className={`surface-input w-[72px] py-1 ps-6 text-[11px] ${sleepMinutes ? 'text-accent-gold' : ''}`}
+              className={`surface-input w-[64px] py-1 ps-6 text-[11px] ${sleepMinutes ? 'text-accent-gold' : ''}`}
             >
               {sleepOptions.map((minutes) => (
                 <option key={minutes} value={minutes}>
@@ -285,7 +314,8 @@ export const RadioMiniPlayer: React.FC = () => {
               const audio = audioRef.current;
               if (audio) audio.currentTime = Number(event.target.value);
             }}
-            className="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-lg bg-border accent-primary-blue"
+            className="range-quiet min-w-0 flex-1"
+            style={{ '--fill': duration ? (Math.min(position, duration) / duration) * 100 : 0 } as React.CSSProperties}
           />
           <span className="w-10 text-[10px] tabular-nums text-muted-text" dir="ltr">
             {formatTime(duration)}

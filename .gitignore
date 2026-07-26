@@ -14,3 +14,4 @@ src-tauri/gen
 .vscode
 .idea
 *.log
+dist-before/

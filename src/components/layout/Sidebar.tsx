@@ -67,8 +67,12 @@ export const Sidebar: React.FC = () => {
               className={({ isActive: linkActive }) => 
                 `relative flex items-center gap-3 rounded-md border px-3 py-2.5 text-sm font-medium transition-colors ${
                   linkActive || isActive
-                    ? 'border-primary-blue/25 bg-primary-blue/10 text-text-primary shadow-[inset_3px_0_0_rgba(15,185,177,0.85)]' 
-                    : 'border-transparent text-muted-text hover:border-primary-blue/10 hover:bg-primary-blue/[0.045] hover:text-text-primary'
+                    // Matches .rule-row-active exactly: an inset marker and one
+                    // value step, never a filled box. The active item used to be
+                    // a bordered, filled box *with* the marker, which broke the
+                    // app's own stated rule in the same breath as following it.
+                    ? 'border-transparent bg-accent-gold/[0.05] text-text-primary shadow-[inset_3px_0_0_rgb(var(--accent-gold-rgb))] rtl:shadow-[inset_-3px_0_0_rgb(var(--accent-gold-rgb))]' 
+                    : 'border-transparent text-muted-text hover:border-accent-gold/10 hover:bg-accent-gold/[0.045] hover:text-text-primary'
                 }`
               }
             >

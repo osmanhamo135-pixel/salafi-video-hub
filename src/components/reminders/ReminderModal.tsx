@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useI18n } from '@/i18n';
 
 interface ReminderModalProps {
   isOpen: boolean;
@@ -14,6 +15,8 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({
   title,
   children,
 }) => {
+  const { t } = useI18n();
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -33,21 +36,24 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({
       aria-modal="true"
       role="dialog"
     >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" />
+      {/* Backdrop. A modal scrim is a shadow cast over the whole application,
+          not a themed surface, so it stays neutral in all ten themes. */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
-      {/* Modal */}
+      {/* Modal — a hairline and a value step, no drop shadow. */}
       <div
-        className="premium-surface ornate-corner relative w-full max-w-lg overflow-hidden rounded-xl shadow-panel"
+        className="premium-surface relative w-full max-w-lg overflow-hidden rounded-xl"
+        style={{ background: 'rgb(var(--bg-panel-rgb))' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <h2 className="text-base font-semibold text-text-primary">{title}</h2>
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border">
+          <h2 className="text-sm font-semibold text-text-primary" dir="auto">{title}</h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-md text-muted-text hover:text-text-primary hover:bg-elevated-panel transition-colors"
-            aria-label="Close modal"
+            className="icon-btn shrink-0"
+            aria-label={t('close')}
+            title={t('close')}
           >
             <X className="w-4 h-4" />
           </button>

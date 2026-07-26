@@ -149,12 +149,13 @@ const StationCard: React.FC<{ station: RadioStation }> = React.memo(({ station }
         {isCurrent && playing ? <Pause className="h-4 w-4" fill="currentColor" /> : <Play className="h-4 w-4" fill="currentColor" />}
       </button>
 
-      <p
-        dir="auto"
-        className="min-w-0 flex-1 truncate text-sm text-text-primary"
-        title={station.name}
-      >
-        {station.name}
+      {/* <bdi> rather than dir="auto" on the <p>: dir="auto" flips the whole
+          block to RTL for an Arabic name, which right-aligns it inside its
+          flex cell, so a mixed list rendered ragged with the Arabic stations
+          hard against the far edge. <bdi> isolates the string's bidi so it
+          still shapes correctly, while alignment keeps following the list. */}
+      <p className="min-w-0 flex-1 truncate text-sm text-text-primary" title={station.name}>
+        <bdi>{station.name}</bdi>
       </p>
 
       {isCurrent && playing && (

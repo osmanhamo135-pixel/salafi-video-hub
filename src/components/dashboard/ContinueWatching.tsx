@@ -1,12 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Clock, FolderOpen, Play } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { ContinueWatchingItem } from '@/types';
 import { usePlayerStore } from '@/store/playerStore';
 import { useAppStore } from '@/store/appStore';
 import { formatTime } from '@/utils/formatTime';
 import { LocalThumbnail } from '@/components/ui/LocalThumbnail';
 import { useI18n } from '@/i18n';
+
+/* .thumbnail-fallback bakes in an .icon-medallion (primary-blue border + fill)
+   and a teal underline, which puts a second accent in every un-thumbnailed row.
+   Neutralise both from the call site; the primitive itself is not ours to edit. */
+const QUIET_FALLBACK = 'thumbnail-fallback thumbnail-fallback-quiet';
 
 export const ContinueWatching: React.FC = () => {
   const { t } = useI18n();
@@ -65,65 +70,57 @@ export const ContinueWatching: React.FC = () => {
     return Array.from(map.entries()).map(([key, group]) => ({ key, ...group }));
   }, [items]);
 
-  if (loading) {
-    return (
-      <section>
-        <h2 className="text-lg font-semibold text-text-primary mt-8 mb-4">{t('continueWatching')}</h2>
-        <div className="flex gap-4 overflow-x-auto pb-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="premium-card h-[180px] min-w-[260px] animate-pulse rounded-lg" />
+  return (
+    <section className="mt-8">
+      <div className="rule-head mb-1">
+        <h2 className="text-sm font-semibold text-text-primary">{t('continueWatching')}</h2>
+        <span className="text-xs tabular-nums text-muted-text">
+          <bdi>{items.length}</bdi>
+        </span>
+      </div>
+
+      {loading ? (
+        <div className="rule-list">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="rule-row">
+              <div className="h-[54px] w-24 shrink-0 rounded bg-panel-hover motion-safe:animate-pulse" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-3 w-2/5 rounded bg-panel-hover motion-safe:animate-pulse" />
+                <div className="h-3 w-1/4 rounded bg-panel-hover motion-safe:animate-pulse" />
+              </div>
+            </div>
           ))}
         </div>
-      </section>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <section>
-        <h2 className="text-lg font-semibold text-text-primary mt-8 mb-4">{t('continueWatching')}</h2>
-        <div className="premium-card ornate-corner relative flex flex-col items-center justify-center rounded-lg p-8 text-muted-text">
-          <div className="icon-medallion mb-3 h-14 w-14">
-            <Clock size={28} className="text-primary-blue/70" />
-          </div>
-          <p className="text-sm">{t('noVideosInProgress')}</p>
-          <p className="text-xs mt-1 opacity-70">{t('startWatchingHint')}</p>
+      ) : items.length === 0 ? (
+        <div className="py-12 text-center">
+          <p className="text-sm text-muted-text">{t('noVideosInProgress')}</p>
+          <p className="mt-1 text-xs text-text-faint">{t('startWatchingHint')}</p>
         </div>
-      </section>
-    );
-  }
-
-  return (
-    <section>
-      <div className="mt-8 mb-4">
-        <h2 className="text-lg font-semibold text-text-primary">{t('continueWatching')}</h2>
-        <p className="text-xs text-muted-text">
-          <bdi>{items.length}</bdi> {t('videosLower')} {t('groupedInto')} <bdi>{groups.length}</bdi> {t('playlistsLower')}
-        </p>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4">
-        {groups.map((group) => (
-          <ContinueGroupCard
-            key={group.key}
-            title={group.title}
-            count={group.items.length}
-            item={group.items[0]}
-            onPlay={handlePlay}
-          />
-        ))}
-      </div>
+      ) : (
+        <div className="rule-list">
+          {groups.map((group) => (
+            <ContinueRow
+              key={group.key}
+              title={group.title}
+              count={group.items.length}
+              item={group.items[0]}
+              onPlay={handlePlay}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 };
 
-const ContinueGroupCard: React.FC<{
+const ContinueRow: React.FC<{
   title: string;
   count: number;
   item: ContinueWatchingItem;
   onPlay: (item: ContinueWatchingItem) => void;
 }> = ({ title, count, item, onPlay }) => {
   const progressPercent = item.video.durationSeconds
-    ? (item.video.progressSeconds / item.video.durationSeconds) * 100
+    ? Math.min((item.video.progressSeconds / item.video.durationSeconds) * 100, 100)
     : 0;
   const canPlay = !!item.playlist;
 
@@ -132,47 +129,43 @@ const ContinueGroupCard: React.FC<{
       type="button"
       onClick={() => canPlay && onPlay(item)}
       disabled={!canPlay}
-      className="premium-card premium-card-hover group overflow-hidden rounded-lg text-start disabled:cursor-default"
+      className="rule-row group w-full text-start disabled:cursor-default"
     >
-      <div className="relative aspect-video overflow-hidden bg-elevated-panel">
+      <div className="relative h-[54px] w-24 shrink-0 overflow-hidden rounded bg-background">
         <LocalThumbnail
           path={item.video.thumbnailPath}
           label={item.video.title}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.025]"
-          iconClassName="h-7 w-7 text-muted-text/60"
-          fallbackClassName="thumbnail-fallback"
+          className="h-full w-full object-cover"
+          iconClassName="h-4 w-4 text-muted-text"
+          fallbackClassName={QUIET_FALLBACK}
         />
-        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 to-transparent" />
         {canPlay && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity group-hover:opacity-100">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-blue/90 shadow-teal">
-              <Play size={20} className="ms-0.5 text-background" fill="currentColor" />
-            </div>
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/60 opacity-0 transition-opacity group-hover:opacity-100">
+            <Play className="h-5 w-5 fill-current text-text-primary" />
           </div>
         )}
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/70">
-          <div
-            className="h-full bg-primary-blue"
-            style={{ width: `${Math.min(progressPercent, 100)}%` }}
-          />
-        </div>
-        <div className="media-badge absolute bottom-2 right-2">
-          {formatTime(item.video.durationSeconds)}
-        </div>
+        {progressPercent > 0 && (
+          <div className="absolute inset-x-0 bottom-0 h-0.5 bg-background/70">
+            <div className="h-full bg-muted-text" style={{ width: `${progressPercent}%` }} />
+          </div>
+        )}
       </div>
-      <div className="p-3">
-        <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-text">
-          <FolderOpen className="h-4 w-4 shrink-0 text-primary-blue" />
-          <span className="truncate">{title}</span>
-          <span className="ms-auto rounded-full border border-primary-blue/15 bg-primary-blue/10 px-2 py-0.5 text-[11px] text-primary-blue">
-            {count}
-          </span>
-        </div>
-        <p className="truncate text-sm font-semibold text-text-primary">{item.video.title}</p>
-        <p className="mt-1 text-xs text-muted-text">
-          {formatTime(item.video.progressSeconds)} / {formatTime(item.video.durationSeconds)}
+
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <p className="truncate text-sm text-text-primary" title={item.video.title}>
+          <bdi>{item.video.title}</bdi>
         </p>
+        <div className="flex min-w-0 items-center gap-2 text-xs text-muted-text">
+          <span className="truncate" title={title}><bdi>{title}</bdi></span>
+          {count > 1 && <bdi className="shrink-0 tabular-nums">+{count - 1}</bdi>}
+        </div>
       </div>
+
+      {/* One LTR run: two <bdi>s either side of a neutral slash swap places
+          under the bidi algorithm and report the wrong elapsed time. */}
+      <span dir="ltr" className="shrink-0 text-xs tabular-nums text-muted-text">
+        {formatTime(item.video.progressSeconds)} / {formatTime(item.video.durationSeconds)}
+      </span>
     </button>
   );
 };

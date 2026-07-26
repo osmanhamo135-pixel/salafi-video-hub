@@ -2,22 +2,21 @@ import React, { useMemo, useState } from 'react';
 import {
   ArrowLeft,
   Bookmark,
-  CheckCircle2,
-  Clock,
-  Film,
-  FolderOpen,
   Play,
   Search,
-  SlidersHorizontal,
   SortAsc,
   Star,
-  Video as VideoIcon,
   X,
 } from 'lucide-react';
 import { Playlist, Video } from '@/types';
 import { formatDuration, formatTime } from '@/utils/formatTime';
 import { LocalThumbnail } from '@/components/ui/LocalThumbnail';
 import { useI18n } from '@/i18n';
+
+/* .thumbnail-fallback bakes in an .icon-medallion (primary-blue border + fill)
+   and a teal underline, which puts a second accent in every un-thumbnailed row.
+   Neutralise both from the call site; the primitive itself is not ours to edit. */
+const QUIET_FALLBACK = 'thumbnail-fallback thumbnail-fallback-quiet';
 
 interface PlaylistDetailProps {
   playlist: Playlist;
@@ -107,164 +106,172 @@ export const PlaylistDetail: React.FC<PlaylistDetailProps> = ({
     });
   }, [originalIndexById, videoFilter, videoQuery, videoSort, videos]);
 
+  const detailMetrics = [
+    { label: t('videosLower'), value: playlist.videoCount.toLocaleString() },
+    { label: t('duration'), value: formatDuration(playlist.totalDurationSeconds, language) },
+    { label: t('progress'), value: `${Math.round(progressPercent)}%` },
+  ];
+
   return (
-    <div className="space-y-5">
-      <button
-        onClick={onBack}
-        className="btn-ghost"
-      >
-        <ArrowLeft className="w-4 h-4" />
+    <div>
+      <button onClick={onBack} className="btn-ghost -ms-3 mb-4">
+        <ArrowLeft className="h-4 w-4" />
         {t('backToLibrary')}
       </button>
 
-      <section className="premium-surface ornate-corner relative overflow-hidden rounded-lg">
-        <div className="gold-thread absolute inset-x-5 top-0" />
-        <div className="grid grid-cols-[minmax(260px,420px)_1fr] max-lg:grid-cols-1">
-          <div className="relative aspect-video bg-black">
+      {/* Playlist header — a poster, a title and a metric strip separated by
+          hairlines. No card, no ornate corners, no drop shadow. */}
+      <section className="pb-6">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+          <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-lg bg-elevated-panel sm:w-[300px]">
             <LocalThumbnail
               path={heroThumbnailPath}
               label={playlist.name}
               className="h-full w-full object-cover"
-              iconClassName="h-12 w-12 text-muted-text/45"
-              fallbackClassName="thumbnail-fallback"
+              iconClassName="h-10 w-10 text-muted-text/45"
+              fallbackClassName={QUIET_FALLBACK}
             />
             {progressPercent > 0 && (
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50">
-                <div className="h-full bg-primary-blue" style={{ width: `${progressPercent}%` }} />
+              <div className="absolute inset-x-0 bottom-0 h-0.5 bg-background/70">
+                <div className="h-full bg-muted-text" style={{ width: `${progressPercent}%` }} />
               </div>
             )}
           </div>
 
-          <div className="flex min-w-0 flex-col justify-between gap-5 p-5">
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
             <div className="min-w-0">
-              <div className="premium-pill mb-3">
-                <FolderOpen className="h-3.5 w-3.5" />
-                {t('localFolderPlaylist')}
-              </div>
               <h2 className="text-2xl font-semibold leading-tight text-text-primary" title={playlist.name}>
-                {playlist.name}
+                <bdi>{playlist.name}</bdi>
               </h2>
-              <p className="mt-2 truncate text-sm text-muted-text" title={playlist.folderPath}>
-                {playlist.folderPath}
+              <p className="mt-1.5 truncate text-sm text-muted-text" title={playlist.folderPath}>
+                <bdi>{playlist.folderPath}</bdi>
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 max-sm:grid-cols-1">
-              <DetailMetric icon={Film} label={t('videosLower')} value={playlist.videoCount.toLocaleString()} />
-              <DetailMetric icon={Clock} label={t('duration')} value={formatDuration(playlist.totalDurationSeconds, language)} />
-              <DetailMetric icon={CheckCircle2} label={t('progress')} value={`${Math.round(progressPercent)}%`} />
+            <div className="flex border-t border-border pt-3">
+              {detailMetrics.map((metric, i) => (
+                <div key={metric.label} className={`min-w-0 flex-1 ${i > 0 ? 'border-s border-border ps-4' : 'pe-4'}`}>
+                  <p className="text-lg font-semibold tabular-nums text-text-primary">
+                    <bdi>{metric.value}</bdi>
+                  </p>
+                  <p className="truncate text-xs text-muted-text">{metric.label}</p>
+                </div>
+              ))}
             </div>
+
+            {videos[0] && (
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => onPlayVideo(videos[0])} className="btn-primary px-3 py-2 text-xs">
+                  <Play className="h-3.5 w-3.5 fill-current" />
+                  {t('playFromStart')}
+                </button>
+                {continueVideo && (
+                  <button onClick={() => onPlayVideo(continueVideo)} className="btn-secondary px-3 py-2 text-xs">
+                    <Play className="h-3.5 w-3.5 fill-current" />
+                    {t('continue')}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </section>
 
-      <section className="premium-surface overflow-hidden rounded-lg">
-        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-          <div>
-            <h3 className="text-sm font-semibold text-text-primary">{t('videosInPlaylist')}</h3>
-            <p className="text-xs text-muted-text">
-              {visibleVideos.length.toLocaleString()} {t('shownOf')} {videos.length.toLocaleString()} {t('localFiles')}
-            </p>
-          </div>
-          {videos[0] && (
-            <div className="flex flex-wrap justify-end gap-2">
-              {continueVideo && (
-                <button
-                  onClick={() => onPlayVideo(continueVideo)}
-                  className="btn-secondary px-3 py-2"
-                >
-                  <Play className="h-4 w-4 fill-current" />
-                  {t('continue')}
-                </button>
-              )}
-              <button
-                onClick={() => onPlayVideo(videos[0])}
-                className="btn-primary px-3 py-2"
-              >
-                <Play className="h-4 w-4 fill-current" />
-                {t('playFromStart')}
-              </button>
-            </div>
-          )}
+      <section>
+        <div className="rule-head mb-1">
+          <h3 className="text-sm font-semibold text-text-primary">{t('videosInPlaylist')}</h3>
+          <span dir="ltr" className="text-xs tabular-nums text-muted-text">
+            {visibleVideos.length} / {videos.length}
+          </span>
         </div>
 
         {!loading && videos.length > 0 && (
-          <div className="border-b border-border bg-background/45 px-4 py-3">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              <div className="relative max-w-lg flex-1">
-                <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
-                <input
-                  type="text"
-                  value={videoQuery}
-                  onChange={(event) => setVideoQuery(event.target.value)}
-                  placeholder={t('searchVideosInPlaylist')}
-                  className="surface-input w-full py-2 ps-10 pe-9"
-                />
-                {videoQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setVideoQuery('')}
-                    title={t('clearSearch')}
-                    className="absolute end-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-text hover:text-text-primary"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="flex items-center gap-2 rounded-md border border-border bg-panel px-2.5 py-2 text-xs text-muted-text">
-                  <SortAsc className="h-3.5 w-3.5" />
-                  <select
-                    value={videoSort}
-                    onChange={(event) => setVideoSort(event.target.value as VideoSortKey)}
-                    className="bg-transparent text-text-primary outline-none"
-                  >
-                    <option value="playlist">{t('playlistOrder')}</option>
-                    <option value="title">{t('title')}</option>
-                    <option value="duration">{t('longest')}</option>
-                    <option value="progress">{t('progress')}</option>
-                    <option value="recent">{t('recentlyPlayed')}</option>
-                  </select>
-                </label>
-              </div>
+          <div className="flex flex-col gap-4 py-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="relative max-w-md flex-1">
+              <Search className="pointer-events-none absolute start-0 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
+              <input
+                type="text"
+                value={videoQuery}
+                onChange={(event) => setVideoQuery(event.target.value)}
+                placeholder={t('searchVideosInPlaylist')}
+                className="field-quiet ps-6 pe-7 text-sm"
+              />
+              {videoQuery && (
+                <button
+                  type="button"
+                  onClick={() => setVideoQuery('')}
+                  title={t('clearSearch')}
+                  className="icon-btn absolute end-0 top-1/2 h-6 w-6 -translate-y-1/2"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-muted-text">
-                <SlidersHorizontal className="h-3.5 w-3.5" />
-                {t('view')}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+              <div className="segmented" role="group" aria-label={t('view')}>
+                <button type="button" aria-pressed={videoFilter === 'all'} onClick={() => setVideoFilter('all')}>
+                  {t('all')} <bdi>{videos.length}</bdi>
+                </button>
+                <button type="button" aria-pressed={videoFilter === 'in-progress'} onClick={() => setVideoFilter('in-progress')}>
+                  {t('inProgress')} <bdi>{videoSummary.inProgress}</bdi>
+                </button>
+                <button type="button" aria-pressed={videoFilter === 'unwatched'} onClick={() => setVideoFilter('unwatched')}>
+                  {t('unwatched')}
+                </button>
+                <button type="button" aria-pressed={videoFilter === 'completed'} onClick={() => setVideoFilter('completed')}>
+                  {t('completed')} <bdi>{videoSummary.completed}</bdi>
+                </button>
+                <button type="button" aria-pressed={videoFilter === 'favorites'} onClick={() => setVideoFilter('favorites')}>
+                  {t('favorites')} <bdi>{videoSummary.favorites}</bdi>
+                </button>
+                <button type="button" aria-pressed={videoFilter === 'watch-later'} onClick={() => setVideoFilter('watch-later')}>
+                  {t('watchLater')} <bdi>{videoSummary.watchLater}</bdi>
+                </button>
               </div>
-              <VideoFilterChip label={`${t('all')} ${videos.length}`} active={videoFilter === 'all'} onClick={() => setVideoFilter('all')} />
-              <VideoFilterChip label={`${t('inProgress')} ${videoSummary.inProgress}`} active={videoFilter === 'in-progress'} onClick={() => setVideoFilter('in-progress')} />
-              <VideoFilterChip label={t('unwatched')} active={videoFilter === 'unwatched'} onClick={() => setVideoFilter('unwatched')} />
-              <VideoFilterChip label={`${t('completed')} ${videoSummary.completed}`} active={videoFilter === 'completed'} onClick={() => setVideoFilter('completed')} />
-              <VideoFilterChip label={`${t('favorites')} ${videoSummary.favorites}`} active={videoFilter === 'favorites'} onClick={() => setVideoFilter('favorites')} />
-              <VideoFilterChip label={`${t('watchLater')} ${videoSummary.watchLater}`} active={videoFilter === 'watch-later'} onClick={() => setVideoFilter('watch-later')} />
+
+              <label className="flex items-center gap-2 text-xs text-muted-text">
+                <SortAsc className="h-3.5 w-3.5" />
+                <select
+                  value={videoSort}
+                  onChange={(event) => setVideoSort(event.target.value as VideoSortKey)}
+                  className="bg-transparent text-text-primary outline-none"
+                >
+                  <option value="playlist">{t('playlistOrder')}</option>
+                  <option value="title">{t('title')}</option>
+                  <option value="duration">{t('longest')}</option>
+                  <option value="progress">{t('progress')}</option>
+                  <option value="recent">{t('recentlyPlayed')}</option>
+                </select>
+              </label>
             </div>
           </div>
         )}
 
         {loading ? (
-          <div className="space-y-2 p-3">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <div key={index} className="h-[74px] animate-pulse rounded-md bg-elevated-panel/70" />
+          <div className="rule-list">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="rule-row">
+                <div className="h-[54px] w-24 shrink-0 rounded bg-panel-hover motion-safe:animate-pulse" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="h-3 w-2/5 rounded bg-panel-hover motion-safe:animate-pulse" />
+                  <div className="h-3 w-1/4 rounded bg-panel-hover motion-safe:animate-pulse" />
+                </div>
+              </div>
             ))}
           </div>
         ) : videos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-5 py-16 text-center text-muted-text">
-            <VideoIcon className="mb-3 h-10 w-10 text-primary-blue/55" />
-            <p className="text-sm font-medium text-text-primary">{t('noSupportedVideosFound')}</p>
-            <p className="mt-1 text-xs">{t('recursiveRescanHint')}</p>
+          <div className="py-16 text-center">
+            <p className="text-sm text-text-primary">{t('noSupportedVideosFound')}</p>
+            <p className="mt-1 text-xs text-muted-text">{t('recursiveRescanHint')}</p>
           </div>
         ) : visibleVideos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-5 py-16 text-center text-muted-text">
-            <SlidersHorizontal className="mb-3 h-10 w-10 text-primary-blue/55" />
-            <p className="text-sm font-medium text-text-primary">{t('noVideosMatchView')}</p>
-            <p className="mt-1 text-xs">{t('changeFilterHint')}</p>
+          <div className="py-16 text-center">
+            <p className="text-sm text-text-primary">{t('noVideosMatchView')}</p>
+            <p className="mt-1 text-xs text-muted-text">{t('changeFilterHint')}</p>
           </div>
         ) : (
-          <div className="max-h-[calc(100vh-390px)] min-h-[280px] overflow-y-auto p-2">
+          <div className="rule-list max-h-[calc(100vh-420px)] min-h-[280px] overflow-y-auto">
             {visibleVideos.map((video) => (
               <PlaylistVideoRow
                 key={video.id}
@@ -280,38 +287,6 @@ export const PlaylistDetail: React.FC<PlaylistDetailProps> = ({
   );
 };
 
-const DetailMetric: React.FC<{
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-}> = ({ icon: Icon, label, value }) => (
-  <div className="rounded-md border border-border bg-background/70 px-3 py-2 shadow-subtle">
-    <div className="mb-1 flex items-center gap-1.5 text-xs text-muted-text">
-      <Icon className="h-3.5 w-3.5" />
-      {label}
-    </div>
-    <p className="text-sm font-semibold text-text-primary">{value}</p>
-  </div>
-);
-
-const VideoFilterChip: React.FC<{
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}> = ({ label, active, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-      active
-        ? 'border-primary-blue/35 bg-primary-blue/15 text-primary-blue'
-        : 'border-border bg-panel text-muted-text hover:border-border-strong hover:text-text-primary'
-    }`}
-  >
-    {label}
-  </button>
-);
-
 const PlaylistVideoRow: React.FC<{
   index: number;
   video: Video;
@@ -323,45 +298,44 @@ const PlaylistVideoRow: React.FC<{
     : 0;
 
   return (
-    <button
-      onClick={onPlay}
-      className="group mb-1 flex w-full items-center gap-3 rounded-md px-3 py-2 text-start transition-colors hover:bg-panel-hover focus:outline-none focus:ring-1 focus:ring-primary-blue/40"
-    >
-      <div className="w-8 shrink-0 text-end text-xs tabular-nums text-muted-text">
-        {index + 1}
+    <button onClick={onPlay} className="rule-row group w-full text-start">
+      <div className="w-7 shrink-0 text-end text-xs tabular-nums text-text-faint">
+        <bdi>{index + 1}</bdi>
       </div>
 
-      <div className="relative h-[58px] w-[104px] shrink-0 overflow-hidden rounded-md bg-background">
+      <div className="relative h-[54px] w-24 shrink-0 overflow-hidden rounded bg-background">
         <LocalThumbnail
           path={video.thumbnailPath}
           label={video.title}
           className="h-full w-full object-cover"
-          iconClassName="h-5 w-5 text-muted-text/60"
-          fallbackClassName="thumbnail-fallback"
+          iconClassName="h-4 w-4 text-muted-text"
+          fallbackClassName={QUIET_FALLBACK}
         />
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/60 opacity-0 transition-opacity group-hover:opacity-100">
+          <Play className="h-5 w-5 fill-current text-text-primary" />
+        </span>
         {progressPercent > 0 && (
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50">
-            <div className="h-full bg-primary-blue" style={{ width: `${progressPercent}%` }} />
-          </div>
+          <span className="absolute inset-x-0 bottom-0 block h-0.5 bg-background/70">
+            <span className="block h-full bg-muted-text" style={{ width: `${progressPercent}%` }} />
+          </span>
         )}
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-text-primary" title={video.title}>
-          {video.title}
+        <p className="truncate text-sm text-text-primary" title={video.title}>
+          <bdi>{video.title}</bdi>
         </p>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-text">
-          <span>{formatTime(video.durationSeconds)}</span>
-          <span className="truncate" title={video.fileName}>{video.fileName}</span>
-          {video.completed && <span className="text-success-green">{t('completed')}</span>}
+        <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-text">
+          <span className="truncate" title={video.fileName}><bdi>{video.fileName}</bdi></span>
+          {video.completed && <span>{t('completed')}</span>}
           {video.favorite && (
-            <span className="inline-flex items-center gap-1 text-danger-red">
+            <span className="inline-flex items-center gap-1">
               <Star className="h-3 w-3 fill-current" />
               {t('favorite')}
             </span>
           )}
           {video.watchLater && (
-            <span className="inline-flex items-center gap-1 text-warning-orange">
+            <span className="inline-flex items-center gap-1">
               <Bookmark className="h-3 w-3 fill-current" />
               {t('watchLater')}
             </span>
@@ -371,9 +345,9 @@ const PlaylistVideoRow: React.FC<{
         </div>
       </div>
 
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-elevated-panel text-muted-text transition-colors group-hover:border-primary-blue/35 group-hover:bg-primary-blue group-hover:text-background">
-        <Play className="h-4 w-4 fill-current" />
-      </div>
+      <span className="shrink-0 text-xs tabular-nums text-muted-text">
+        <bdi>{formatTime(video.durationSeconds)}</bdi>
+      </span>
     </button>
   );
 });

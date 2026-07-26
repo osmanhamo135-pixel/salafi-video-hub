@@ -6,7 +6,7 @@
    the printed Madinah mushaf (bundled unmodified; see KFGQPC-NOTICE.txt). */
 @font-face {
   font-family: 'KFGQPC Uthmanic Script HAFS';
-  src: url('./assets/fonts/UthmanicHafs1-Ver09.woff2') format('woff2');
+  src: url('./assets/fonts/KFGQPC-Hafs-v18.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -132,6 +132,13 @@
 
   html[data-theme='pearl'] {
     --quran-green-rgb: 16 138 87;
+    /* The medallion gold is deliberately fixed across themes so a ring never
+       turns cyan in Samaa. Pearl is the exception: it is the only theme with a
+       light ground, and a pale gold on cream leaves the ayah numbers and the
+       surah cartouche washed out to the point of being hard to read. This is
+       the same hue carried down to a bronze that holds on paper — the printed
+       convention, not a different colour. */
+    --mushaf-gold-rgb: 158 118 40;
     --bg-main-rgb: 243 246 247;
     --bg-sidebar-rgb: 229 236 238;
     --bg-panel-rgb: 255 255 255;
@@ -506,6 +513,17 @@
   .quran-script {
     font-family: 'KFGQPC Uthmanic Script HAFS', 'Amiri Quran', 'Noto Naskh Arabic', 'Scheherazade New', 'Segoe UI', Tahoma, system-ui, sans-serif;
     text-rendering: geometricPrecision;
+    /* The mushaf faces carry their own required ligatures and mark
+       positioning. Nothing here may add spacing, synthesise a weight or
+       reshape a cluster — the letterforms are the Complex's, unaltered. */
+    font-feature-settings: normal;
+    font-variant-ligatures: normal;
+    font-synthesis: none;
+    letter-spacing: 0;
+    /* A Qur'anic word is never broken across lines, at any viewport. */
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
   }
 
   /* Warsh mode renders with the official Warsh mushaf typeface — its
@@ -515,34 +533,96 @@
     font-family: 'KFGQPC Warsh', 'KFGQPC Uthmanic Script HAFS', 'Amiri Quran', 'Noto Naskh Arabic', serif;
   }
 
-  /* The mushaf page melts into the active theme — no separate slab colour,
-     exactly like the app's original look. The section around it carries the
-     single frame. */
+  /* The mushaf page. It still takes its darkness from the active theme — no
+     separate slab colour — but it now reads as a leaf of a printed mushaf
+     rather than a panel in a web view: a barely-there warm lift under the
+     opening, and the ruled frame (jadwal) a printed page carries. */
   .quran-reading-surface {
     position: relative;
     isolation: isolate;
     overflow: hidden;
     min-height: 19rem;
+    /* MUST stay 0. The recitation cue is absolutely positioned against this
+       element's padding box while its coordinates are measured from the
+       border box; any border here would shift the cue off the spoken word. */
     border: none;
-    border-radius: 6px;
-    padding: clamp(1.4rem, 2.4vw, 2rem) clamp(2rem, 4vw, 3rem);
+    border-radius: 10px;
+    padding: clamp(2.1rem, 3.4vw, 3.4rem) clamp(1.75rem, 4vw, 3.25rem);
     color: rgb(var(--text-main-rgb));
-    background: transparent;
+    background: radial-gradient(
+      118% 74% at 50% 0%,
+      rgb(var(--mushaf-gold-rgb) / 0.035),
+      transparent 64%
+    );
   }
 
+  /* The jadwal: the double rule that frames a printed mushaf page. Drawn on
+     pseudo-elements so the surface itself keeps `border: none` (see above).
+
+     Square-cornered, deliberately. A printed jadwal is a rectangular frame — a
+     heavier outer rule with a fine inner one set close beside it. Rounding the
+     corners turned it back into a web card with a doubled border, which is
+     precisely what this was meant to escape. The two rules also sit closer
+     together now, as they do on the page.
+
+     Painted at z-index 0 with the content raised above, rather than at -2:
+     a negative-z child inside this element's `isolation: isolate` sits behind
+     the element's own background, and only survived because that background is
+     a low-alpha gradient. Any future opaque background would have silently
+     erased the frame. */
+  .quran-reading-surface::before,
+  .quran-reading-surface::after {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    pointer-events: none;
+    border: 1px solid rgb(var(--mushaf-gold-rgb) / 0.30);
+    border-radius: 0;
+  }
+
+  .quran-reading-surface::before {
+    inset: clamp(0.5rem, 1vw, 0.85rem);
+  }
+
+  .quran-reading-surface::after {
+    inset: clamp(0.68rem, 1.2vw, 1.02rem);
+    border-color: rgb(var(--mushaf-gold-rgb) / 0.14);
+  }
+
+  /* Content sits above the frame; the frame is page furniture, not a layer over
+     the text. */
+  .quran-reading-surface > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* The surah header band. The old ۞ ornaments sat at 0.42em and rendered as
+     illegible specks; the name now sits in a quiet cartouche between two
+     hairlines, which is what a printed surah header actually is. */
   .quran-surah-heading {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: clamp(1.5rem, 5vw, 4rem);
-    color: rgb(var(--accent-gold-rgb));
+    gap: clamp(0.7rem, 2.4vw, 1.6rem);
+    color: rgb(var(--mushaf-gold-rgb));
   }
 
   .quran-surah-heading::before,
   .quran-surah-heading::after {
-    content: '۞';
-    font-size: 0.42em;
-    color: rgb(var(--accent-gold-rgb) / 0.75);
+    content: '';
+    flex: 1 1 0;
+    max-width: 7.5rem;
+    height: 1px;
+    background: rgb(var(--mushaf-gold-rgb) / 0.32);
+  }
+
+  .quran-surah-title {
+    display: inline-block;
+    flex: 0 0 auto;
+    padding: 0.12em 1.05em 0.24em;
+    border: 1px solid rgb(var(--mushaf-gold-rgb) / 0.38);
+    border-radius: 999px;
+    white-space: nowrap;
   }
 
   .quran-basmala {
@@ -561,21 +641,30 @@
     color: rgb(var(--text-main-rgb));
   }
 
+  /* The measure is set in em, so it stays a constant number of words per line
+     at every reader font size — a printed page's measure, not a browser's.
+     Line breaking changes with it; word order, count and splitting do not, so
+     the recitation index is untouched. */
   .quran-flow {
+    max-width: 33em;
+    margin-inline: auto;
     text-align: justify;
     text-align-last: center;
     color: rgb(var(--text-main-rgb));
-    word-spacing: 0.08em;
+    word-spacing: 0.05em;
   }
 
-  .quran-passage-bracket {
-    display: inline-block;
-    color: rgb(var(--accent-gold-rgb));
-    font-size: 0.92em;
-    line-height: 1;
-    margin-inline: 0.05em;
-    vertical-align: 0.02em;
-    white-space: nowrap;
+  /* Ayah-list mode gets the same measure and the same set body as the mushaf
+     flow, so both modes read as one page rather than two designs. */
+  .quran-ayah-line {
+    max-width: 33em;
+    margin-inline: auto;
+    text-align: justify;
+    /* `start`, never `end`: in RTL the last line of an ayah must sit against
+       the right margin where the reading begins, not the left. */
+    text-align-last: start;
+    color: rgb(var(--text-main-rgb));
+    word-spacing: 0.05em;
   }
 
   /* Inline ayah: clickable and highlightable without ever moving the layout.
@@ -598,10 +687,18 @@
      like the medallion of a printed page — in the theme's gold. */
   .quran-ayah-marker {
     /* Amiri Quran composes ۝ + digits into one medallion (KFGQPC draws them
-       as two separate marks), so the marker keeps the Amiri glyph. */
+       as two separate marks), so the marker keeps the Amiri glyph. It is an
+       ornament, never Qur'anic text — the ayah text itself stays in the
+       official face for its riwayah.
+       Raised from 0.95em: Amiri's medallion sets the digits well inside the
+       ring, so at the old size the number was unreadable at reading sizes. */
     font-family: 'Amiri Quran', 'Noto Naskh Arabic', serif;
     color: rgb(var(--mushaf-gold-rgb));
-    font-size: 0.95em;
+    font-size: 1.06em;
+    line-height: 1;
+    vertical-align: -0.05em;
+    /* The ring and its digits are one mark and never split across lines. */
+    white-space: nowrap;
   }
 
   .quran-bookmarked {
@@ -646,10 +743,13 @@
     height: 0;
     opacity: 0;
     pointer-events: none;
-    border-radius: 0.5em;
-    background: rgb(var(--quran-green-rgb) / 0.16);
-    border: 1px solid rgb(var(--quran-green-rgb) / 0.42);
-    box-shadow: 0 0 0.55em rgb(var(--quran-green-rgb) / 0.22);
+    border-radius: 0.42em;
+    /* Quieter than the old bordered-and-glowing pill: a low plate with a
+       single seated line under it. It still marks the spoken word
+       unmistakably, but it no longer competes with the letterforms. */
+    background: rgb(var(--quran-green-rgb) / 0.13);
+    border: 0;
+    box-shadow: inset 0 -1px 0 rgb(var(--quran-green-rgb) / 0.45);
     transition:
       transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
       width 160ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -663,11 +763,14 @@
   }
 
 
-  /* Refined translation typography under each ayah. */
+  /* Refined translation typography under each ayah. It shares the page's
+     measure and stays clearly subordinate to the Arabic above it. */
   .quran-translation {
     font-family: 'Plex Arabic', Georgia, 'Palatino Linotype', 'Times New Roman', serif;
-    border-inline-start: 2px solid rgb(var(--accent-gold-rgb) / 0.35);
-    padding-inline-start: 0.75rem;
+    max-width: 46rem;
+    margin-inline: auto;
+    border-inline-start: 1px solid rgb(var(--mushaf-gold-rgb) / 0.28);
+    padding-inline-start: 0.9rem;
     color: rgb(var(--text-soft-rgb));
   }
 
@@ -704,6 +807,13 @@
     background: rgb(var(--accent-gold-rgb) / 0.05);
     box-shadow: inset 2px 0 0 rgb(var(--accent-gold-rgb));
     color: rgb(var(--text-main-rgb));
+  }
+
+  /* box-shadow has no logical form, so the inset marker is physically left and
+     in Arabic it sat at the reading END of every active row — the selected
+     theme, the open surah, the current nav item. Flipped for RTL. */
+  [dir='rtl'] .rule-row-active {
+    box-shadow: inset -2px 0 0 rgb(var(--accent-gold-rgb));
   }
 
   /* Segmented control: labels sharing a baseline rule, not boxes. */
@@ -769,6 +879,92 @@
     color: rgb(var(--text-faint-rgb));
   }
 
+  /* Range input, direction-correct.
+     Chromium mirrors a range under RTL — the thumb travels right to left — but
+     it still paints `accent-color`'s fill from the physical left, so the filled
+     part and the thumb pointed opposite ways. The call sites worked around it
+     by pinning dir="ltr", which made volume read low-to-high left-to-right in
+     Arabic. Painting the fill ourselves from a --fill percentage fixes it
+     properly: the gradient simply runs the other way under [dir='rtl']. */
+  .range-quiet {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 999px;
+    cursor: pointer;
+    background: linear-gradient(
+      to right,
+      rgb(var(--accent-gold-rgb)) 0 calc(var(--fill, 0) * 1%),
+      rgb(var(--accent-gold-rgb) / 0.14) calc(var(--fill, 0) * 1%) 100%
+    );
+  }
+
+  [dir='rtl'] .range-quiet {
+    background: linear-gradient(
+      to left,
+      rgb(var(--accent-gold-rgb)) 0 calc(var(--fill, 0) * 1%),
+      rgb(var(--accent-gold-rgb) / 0.14) calc(var(--fill, 0) * 1%) 100%
+    );
+  }
+
+  .range-quiet::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 13px;
+    height: 13px;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(var(--accent-gold-rgb));
+  }
+
+  .range-quiet::-moz-range-thumb {
+    width: 13px;
+    height: 13px;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(var(--accent-gold-rgb));
+  }
+
+  .range-quiet:focus-visible {
+    outline: 2px solid rgb(var(--accent-gold-rgb));
+    outline-offset: 3px;
+  }
+
+  /* Text-only action. Was duplicated as the same long utility string across
+     Settings, Downloads, Watch and the reminder form. */
+  .quiet-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 2px;
+    font-size: var(--fs-cap);
+    font-weight: 500;
+    color: rgb(var(--text-muted-rgb));
+    background: none;
+    border: 0;
+    cursor: pointer;
+    transition: color var(--dur) var(--ease);
+  }
+
+  .quiet-action:hover:not(:disabled) {
+    color: rgb(var(--text-main-rgb));
+  }
+
+  .quiet-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .quiet-action-danger:hover:not(:disabled) {
+    color: rgb(var(--danger-rgb));
+  }
+
+  /* A .rule-row whose control carries its own .field-quiet baseline, so the row
+     must not draw a second parallel hairline under it. */
+  .rule-row-flush {
+    border-bottom: 0;
+  }
+
   /* Every interactive element gets the same focus ring. */
   .rule-row:focus-visible,
   .segmented button:focus-visible,
@@ -802,78 +998,173 @@
     border-radius: var(--r-lg);
   }
 
-  /* layer 1 — ground + one warm key light */
+  /* layer 1 — ground, one warm key light, and the vignette.
+     The light is deliberately off-centre and high: a key light with a
+     direction reads as a photographed room, a centred glow reads as a
+     gradient. The vignette is heavy on purpose — in the reference plates the
+     corners fall away to almost nothing, and that fall-off is most of what
+     makes them feel like a photograph rather than a fill. */
   .hero-ground {
     position: absolute;
     inset: 0;
     z-index: 0;
     background:
-      radial-gradient(80% 55% at 50% 30%, rgb(var(--accent-gold-rgb) / 0.13), transparent 70%),
-      linear-gradient(180deg, rgb(var(--bg-card-rgb)), rgb(var(--bg-main-rgb)) 78%);
+      /* vignette, drawn first so it sits over the light */
+      radial-gradient(
+        118% 96% at 42% 30%,
+        transparent 26%,
+        rgb(var(--bg-main-rgb) / 0.55) 72%,
+        rgb(var(--bg-main-rgb) / 0.92) 100%
+      ),
+      /* key light: warm, high, left of centre, with a long soft falloff */
+      radial-gradient(58% 46% at 34% 20%, rgb(var(--accent-gold-rgb) / 0.30), transparent 74%),
+      radial-gradient(90% 70% at 34% 20%, rgb(var(--accent-gold-rgb) / 0.12), transparent 78%),
+      /* the room itself, darkening downward */
+      linear-gradient(
+        168deg,
+        rgb(var(--bg-card-hover-rgb)) 0%,
+        rgb(var(--bg-card-rgb)) 34%,
+        rgb(var(--bg-main-rgb)) 82%
+      );
   }
 
-  /* layer 1b — the out-of-focus scene behind the light.
-     Each theme gets its own depth, echoing its plate: blurred mushaf covers,
-     lamp-lit shelves, night sky. Built from gradients, so it stays at zero
-     bundle bytes and cannot contain any depiction of animate beings. */
+  /* layer 1b — the out-of-focus room behind the light.
+     ONE construction for all ten themes: shelf uprights, shelf boards and the
+     spines between them, thrown far out of focus. Every theme re-tints this
+     same geometry through its own tokens rather than getting a scene of its
+     own, so the app reads as one thing in ten colourways.
+
+     Shelves rather than anything else because that is what the app is — a
+     library. Blurred this hard it reads as depth first and furniture second.
+     It is generated, so it costs no bundle bytes, cannot fail to load, and by
+     construction contains no depiction of animate beings. */
+  /* The room behind the light.
+     ONE construction for all ten themes, re-tinted through their own tokens.
+
+     Split into three vertical bands with converging pitch and a blur ramp. A
+     wall of parallel stripes at constant pitch under a single uniform blur is
+     read by the eye as PATTERN, not depth, however much blur is applied — which
+     is why the first attempt looked like a striped curtain. A real shelf wall
+     converges toward a vanishing point and goes progressively softer with
+     distance, so the near band is wide-pitched and nearly sharp and the far
+     band is tight and soft.
+
+     The whole gradient stack lives in --shelves and refers to --pitch. Custom
+     property substitution resolves where the value is USED, not where it is
+     declared, so each band re-resolves the same stack at its own scale — one
+     definition, three depths.
+
+     Layer order is the opposite of intuition: the FIRST background layer paints
+     on TOP. Uprights and boards come before the spines because in a real shelf
+     the timber stands in front of the books. */
   .hero-scene {
     position: absolute;
-    inset: -8%;
+    inset: -10%;
     z-index: 0;
-    filter: blur(22px) saturate(115%);
-    opacity: 0.75;
-    background:
-      radial-gradient(22% 30% at 18% 26%, rgb(var(--accent-gold-rgb) / 0.20), transparent 70%),
-      radial-gradient(26% 34% at 78% 22%, rgb(var(--accent-gold-rgb) / 0.14), transparent 72%),
-      radial-gradient(30% 40% at 62% 74%, rgb(var(--accent-emerald-rgb) / 0.10), transparent 72%),
-      radial-gradient(24% 32% at 30% 78%, rgb(var(--accent-gold-rgb) / 0.10), transparent 74%);
+    opacity: 0.88;
+
+    --pitch: 1;
+    --shelves:
+      /* uprights dividing the wall into bays */
+      repeating-linear-gradient(
+        90deg,
+        rgb(var(--bg-main-rgb) / 0.96) 0 calc(20px * var(--pitch)),
+        rgb(var(--bg-main-rgb) / 0.45) calc(20px * var(--pitch)) calc(30px * var(--pitch)),
+        transparent calc(30px * var(--pitch)) calc(356px * var(--pitch))
+      ),
+      /* shelf boards, each throwing a shadow down into the bay below it */
+      repeating-linear-gradient(
+        180deg,
+        rgb(var(--bg-main-rgb) / 0.98) 0 calc(18px * var(--pitch)),
+        rgb(var(--bg-main-rgb) / 0.72) calc(18px * var(--pitch)) calc(34px * var(--pitch)),
+        rgb(var(--bg-main-rgb) / 0.30) calc(34px * var(--pitch)) calc(62px * var(--pitch)),
+        transparent calc(62px * var(--pitch)) calc(214px * var(--pitch))
+      ),
+      /* the spines, behind the timber: warm, irregular, catching the light */
+      repeating-linear-gradient(
+        90deg,
+        rgb(var(--accent-gold-rgb) / 0.40) 0 calc(15px * var(--pitch)),
+        rgb(var(--bg-main-rgb) / 0.72) calc(15px * var(--pitch)) calc(23px * var(--pitch)),
+        rgb(var(--accent-emerald-rgb) / 0.26) calc(23px * var(--pitch)) calc(44px * var(--pitch)),
+        rgb(var(--bg-main-rgb) / 0.80) calc(44px * var(--pitch)) calc(50px * var(--pitch)),
+        rgb(var(--accent-gold-rgb) / 0.30) calc(50px * var(--pitch)) calc(73px * var(--pitch)),
+        rgb(var(--bg-main-rgb) / 0.68) calc(73px * var(--pitch)) calc(82px * var(--pitch)),
+        rgb(var(--accent-gold-rgb) / 0.20) calc(82px * var(--pitch)) calc(101px * var(--pitch)),
+        rgb(var(--bg-main-rgb) / 0.76) calc(101px * var(--pitch)) calc(109px * var(--pitch))
+      ),
+      linear-gradient(180deg, rgb(var(--bg-card-rgb)), rgb(var(--bg-main-rgb)));
+
+    /* Falls away from the key light, so the far side of the room goes dark
+       instead of the pattern tiling visibly to the edges. Masking the container
+       also clips all three bands inside it. */
+    -webkit-mask-image: radial-gradient(104% 88% at 34% 26%, black 14%, transparent 82%);
+    mask-image: radial-gradient(104% 88% at 34% 26%, black 14%, transparent 82%);
   }
 
-  /* Mushaf Gold — stacked mushaf covers, thrown out of focus. */
-  html[data-theme='mushaf-gold'] .hero-scene {
-    filter: blur(26px) saturate(120%);
-    background:
-      linear-gradient(114deg, transparent 12%, rgb(var(--accent-gold-rgb) / 0.13) 16%, transparent 21%),
-      linear-gradient(114deg, transparent 34%, rgb(var(--accent-gold-rgb) / 0.09) 39%, transparent 45%),
-      linear-gradient(70deg, transparent 58%, rgb(var(--accent-gold-rgb) / 0.11) 63%, transparent 69%),
-      radial-gradient(30% 42% at 22% 30%, rgb(var(--accent-gold-rgb) / 0.22), transparent 70%),
-      radial-gradient(34% 46% at 80% 66%, rgb(var(--accent-gold-rgb) / 0.16), transparent 72%),
-      radial-gradient(40% 40% at 50% 96%, rgb(var(--bg-card-hover-rgb)), transparent 70%);
+  .hero-band {
+    position: absolute;
+    inset: 0;
+    background: var(--shelves);
   }
 
-  /* Maktabah — a wall of turath spines under one lamp. */
-  html[data-theme='maktabah'] .hero-scene {
-    filter: blur(18px) saturate(125%);
+  /* The bands overlap and fade into one another. A hard clip between them left
+     a visible vertical seam, which is worse than no perspective at all. */
+  .hero-band-near {
+    --pitch: 1.34;
+    filter: blur(4px) saturate(120%);
+    -webkit-mask-image: linear-gradient(90deg, black 0 26%, transparent 56%);
+    mask-image: linear-gradient(90deg, black 0 26%, transparent 56%);
+  }
+
+  .hero-band-mid {
+    --pitch: 0.96;
+    filter: blur(7px) saturate(118%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 22%, black 44% 62%, transparent 84%);
+    mask-image: linear-gradient(90deg, transparent 22%, black 44% 62%, transparent 84%);
+  }
+
+  .hero-band-far {
+    --pitch: 0.66;
+    opacity: 0.9;
+    filter: blur(10px) saturate(114%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 58%, black 88%);
+    mask-image: linear-gradient(90deg, transparent 58%, black 88%);
+  }
+
+  html[data-theme='pearl'] .hero-scene {
+    opacity: 0.4;
+    filter: blur(8px) saturate(108%);
     background:
       repeating-linear-gradient(
         90deg,
-        rgb(var(--accent-gold-rgb) / 0.10) 0 7px,
-        transparent 7px 13px,
-        rgb(var(--accent-emerald-rgb) / 0.07) 13px 19px,
-        transparent 19px 27px
+        rgb(var(--text-main-rgb) / 0.26) 0 20px,
+        rgb(var(--text-main-rgb) / 0.12) 20px 30px,
+        transparent 30px 356px
       ),
       repeating-linear-gradient(
         180deg,
-        rgb(var(--accent-gold-rgb) / 0.16) 0 3px,
-        transparent 3px 88px
+        rgb(var(--text-main-rgb) / 0.30) 0 18px,
+        rgb(var(--text-main-rgb) / 0.18) 18px 34px,
+        rgb(var(--text-main-rgb) / 0.07) 34px 62px,
+        transparent 62px 214px
       ),
-      radial-gradient(46% 52% at 50% 26%, rgb(var(--accent-gold-rgb) / 0.26), transparent 74%);
-  }
-
-  /* Samaa — high cloud, lit from below the horizon. */
-  html[data-theme='samaa'] .hero-scene {
-    filter: blur(34px) saturate(105%);
-    opacity: 0.85;
-    background:
-      radial-gradient(38% 26% at 26% 36%, rgb(var(--text-main-rgb) / 0.13), transparent 72%),
-      radial-gradient(44% 30% at 72% 28%, rgb(var(--text-main-rgb) / 0.10), transparent 74%),
-      radial-gradient(52% 34% at 46% 64%, rgb(var(--accent-gold-rgb) / 0.16), transparent 76%),
-      linear-gradient(180deg, rgb(var(--bg-main-rgb)), rgb(var(--bg-card-hover-rgb)) 62%, rgb(var(--bg-main-rgb)));
+      repeating-linear-gradient(
+        90deg,
+        rgb(var(--accent-gold-rgb) / 0.34) 0 15px,
+        rgb(var(--text-main-rgb) / 0.10) 15px 23px,
+        rgb(var(--accent-emerald-rgb) / 0.20) 23px 44px,
+        rgb(var(--text-main-rgb) / 0.13) 44px 50px,
+        rgb(var(--accent-gold-rgb) / 0.24) 50px 73px,
+        rgb(var(--text-main-rgb) / 0.09) 73px 82px,
+        rgb(var(--accent-gold-rgb) / 0.16) 82px 101px,
+        rgb(var(--text-main-rgb) / 0.11) 101px 109px
+      ),
+      linear-gradient(180deg, rgb(var(--bg-card-rgb)), rgb(var(--bg-main-rgb)));
   }
 
   @media (prefers-reduced-motion: reduce) {
     .hero-scene {
-      filter: blur(22px);
+      filter: blur(7px);
     }
   }
 
@@ -904,23 +1195,40 @@
     box-shadow: inset 0 40px 90px -50px rgb(var(--accent-gold-rgb) / 0.22);
   }
 
-  /* layer 2 — scrim */
+  /* layer 2 — scrim.
+     Its only job is guaranteeing the Basmala stays legible over whatever the
+     scene is doing behind it. The vignette now lives in .hero-ground, so this
+     is deliberately much lighter than it used to be: when both layers carried
+     a vignette the room was crushed twice and the shelves disappeared. */
   .hero-scrim {
     position: absolute;
     inset: 0;
     z-index: 2;
     background:
+      /* a soft pool of ground colour directly under the calligraphy */
       radial-gradient(
-        120% 88% at 50% 34%,
-        transparent 34%,
-        rgb(var(--bg-main-rgb) / 0.62) 88%,
-        rgb(var(--bg-main-rgb) / 0.86) 100%
+        68% 42% at 50% 34%,
+        rgb(var(--bg-main-rgb) / 0.46) 0%,
+        rgb(var(--bg-main-rgb) / 0.20) 58%,
+        transparent 82%
       ),
+      /* The vignette has to live ABOVE the scene, not below it. In .hero-ground
+         it sat underneath and so never touched the shelves at all — which is
+         why the light-accented themes (blue, samaa) stayed bright and flat
+         while the dark ones looked right. */
+      radial-gradient(
+        112% 92% at 40% 28%,
+        transparent 22%,
+        rgb(var(--bg-main-rgb) / 0.42) 62%,
+        rgb(var(--bg-main-rgb) / 0.86) 92%,
+        rgb(var(--bg-main-rgb) / 0.96) 100%
+      ),
+      /* and a seat at the bottom so the page below joins on cleanly */
       linear-gradient(
         180deg,
-        rgb(var(--bg-main-rgb) / 0.45),
-        transparent 28%,
-        transparent 60%,
+        rgb(var(--bg-main-rgb) / 0.28),
+        transparent 26%,
+        transparent 62%,
         rgb(var(--bg-main-rgb)) 100%
       );
   }
@@ -933,26 +1241,54 @@
     text-align: center;
   }
 
-  /* The Basmala. Complete, static, never clipped, never restyled: the warm
-     light lives in the background layer, never as a shadow on the glyph. */
+  /* The Basmala. Complete, static, never clipped, never restyled.
+     Rendered as outlined paths taken straight from the bundled Amiri Quran
+     font — the U+FDFD ligature's own components, split into letterforms and
+     harakat by the font's GDEF mark class. Nothing is traced or redrawn, and
+     because the split is the typeface's own classification the two groups can
+     be coloured independently the way a printed mushaf colours its marks.
+     scripts/build-basmala-svg.py regenerates it from the font.
+
+     The warm light lives in the background layer, never as a shadow on the
+     glyph, and the viewBox guarantees it scales without ever clipping. */
   .hero-basmala {
-    margin: 0 0 var(--s7);
-    padding-bottom: 0.42em;
-    max-width: 100%;
-    font-family: 'Amiri Quran', 'Noto Naskh Arabic', serif;
-    font-size: clamp(38px, 6.2vw, 108px);
-    line-height: 1;
-    white-space: nowrap;
-    color: rgb(var(--text-main-rgb));
+    display: block;
+    width: min(100%, 62rem);
+    margin: 0 auto var(--s6);
   }
 
+  .hero-basmala svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .basmala-stroke,
+  .mark-stroke {
+    fill: rgb(var(--text-main-rgb));
+  }
+
+  /* The harakat carry the theme accent, as in the reference plates. Kept at
+     full opacity so every mark stays completely legible. */
+  .basmala-harakat,
+  .mark-ijam {
+    fill: rgb(var(--accent-gold-rgb));
+  }
+
+  /* Deliberately small: in the reference plates the mark is a quiet signature
+     under the Basmala, roughly a twelfth of its width — not a second headline. */
   .hero-mark {
-    margin: 0 0 var(--s5);
-    padding-bottom: 0.18em;
-    font-family: 'Aref Ruqaa', 'Amiri Quran', serif;
-    font-size: clamp(30px, 3.8vw, 60px);
-    line-height: 1.1;
-    color: rgb(var(--text-main-rgb));
+    display: block;
+    width: clamp(38px, 3.4vw, 58px);
+    margin: calc(var(--s2) * -1) auto var(--s6);
+  }
+
+  .hero-mark svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
   }
 
   .hero-wordmark {
@@ -1039,13 +1375,16 @@
 
   .page-container {
     @apply relative h-full min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-6;
+    /* One directional falloff, no lattice. A 42px ruled grid used to sit behind
+       every page: that is analytics-dashboard furniture, it is the opposite of
+       a photographed room, and on a near-black ground it fought the vignette by
+       giving the eye a repeating structure where the references have fall-off.
+       The two opposing glows were also cancelling into a flat wash, so the warm
+       one now leads and the cool one only cools the far corner. */
     background:
-      radial-gradient(circle at 88% 0%, rgb(var(--accent-gold-rgb) / 0.09), transparent 28rem),
-      radial-gradient(circle at 12% 18%, rgb(var(--accent-emerald-rgb) / 0.055), transparent 22rem),
-      linear-gradient(90deg, rgb(var(--border-subtle-rgb) / 0.022) 1px, transparent 1px),
-      linear-gradient(180deg, rgb(var(--border-subtle-rgb) / 0.016) 1px, transparent 1px),
+      radial-gradient(120% 80% at 86% -6%, rgb(var(--accent-gold-rgb) / 0.10), transparent 62%),
+      radial-gradient(90% 70% at 6% 104%, rgb(var(--accent-emerald-rgb) / 0.035), transparent 68%),
       var(--bg-main);
-    background-size: auto, auto, 42px 42px, 42px 42px, auto;
   }
   
   .content-max-width {
@@ -1114,64 +1453,45 @@
   }
 
 
-  .islamic-pattern {
-    background-image:
-      linear-gradient(45deg, rgb(var(--accent-teal-rgb) / 0.07) 25%, transparent 25%, transparent 75%, rgb(var(--accent-teal-rgb) / 0.07) 75%),
-      linear-gradient(-45deg, rgb(var(--accent-gold-rgb) / 0.055) 25%, transparent 25%, transparent 75%, rgb(var(--accent-gold-rgb) / 0.055) 75%);
-    background-position: 0 0, 12px 12px;
-    background-size: 24px 24px;
+  /* `.islamic-pattern` and the two other diagonal-checkerboard textures were
+     deleted. They were argyle at 22-34px, which is below the scale at which any
+     geometric construction is legible, so on a near-black ground they read as
+     JPEG blocking rather than ornament — and there is no construction path from
+     the girih tile set to a crossed-45-degree checkerboard anyway. The one
+     legitimate geometry in the app is `.hero-girih`, an 8-point khatam star,
+     which stays. */
+
+  /* `.ornate-corner` was deleted. It drew a 24px bracket top-left in the gold
+     accent and another bottom-right in the *teal* accent — two colours, two
+     opposite corners, over the card's own border. On the red theme that meant a
+     gold bracket and a red one on every card. It is the signature of a free
+     dashboard template, and it is not an Islamic device: a cartouche or a jadwal
+     is a complete frame, not two opposed corners. It was on eleven surfaces.
+     The one framing device the app keeps is the surah header band. */
+
+  /* A quiet placeholder icon. `.icon-medallion` carries the theme's second
+     accent, which put a second accent colour into every un-thumbnailed row —
+     and those appear in bulk. This variant neutralises the medallion inside a
+     fallback so the row keeps exactly one accent. */
+  .thumbnail-fallback-quiet .icon-medallion {
+    border-color: var(--border-subtle);
+    background: transparent;
+    color: rgb(var(--text-faint-rgb));
+    box-shadow: none;
   }
 
-  .ornate-corner::before,
-  .ornate-corner::after {
-    content: '';
-    position: absolute;
-    width: 24px;
-    height: 24px;
-    pointer-events: none;
+  .thumbnail-fallback-quiet .icon-medallion::after {
+    display: none;
   }
 
-  .ornate-corner::before {
-    top: 0.65rem;
-    left: 0.65rem;
-    border-top: 1px solid rgb(var(--accent-gold-rgb) / 0.45);
-    border-left: 1px solid rgb(var(--accent-gold-rgb) / 0.45);
-  }
-
-  .ornate-corner::after {
-    right: 0.65rem;
-    bottom: 0.65rem;
-    border-right: 1px solid rgb(var(--accent-teal-rgb) / 0.35);
-    border-bottom: 1px solid rgb(var(--accent-teal-rgb) / 0.35);
-  }
-
+  /* A video with no thumbnail yet. Flat, quiet, and unmistakably a placeholder.
+     It used to carry the same 22px argyle plus a bright teal underline bar; in
+     a grid that is dozens of them at once, and at that scale the texture read
+     as broken image placeholders rather than ornament. */
   .thumbnail-fallback {
-    @apply relative flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br from-background via-panel to-elevated-panel;
-    box-shadow: inset 0 0 0 1px rgb(var(--accent-teal-rgb) / 0.08);
-  }
-
-  .thumbnail-fallback::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: 0.45;
-    background-image:
-      radial-gradient(circle at center, rgb(var(--accent-gold-rgb) / 0.12) 0 1px, transparent 1px 100%),
-      linear-gradient(45deg, rgb(var(--accent-teal-rgb) / 0.075) 25%, transparent 25%, transparent 75%, rgb(var(--accent-teal-rgb) / 0.075) 75%),
-      linear-gradient(-45deg, rgb(var(--accent-teal-rgb) / 0.055) 25%, transparent 25%, transparent 75%, rgb(var(--accent-teal-rgb) / 0.055) 75%);
-    background-position: 0 0, 0 0, 11px 11px;
-    background-size: 22px 22px;
-  }
-
-  .thumbnail-fallback::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--accent-teal), transparent);
-    opacity: 0.75;
+    @apply relative flex h-full w-full items-center justify-center overflow-hidden;
+    background: rgb(var(--bg-card-rgb));
+    color: rgb(var(--text-faint-rgb));
   }
 
   .icon-medallion {
@@ -1189,7 +1509,9 @@
   }
 
   .brand-mark {
-    @apply relative flex items-center justify-center rounded-full border border-accent-gold/35 bg-black text-accent-gold;
+    /* bg-background, not bg-black: on the light theme a hardcoded black disc
+       is a hole in the corner of the sidebar. */
+    @apply relative flex items-center justify-center rounded-full border border-accent-gold/35 bg-background text-accent-gold;
     box-shadow: inset 0 0 0 1px rgb(var(--accent-gold-rgb) / 0.08);
   }
 
@@ -1207,26 +1529,13 @@
     background: linear-gradient(90deg, transparent, rgb(var(--accent-gold-rgb) / 0.5), rgb(var(--accent-emerald-rgb) / 0.24), transparent);
   }
 
+  /* The Dashboard's second hero. Reduced to a value step: it used to carry its
+     own gold border, two radial glows, an inset highlight and a 34px argyle
+     texture, competing with the real hero directly above it — and two heroes
+     means neither is one. The real hero has a key light with a direction; this
+     panel does not need to invent another. */
   .salafi-dashboard-hero {
-    border: 1px solid rgb(var(--accent-gold-rgb) / 0.2);
-    background:
-      radial-gradient(circle at 12% 12%, rgb(var(--accent-gold-rgb) / 0.15), transparent 18rem),
-      radial-gradient(circle at 88% 0%, rgb(var(--accent-emerald-rgb) / 0.11), transparent 22rem),
-      linear-gradient(135deg, rgb(var(--bg-card-rgb) / 0.98), rgb(var(--bg-main-rgb) / 0.98));
-    box-shadow: inset 0 1px 0 rgb(var(--accent-gold-rgb) / 0.07);
-  }
-
-  .salafi-dashboard-hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: 0.18;
-    pointer-events: none;
-    background-image:
-      linear-gradient(45deg, rgb(var(--accent-gold-rgb) / 0.12) 25%, transparent 25%, transparent 75%, rgb(var(--accent-gold-rgb) / 0.12) 75%),
-      linear-gradient(-45deg, rgb(var(--accent-emerald-rgb) / 0.08) 25%, transparent 25%, transparent 75%, rgb(var(--accent-emerald-rgb) / 0.08) 75%);
-    background-size: 34px 34px;
-    background-position: 0 0, 17px 17px;
+    background: rgb(var(--bg-card-rgb) / 0.55);
   }
 
   .download-batch-card {
@@ -1240,5 +1549,29 @@
   .media-badge {
     @apply rounded-md border border-white/10 bg-black/70 px-1.5 py-0.5 text-[11px] font-medium text-white;
     box-shadow: inset 0 1px 0 rgb(var(--text-main-rgb) / 0.08);
+  }
+}
+
+/* ── Reduced motion ───────────────────────────────────────────────────────
+   The brief requires motion to be REMOVED under prefers-reduced-motion, not
+   shortened. The per-component rules above only cover the transitions declared
+   in this file; the components carry ~70 Tailwind `transition-*` utilities that
+   nothing here reached. This is deliberately outside @layer and uses
+   !important so it wins over utilities regardless of source order.
+
+   Animations are collapsed rather than set to `none`: `animation: none` on a
+   spinner would drop it back to its unrotated frame mid-cycle, whereas a single
+   0.01ms iteration leaves it visible and simply static. Purely decorative
+   pulses stop the same way. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
   }
 }

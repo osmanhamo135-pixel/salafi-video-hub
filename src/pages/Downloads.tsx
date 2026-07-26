@@ -8,6 +8,7 @@ import {
   Download,
   FileVideo,
   FolderOpen,
+  FolderSearch,
   Layers,
   Link,
   Loader2,
@@ -132,143 +133,121 @@ export const Downloads: React.FC = () => {
   return (
     <div className="page-container">
       <div className="content-max-width">
-        <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <div className="premium-pill mb-2">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              {t('localOnlyIslamicLibrary')}
-            </div>
-            <h1 className="text-3xl font-semibold tracking-normal text-text-primary">{t('downloadsTitle')}</h1>
-            <p className="mt-1 max-w-2xl text-sm text-muted-text">{t('downloadsSubtitle')}</p>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs">
-              {['YouTube', 'TikTok', 'Instagram Reels', 'X / Twitter'].map((platform) => (
-                <span key={platform} className="rounded-md border border-primary-blue/20 bg-primary-blue/10 px-2.5 py-1 text-primary-blue">
-                  {platform}
-                </span>
-              ))}
-            </div>
+        <div className="mb-6">
+          <div className="premium-pill mb-2">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            {t('localOnlyIslamicLibrary')}
           </div>
+          <h1 className="text-3xl font-semibold tracking-normal text-text-primary">{t('downloadsTitle')}</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-text">{t('downloadsSubtitle')}</p>
+          {/* The supported platforms are a caption, not four badges: they are
+              information about the field below, and never a call to action. */}
+          <p className="mt-2 text-xs text-muted-text">
+            {/* <bdi>, not dir="ltr": the list renders left-to-right but still
+                sits at the start of the line on the Arabic layout. */}
+            <bdi>YouTube · TikTok · Instagram Reels · X / Twitter</bdi>
+          </p>
         </div>
 
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <section className="premium-surface ornate-corner relative overflow-hidden rounded-lg p-5">
-            <div className="gold-thread absolute inset-x-5 top-0" />
-            <div className="space-y-5">
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-muted-text">{t('youtubeUrl')}</label>
-                <div className="relative">
-                  <Link className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
-                  <input
-                    type="url"
-                    value={url}
-                    onChange={(event) => setUrl(event.target.value)}
-                    placeholder={t('youtubeUrlPlaceholder')}
-                    className="surface-input w-full py-2.5 ps-10"
-                    dir="ltr"
-                  />
-                </div>
-              </div>
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <section>
+            <div className="space-y-1">
+              <Field label={t('youtubeUrl')} icon={Link}>
+                <input
+                  type="url"
+                  value={url}
+                  onChange={(event) => setUrl(event.target.value)}
+                  placeholder={t('youtubeUrlPlaceholder')}
+                  className="field-quiet ps-6 text-sm"
+                  dir="auto"
+                />
+              </Field>
 
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-muted-text">{t('downloadFolder')}</label>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <input
-                    type="text"
-                    value={outputDir}
-                    onChange={(event) => setOutputDir(event.target.value)}
-                    placeholder={t('defaultDownloadsFolder')}
-                    className="surface-input min-w-0 flex-1"
-                  />
-                  <button type="button" onClick={handleChooseFolder} className="btn-secondary px-3 py-2">
-                    <FolderOpen className="h-4 w-4" />
-                    {t('chooseFolder')}
-                  </button>
-                </div>
-              </div>
+              <Field label={t('downloadFolder')} icon={FolderOpen} action={
+                <button type="button" onClick={handleChooseFolder} className="icon-btn shrink-0" title={t('chooseFolder')} aria-label={t('chooseFolder')}>
+                  <FolderSearch className="h-4 w-4" />
+                </button>
+              }>
+                <input
+                  type="text"
+                  value={outputDir}
+                  onChange={(event) => setOutputDir(event.target.value)}
+                  placeholder={t('defaultDownloadsFolder')}
+                  className="field-quiet ps-6 text-sm"
+                  dir="auto"
+                />
+              </Field>
 
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-muted-text">{t('accountAccess')}</label>
-                <div className="relative">
-                  <Cookie className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
-                  <select
-                    value={cookieMode}
-                    onChange={(event) => setCookieMode(event.target.value as CookieMode)}
-                    className="surface-input w-full py-2.5 ps-10"
-                  >
-                    {cookieModeOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {t(option.labelKey)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <p className="mt-1.5 flex items-start gap-1.5 text-[11px] text-muted-text">
-                  <ShieldCheck className="mt-0.5 h-3 w-3 shrink-0 text-accent-gold" />
-                  {t('accountAccessHint')}
-                </p>
+              <Field label={t('accountAccess')} icon={Cookie} hint={t('accountAccessHint')}>
+                <select
+                  value={cookieMode}
+                  onChange={(event) => setCookieMode(event.target.value as CookieMode)}
+                  className="field-quiet ps-6 text-sm"
+                >
+                  {cookieModeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {t(option.labelKey)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
 
-                {cookieMode === 'file' && (
-                  <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                    <div className="relative min-w-0 flex-1">
-                      <Cookie className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
-                      <input
-                        type="text"
-                        value={cookiesPath}
-                        onChange={(event) => setCookiesPath(event.target.value)}
-                        placeholder={t('noCookiesSet')}
-                        className="surface-input w-full py-2.5 ps-10"
-                        dir="ltr"
-                      />
-                    </div>
-                    <button type="button" onClick={handleChooseCookies} className="btn-secondary px-3 py-2">
-                      <Cookie className="h-4 w-4" />
-                      {t('chooseCookiesFile')}
+              {cookieMode === 'file' && (
+                <Field label={t('cookiesFile')} icon={Cookie} action={
+                  <>
+                    <button type="button" onClick={handleChooseCookies} className="icon-btn shrink-0" title={t('chooseCookiesFile')} aria-label={t('chooseCookiesFile')}>
+                      <FolderSearch className="h-4 w-4" />
                     </button>
                     {cookiesPath && (
-                      <button type="button" onClick={() => setCookiesPath('')} className="btn-ghost px-3 py-2">
-                        {t('clear')}
+                      <button type="button" onClick={() => setCookiesPath('')} className="icon-btn shrink-0" title={t('clear')} aria-label={t('clear')}>
+                        <X className="h-4 w-4" />
                       </button>
                     )}
-                  </div>
-                )}
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-muted-text">{t('quality')}</label>
-                  <select
-                    value={quality}
-                    onChange={(event) => setQuality(event.target.value as DownloadQuality)}
-                    disabled={audioOnly}
-                    className="surface-input w-full"
-                  >
-                    {qualityOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {t(option.labelKey)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid gap-2">
-                  <ToggleRow
-                    icon={Music}
-                    label={t('audioOnly')}
-                    checked={audioOnly}
-                    onChange={(checked) => {
-                      setAudioOnly(checked);
-                      if (checked) setImportAfterDownload(false);
-                    }}
+                  </>
+                }>
+                  <input
+                    type="text"
+                    value={cookiesPath}
+                    onChange={(event) => setCookiesPath(event.target.value)}
+                    placeholder={t('noCookiesSet')}
+                    className="field-quiet ps-6 text-sm"
+                    dir="auto"
                   />
-                  <ToggleRow
-                    icon={Smartphone}
-                    label={t('downloadPlaylist')}
-                    checked={downloadPlaylist}
-                    onChange={setDownloadPlaylist}
-                  />
-                </div>
-              </div>
+                </Field>
+              )}
 
+              <Field label={t('quality')} icon={FileVideo}>
+                <select
+                  value={quality}
+                  onChange={(event) => setQuality(event.target.value as DownloadQuality)}
+                  disabled={audioOnly}
+                  className="field-quiet ps-6 text-sm disabled:opacity-55"
+                >
+                  {qualityOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {t(option.labelKey)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+
+            <div className="rule-list mt-5">
+              <ToggleRow
+                icon={Music}
+                label={t('audioOnly')}
+                checked={audioOnly}
+                onChange={(checked) => {
+                  setAudioOnly(checked);
+                  if (checked) setImportAfterDownload(false);
+                }}
+              />
+              <ToggleRow
+                icon={Smartphone}
+                label={t('downloadPlaylist')}
+                checked={downloadPlaylist}
+                onChange={setDownloadPlaylist}
+              />
               <ToggleRow
                 icon={Download}
                 label={audioOnly ? t('audioOnlyImportNote') : t('importAfterDownload')}
@@ -276,86 +255,94 @@ export const Downloads: React.FC = () => {
                 disabled={audioOnly}
                 onChange={setImportAfterDownload}
               />
-
-              <button
-                type="button"
-                onClick={handleStart}
-                disabled={!canDownload}
-                className="btn-primary w-full justify-center py-3"
-              >
-                {isWorking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                {isWorking ? t('downloading') : t('startDownload')}
-              </button>
             </div>
+
+            <button
+              type="button"
+              onClick={handleStart}
+              disabled={!canDownload}
+              className="btn-primary mt-6 w-full justify-center py-3"
+            >
+              {isWorking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {isWorking ? t('downloading') : t('startDownload')}
+            </button>
           </section>
 
-          <aside className="premium-surface rounded-lg p-5">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="icon-medallion h-10 w-10">
-                {stage === 'finished' ? (
-                  <CheckCircle2 className="h-5 w-5 text-success-green" />
-                ) : stage === 'error' ? (
-                  <AlertTriangle className="h-5 w-5 text-warning-orange" />
-                ) : (
-                  <Download className="h-5 w-5 text-primary-blue" />
-                )}
-              </div>
+          <aside className="border-border xl:border-s xl:ps-6">
+            <div className="rule-head">
+              <span className="text-xs font-semibold text-text-primary">{t('progress')}</span>
+              <span className="text-[11px] tabular-nums text-muted-text"><bdi>{percent}%</bdi></span>
+            </div>
+
+            <div className="mt-3 flex items-start gap-2.5">
+              {stage === 'finished' ? (
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-text" />
+              ) : stage === 'error' ? (
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning-orange" />
+              ) : (
+                <Download className="mt-0.5 h-4 w-4 shrink-0 text-muted-text" />
+              )}
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-text-primary">{statusMessage}</p>
-                <p className="text-xs text-muted-text">{outputDir || t('defaultDownloadsFolder')}</p>
+                <p className="text-sm text-text-primary" dir="auto">{statusMessage}</p>
+                <p className="truncate text-xs text-muted-text" dir="auto" title={outputDir}>
+                  {outputDir || t('defaultDownloadsFolder')}
+                </p>
               </div>
             </div>
 
-            <div className="h-2 overflow-hidden rounded-full bg-background">
+            {/* One warm accent, drawn from the theme token, over a value step of
+                the same hue — no second colour and no shadow. */}
+            <div className="mt-3 h-1 overflow-hidden rounded-full bg-accent-gold/15">
               <div
-                className="h-full rounded-full bg-primary-blue transition-all"
+                className="h-full rounded-full bg-accent-gold transition-all motion-reduce:transition-none"
                 style={{ width: `${Math.min(Math.max(percent, 0), 100)}%` }}
               />
             </div>
-            <p className="mt-2 text-end text-xs tabular-nums text-muted-text">{percent}%</p>
 
             {error && (
-              <div className="mt-4 whitespace-pre-wrap rounded-md border border-danger-red/25 bg-danger-red/10 p-3 text-xs text-danger-red">
-                {error}
-              </div>
+              <p className="mt-4 whitespace-pre-wrap text-xs text-danger-red" dir="auto">{error}</p>
             )}
 
             {result && (
-              <div className="mt-5 space-y-3">
+              <div className="mt-5 space-y-4">
                 <DownloadBatchCard result={result} />
 
                 <div>
-                  <p className="text-xs font-medium text-muted-text">{t('downloadedTo')}</p>
-                  <p className="mt-1 break-all text-xs text-text-primary" dir="ltr">{result.outputDir}</p>
+                  <p className="text-xs text-muted-text">{t('downloadedTo')}</p>
+                  <p className="mt-1 break-all text-xs text-text-primary" dir="auto">{result.outputDir}</p>
                 </div>
 
-                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                   <button
                     type="button"
                     onClick={handleOpenDownloadFolder}
-                    className="btn-secondary w-full justify-center px-3 py-2 text-xs"
+                    className="inline-flex items-center gap-1.5 py-1 text-xs font-medium text-muted-text transition-colors hover:text-text-primary motion-reduce:transition-none"
                   >
-                    <FolderOpen className="h-4 w-4" />
+                    <FolderOpen className="h-3.5 w-3.5" />
                     {t('openDownloadFolder')}
                   </button>
                   <button
                     type="button"
                     onClick={resetCompleted}
-                    className="btn-ghost w-full justify-center border border-border px-3 py-2 text-xs"
+                    className="inline-flex items-center gap-1.5 py-1 text-xs font-medium text-muted-text transition-colors hover:text-text-primary motion-reduce:transition-none"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-3.5 w-3.5" />
                     {t('clearNow')}
                   </button>
                 </div>
 
                 {result.importResult && (
-                  <div className="rounded-md border border-success-green/25 bg-success-green/10 p-3 text-xs text-success-green">
-                    {t('importFolder')}: {result.importResult.imported_count} / {t('skipped')}: {result.importResult.skipped_count} / {t('failed')}: {result.importResult.failed_count}
-                  </div>
+                  <p className="text-xs text-muted-text">
+                    <bdi>{t('importFolder')}: {result.importResult.imported_count}</bdi>
+                    {' · '}
+                    <bdi>{t('skipped')}: {result.importResult.skipped_count}</bdi>
+                    {' · '}
+                    <bdi>{t('failed')}: {result.importResult.failed_count}</bdi>
+                  </p>
                 )}
 
                 {stage === 'finished' && (
-                  <p className="text-center text-[11px] text-muted-text">{t('clearsAutomatically')}</p>
+                  <p className="text-[11px] text-muted-text">{t('clearsAutomatically')}</p>
                 )}
               </div>
             )}
@@ -365,6 +352,27 @@ export const Downloads: React.FC = () => {
     </div>
   );
 };
+
+/** A labelled control sitting on a baseline rule — never a boxed input. */
+const Field: React.FC<{
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  hint?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ label, icon: Icon, hint, action, children }) => (
+  <div className="py-1.5">
+    <label className="mb-0.5 block text-xs font-medium text-muted-text">{label}</label>
+    <div className="flex items-center gap-1">
+      <div className="relative min-w-0 flex-1">
+        <Icon className="pointer-events-none absolute start-0 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
+        {children}
+      </div>
+      {action}
+    </div>
+    {hint && <p className="mt-1 text-[11px] text-muted-text">{hint}</p>}
+  </div>
+);
 
 const DownloadBatchCard: React.FC<{
   result: {
@@ -380,35 +388,37 @@ const DownloadBatchCard: React.FC<{
   const remaining = Math.max(result.downloadedFiles.length - 1, 0);
 
   return (
-    <div className="download-batch-card overflow-hidden rounded-lg border border-accent-gold/25 bg-background/55">
+    <div className="premium-card overflow-hidden rounded-lg">
       <div className="relative aspect-video bg-elevated-panel">
         <LocalThumbnail
           path={result.previewThumbnailPath}
           label={primaryName}
           className="h-full w-full object-cover"
-          iconClassName="h-8 w-8 text-accent-gold/80"
+          iconClassName="h-8 w-8 text-muted-text"
           fallbackClassName="thumbnail-fallback"
         />
+        {/* A scrim over a thumbnail is theme-independent by nature: it darkens
+            whatever image is underneath so the badge stays readable. */}
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/85 to-transparent" />
-        <div className="media-badge absolute bottom-3 left-3 flex items-center gap-1.5">
+        <div className="media-badge absolute bottom-3 start-3 flex items-center gap-1.5">
           <Layers className="h-3.5 w-3.5" />
-          {result.downloadedFiles.length} {t('filesSaved')}
+          <bdi>{result.downloadedFiles.length} {t('filesSaved')}</bdi>
         </div>
       </div>
       <div className="p-3">
         <div className="mb-2 flex items-center gap-2 text-xs text-muted-text">
-          <FileVideo className="h-4 w-4 text-primary-blue" />
+          <FileVideo className="h-4 w-4" />
           <span>{t('savedMediaBatch')}</span>
         </div>
-        <p className="truncate text-sm font-semibold text-text-primary" title={primaryName}>
+        <p className="truncate text-sm font-medium text-text-primary" title={primaryName} dir="auto">
           {primaryName}
         </p>
-        <p className="mt-1 truncate text-xs text-muted-text" title={parentName}>
+        <p className="mt-1 truncate text-xs text-muted-text" title={parentName} dir="auto">
           {t('primaryDownload')} / {parentName}
         </p>
         {remaining > 0 && (
-          <p className="mt-2 text-xs text-accent-gold">
-            +{remaining} {t('moreFiles')}
+          <p className="mt-2 text-xs text-muted-text">
+            <bdi>+{remaining} {t('moreFiles')}</bdi>
           </p>
         )}
       </div>
@@ -434,19 +444,32 @@ const ToggleRow: React.FC<{
   disabled?: boolean;
   onChange: (checked: boolean) => void;
 }> = ({ icon: Icon, label, checked, disabled, onChange }) => (
-  <label className={`flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2.5 text-sm ${disabled ? 'opacity-55' : ''}`}>
-    <span className="flex min-w-0 items-center gap-2 text-text-primary">
-      <Icon className="h-4 w-4 shrink-0 text-primary-blue" />
-      <span className="truncate">{label}</span>
+  <div className={`rule-row justify-between text-sm ${disabled ? 'opacity-55' : ''}`}>
+    <span className="flex min-w-0 items-center gap-2.5 text-text-primary" id={`dl-${label}`}>
+      <Icon className="h-4 w-4 shrink-0 text-muted-text" />
+      <span className="truncate" dir="auto">{label}</span>
     </span>
-    <input
-      type="checkbox"
-      checked={checked}
+    {/* The same switch the rest of the app uses. A native checkbox painted its
+        unchecked box in the platform's white, which is a hardcoded colour that
+        ignores the theme entirely. */}
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-labelledby={`dl-${label}`}
       disabled={disabled}
-      onChange={(event) => onChange(event.target.checked)}
-      className="h-4 w-4 accent-primary-blue"
-    />
-  </label>
+      onClick={() => onChange(!checked)}
+      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors motion-reduce:transition-none ${
+        checked ? 'bg-accent-gold' : 'bg-border-strong'
+      } ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+    >
+      <span
+        className={`pointer-events-none absolute start-0.5 top-0.5 inline-block h-5 w-5 rounded-full transition-transform motion-reduce:transition-none ${
+          checked ? 'translate-x-5 bg-background rtl:-translate-x-5' : 'translate-x-0 bg-muted-text'
+        }`}
+      />
+    </button>
+  </div>
 );
 
 // Mirrors `looks_like_collection_url` in the Rust downloader. A `list=` beside a

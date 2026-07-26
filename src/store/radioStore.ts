@@ -150,7 +150,11 @@ export const useRadioStore = create<RadioState>((set, get) => ({
   retry: () => {
     const { current } = get();
     if (!current) return;
-    // Re-set the same station; the player element reloads the stream.
+    // Re-set the same station under a new object identity. This does NOT
+    // remount the <audio> (its key `${id}-${url}` is unchanged), it only
+    // re-runs the player's play effect — which is where the failed element is
+    // reloaded. Without that reload the element keeps its MediaError and retry
+    // can never recover.
     set({ playing: true, playbackError: false, current: { ...current } });
   },
 
