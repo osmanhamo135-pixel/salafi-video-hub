@@ -1,4 +1,4 @@
-use crate::db::DbState;
+use crate::db::{lock_conn, DbState};
 use crate::models::settings::Settings;
 use rusqlite::{params, Result, Row};
 use serde_json;
@@ -41,14 +41,9 @@ fn row_to_settings(row: &Row) -> Result<Settings> {
         },
         performance_mode: row.get::<_, i64>(9)? != 0,
         reminder_sound_path: row.get(10)?,
-        reminder_volume: {
-            let volume: f64 = row.get(11)?;
-            if volume <= 1.0 {
-                volume * 100.0
-            } else {
-                volume
-            }
-        },
+        // Stored strictly as 0-100; legacy 0-1 rows are converted once by
+        // `migrate_volumes_to_percent`, so no scale guessing here.
+        reminder_volume: row.get(11)?,
         run_in_tray: row.get::<_, i64>(12)? != 0,
         last_opened_playlist_id: row.get(13)?,
         last_played_video_id: row.get(14)?,
@@ -56,7 +51,7 @@ fn row_to_settings(row: &Row) -> Result<Settings> {
 }
 
 pub fn get_settings(db: &DbState) -> Result<Settings> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let mut stmt = conn.prepare(
         "SELECT id, language, theme, imported_folders, thumbnail_cache_path, ffmpeg_path,
             ffprobe_path, ffmpeg_status, automatic_thumbnails_mode, performance_mode,
@@ -80,7 +75,7 @@ pub fn get_settings(db: &DbState) -> Result<Settings> {
 }
 
 pub fn update_settings(db: &DbState, settings: &Settings) -> Result<()> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let folders_json = serde_json::to_string(&settings.imported_folders).unwrap_or_default();
 
     conn.execute(

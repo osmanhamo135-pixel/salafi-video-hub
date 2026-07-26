@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { getVersion } from '@tauri-apps/api/app';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -132,10 +132,16 @@ export const Settings: React.FC = () => {
   const [testingSound, setTestingSound] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  // Each toast owns the dismissal. Without cancelling the previous timer the
+  // first one's 3s deadline dismissed the second toast early.
+  const toastTimerRef = useRef(0);
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
-    window.setTimeout(() => setToast(null), 3000);
+    window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 3000);
   }, []);
+
+  useEffect(() => () => window.clearTimeout(toastTimerRef.current), []);
 
   useEffect(() => {
     loadSettings();

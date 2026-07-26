@@ -87,8 +87,20 @@ const setThumbnailGenerationPaused = (paused: boolean) => {
     return;
   }
 
+  // The resume matters more than the pause: the worker holds the global
+  // thumbnail job lock while paused, so a dropped resume stalls every future
+  // batch. Retry a few times before giving up (the backend also stops honouring
+  // a stale pause after five minutes, as a last resort).
   thumbnailResumeTimer = setTimeout(() => {
-    invoke('set_thumbnail_generation_paused', { paused: false }).catch(console.error);
+    const resume = (attemptsLeft: number) => {
+      invoke('set_thumbnail_generation_paused', { paused: false }).catch((error) => {
+        console.error('Failed to resume thumbnail generation:', error);
+        if (attemptsLeft > 0) {
+          thumbnailResumeTimer = setTimeout(() => resume(attemptsLeft - 1), 2000);
+        }
+      });
+    };
+    resume(3);
   }, 1500);
 };
 

@@ -1,4 +1,4 @@
-use crate::db::DbState;
+use crate::db::{lock_conn, DbState};
 use crate::models::playlist::Playlist;
 use rusqlite::{params, Result, Row};
 use serde_json;
@@ -23,7 +23,7 @@ fn row_to_playlist(row: &Row) -> Result<Playlist> {
 }
 
 pub fn insert_playlist(db: &DbState, playlist: &Playlist) -> Result<()> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let video_ids_json = serde_json::to_string(&playlist.video_ids).unwrap_or_default();
 
     conn.execute(
@@ -50,7 +50,7 @@ pub fn insert_playlist(db: &DbState, playlist: &Playlist) -> Result<()> {
 }
 
 pub fn get_playlist_by_id(db: &DbState, id: &str) -> Result<Option<Playlist>> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let mut stmt = conn.prepare("SELECT * FROM playlists WHERE id = ?1")?;
     let mut rows = stmt.query(params![id])?;
 
@@ -62,7 +62,7 @@ pub fn get_playlist_by_id(db: &DbState, id: &str) -> Result<Option<Playlist>> {
 }
 
 pub fn get_playlist_by_folder(db: &DbState, folder_path: &str) -> Result<Option<Playlist>> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let mut stmt = conn.prepare("SELECT * FROM playlists WHERE folder_path = ?1")?;
     let mut rows = stmt.query(params![folder_path])?;
 
@@ -74,20 +74,20 @@ pub fn get_playlist_by_folder(db: &DbState, folder_path: &str) -> Result<Option<
 }
 
 pub fn get_all_playlists(db: &DbState) -> Result<Vec<Playlist>> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let mut stmt = conn.prepare("SELECT * FROM playlists ORDER BY name")?;
     let rows = stmt.query_map([], row_to_playlist)?;
     rows.collect()
 }
 
 pub fn delete_playlist(db: &DbState, id: &str) -> Result<()> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     conn.execute("DELETE FROM playlists WHERE id = ?1", params![id])?;
     Ok(())
 }
 
 pub fn update_playlist(db: &DbState, playlist: &Playlist) -> Result<()> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let video_ids_json = serde_json::to_string(&playlist.video_ids).unwrap_or_default();
 
     conn.execute(
@@ -171,7 +171,7 @@ pub fn refresh_progress_for_video(db: &DbState, video_id: &str) -> Result<()> {
 }
 
 pub fn search_playlists(db: &DbState, query: &str) -> Result<Vec<Playlist>> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let pattern = format!("%{}%", query);
     let mut stmt = conn.prepare(
         "SELECT * FROM playlists WHERE name LIKE ?1 OR folder_path LIKE ?1 OR category LIKE ?1 ORDER BY name"
@@ -181,7 +181,7 @@ pub fn search_playlists(db: &DbState, query: &str) -> Result<Vec<Playlist>> {
 }
 
 pub fn get_playlist_stats(db: &DbState) -> Result<(i64, i64, i64, i64, i64)> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let playlist_count: i64 =
         conn.query_row("SELECT COUNT(*) FROM playlists", [], |row| row.get(0))?;
     let video_count: i64 = conn.query_row("SELECT COUNT(*) FROM videos", [], |row| row.get(0))?;

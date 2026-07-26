@@ -1,4 +1,4 @@
-use crate::db::DbState;
+use crate::db::{lock_conn, DbState};
 use crate::models::video::Video;
 use rusqlite::{params, params_from_iter, Result, Row};
 
@@ -32,7 +32,7 @@ fn row_to_video(row: &Row) -> Result<Video> {
 }
 
 pub fn insert_video(db: &DbState, video: &Video) -> Result<()> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     conn.execute(
         "INSERT OR IGNORE INTO videos (
             id, title, file_path, folder_path, file_name, extension,
@@ -55,7 +55,7 @@ pub fn insert_video(db: &DbState, video: &Video) -> Result<()> {
 }
 
 pub fn update_video(db: &DbState, video: &Video) -> Result<()> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     conn.execute(
         "UPDATE videos SET
             title = ?1, file_path = ?2, folder_path = ?3, file_name = ?4,
@@ -96,7 +96,7 @@ pub fn update_video(db: &DbState, video: &Video) -> Result<()> {
 }
 
 pub fn get_video_by_id(db: &DbState, id: &str) -> Result<Option<Video>> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let mut stmt = conn.prepare("SELECT * FROM videos WHERE id = ?1")?;
     let mut rows = stmt.query(params![id])?;
 
@@ -108,7 +108,7 @@ pub fn get_video_by_id(db: &DbState, id: &str) -> Result<Option<Video>> {
 }
 
 pub fn get_video_by_path(db: &DbState, file_path: &str) -> Result<Option<Video>> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let mut stmt = conn.prepare("SELECT * FROM videos WHERE file_path = ?1")?;
     let mut rows = stmt.query(params![file_path])?;
 
@@ -120,7 +120,7 @@ pub fn get_video_by_path(db: &DbState, file_path: &str) -> Result<Option<Video>>
 }
 
 pub fn get_videos_by_folder(db: &DbState, folder_path: &str) -> Result<Vec<Video>> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let mut stmt =
         conn.prepare("SELECT * FROM videos WHERE folder_path = ?1 ORDER BY file_name")?;
     let rows = stmt.query_map(params![folder_path], row_to_video)?;
@@ -128,7 +128,7 @@ pub fn get_videos_by_folder(db: &DbState, folder_path: &str) -> Result<Vec<Video
 }
 
 pub fn get_all_videos(db: &DbState) -> Result<Vec<Video>> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let mut stmt = conn.prepare("SELECT * FROM videos ORDER BY title")?;
     let rows = stmt.query_map([], row_to_video)?;
     rows.collect()
@@ -150,7 +150,7 @@ pub fn get_videos_by_ids(db: &DbState, ids: &[String]) -> Result<Vec<Video>> {
         return Ok(Vec::new());
     }
 
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let placeholders = std::iter::repeat("?")
         .take(unique_ids.len())
         .collect::<Vec<_>>()
@@ -165,12 +165,19 @@ pub fn get_videos_by_ids(db: &DbState, ids: &[String]) -> Result<Vec<Video>> {
 }
 
 pub fn search_videos(db: &DbState, query: &str) -> Result<Vec<Video>> {
-    let conn = db.lock().unwrap();
-    let pattern = format!("%{}%", query);
+    let conn = lock_conn(db);
+    // `%` and `_` are LIKE wildcards, so a title containing either matched far
+    // more than the user typed. Escape them and declare the escape character.
+    let escaped = query
+        .replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_");
+    let pattern = format!("%{}%", escaped);
     let mut stmt = conn.prepare(
         "SELECT * FROM videos WHERE 
-            title LIKE ?1 OR file_name LIKE ?1 OR category LIKE ?1 
-            OR speaker LIKE ?1 OR folder_path LIKE ?1
+            title LIKE ?1 ESCAPE '\\' OR file_name LIKE ?1 ESCAPE '\\'
+            OR category LIKE ?1 ESCAPE '\\' OR speaker LIKE ?1 ESCAPE '\\'
+            OR folder_path LIKE ?1 ESCAPE '\\'
         ORDER BY title",
     )?;
     let rows = stmt.query_map(params![pattern], row_to_video)?;
@@ -178,7 +185,7 @@ pub fn search_videos(db: &DbState, query: &str) -> Result<Vec<Video>> {
 }
 
 pub fn update_video_progress(db: &DbState, id: &str, progress: i64, completed: bool) -> Result<()> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let now = chrono::Utc::now().timestamp_millis();
     conn.execute(
         "UPDATE videos SET progress_seconds = ?1, completed = ?2, last_played_at = ?3, updated_at = ?4 WHERE id = ?5",
@@ -188,7 +195,7 @@ pub fn update_video_progress(db: &DbState, id: &str, progress: i64, completed: b
 }
 
 pub fn update_video_favorite(db: &DbState, id: &str, favorite: bool) -> Result<()> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let now = chrono::Utc::now().timestamp_millis();
     conn.execute(
         "UPDATE videos SET favorite = ?1, updated_at = ?2 WHERE id = ?3",
@@ -198,7 +205,7 @@ pub fn update_video_favorite(db: &DbState, id: &str, favorite: bool) -> Result<(
 }
 
 pub fn update_video_watch_later(db: &DbState, id: &str, watch_later: bool) -> Result<()> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let now = chrono::Utc::now().timestamp_millis();
     conn.execute(
         "UPDATE videos SET watch_later = ?1, updated_at = ?2 WHERE id = ?3",
@@ -208,13 +215,13 @@ pub fn update_video_watch_later(db: &DbState, id: &str, watch_later: bool) -> Re
 }
 
 pub fn delete_video(db: &DbState, id: &str) -> Result<()> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     conn.execute("DELETE FROM videos WHERE id = ?1", params![id])?;
     Ok(())
 }
 
 pub fn delete_videos_by_folder(db: &DbState, folder_path: &str) -> Result<usize> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     conn.execute(
         "DELETE FROM videos WHERE folder_path = ?1",
         params![folder_path],
@@ -222,7 +229,7 @@ pub fn delete_videos_by_folder(db: &DbState, folder_path: &str) -> Result<usize>
 }
 
 pub fn get_continue_watching(db: &DbState, limit: i64) -> Result<Vec<Video>> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let mut stmt = conn.prepare(
         "SELECT * FROM videos WHERE progress_seconds > 0 AND completed = 0 
         ORDER BY last_played_at DESC LIMIT ?1",
@@ -232,20 +239,20 @@ pub fn get_continue_watching(db: &DbState, limit: i64) -> Result<Vec<Video>> {
 }
 
 pub fn get_recently_added(db: &DbState, limit: i64) -> Result<Vec<Video>> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let mut stmt = conn.prepare("SELECT * FROM videos ORDER BY created_at DESC LIMIT ?1")?;
     let rows = stmt.query_map(params![limit], row_to_video)?;
     rows.collect()
 }
 
 pub fn get_video_count(db: &DbState) -> Result<i64> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let count: i64 = conn.query_row("SELECT COUNT(*) FROM videos", [], |row| row.get(0))?;
     Ok(count)
 }
 
 pub fn get_completed_count(db: &DbState) -> Result<i64> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let count: i64 = conn.query_row(
         "SELECT COUNT(*) FROM videos WHERE completed = 1",
         [],
@@ -255,7 +262,7 @@ pub fn get_completed_count(db: &DbState) -> Result<i64> {
 }
 
 pub fn get_total_duration(db: &DbState) -> Result<i64> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
     let total: i64 = conn.query_row(
         "SELECT COALESCE(SUM(duration_seconds), 0) FROM videos",
         [],

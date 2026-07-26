@@ -1,3 +1,4 @@
+use crate::db::lock_conn;
 use rusqlite::{Connection, Result};
 use std::sync::{Arc, Mutex};
 use tauri::AppHandle;
@@ -15,7 +16,7 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DbState> {
 }
 
 pub fn create_tables(db: &DbState) -> Result<()> {
-    let conn = db.lock().unwrap();
+    let conn = lock_conn(db);
 
     conn.execute_batch(
         "BEGIN;

@@ -1,7 +1,8 @@
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use hex;
 use serde::Serialize;
@@ -16,6 +17,9 @@ use crate::utils::process::hidden_command;
 
 static THUMBNAIL_JOB_LOCK: Mutex<()> = Mutex::new(());
 static THUMBNAIL_PAUSED: AtomicBool = AtomicBool::new(false);
+
+/// How long the worker will honour a pause before assuming the resume was lost.
+const MAX_PAUSE_WAIT: Duration = Duration::from_secs(5 * 60);
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ThumbnailBatchResult {
@@ -198,7 +202,18 @@ pub fn generate_thumbnails_for_ids(
     }
 
     for video_id in unique_video_ids {
+        // The pause is a courtesy to video playback, and it is held while this
+        // worker owns the global job lock. The resume is a fire-and-forget
+        // invoke on the frontend whose failure is only logged, so waiting
+        // forever meant one lost call wedged the worker — and every future
+        // batch — for the rest of the process, with the progress bar stuck.
+        // Outliving a stale pause is better than never finishing.
+        let paused_since = Instant::now();
         while THUMBNAIL_PAUSED.load(Ordering::Relaxed) {
+            if paused_since.elapsed() >= MAX_PAUSE_WAIT {
+                THUMBNAIL_PAUSED.store(false, Ordering::Relaxed);
+                break;
+            }
             thread::sleep(Duration::from_millis(1000));
         }
 
@@ -344,12 +359,23 @@ fn refresh_playlists_containing_video(db: &DbState, video_id: &str) -> Result<()
             continue;
         }
 
-        let mut videos = Vec::with_capacity(playlist.video_ids.len());
-        for id in &playlist.video_ids {
-            if let Some(video) = db::video::get_video_by_id(db, id).map_err(|e| e.to_string())? {
-                videos.push(video);
-            }
-        }
+        // One query for the whole playlist instead of one per video. Each
+        // `get_video_by_id` took the global connection mutex and prepared its
+        // own statement, so a large playlist cost hundreds of round trips —
+        // repeated for every generated thumbnail. On a big import that is
+        // quadratic DB work under the lock, and a very real source of UI freeze.
+        let fetched =
+            db::video::get_videos_by_ids(db, &playlist.video_ids).map_err(|e| e.to_string())?;
+        let mut by_id: HashMap<&str, &Video> = fetched
+            .iter()
+            .map(|video| (video.id.as_str(), video))
+            .collect();
+        // Restored to playlist order: that ordering is what picks the cover.
+        let videos: Vec<&Video> = playlist
+            .video_ids
+            .iter()
+            .filter_map(|id| by_id.remove(id.as_str()))
+            .collect();
 
         playlist.video_count = videos.len() as i64;
         playlist.total_duration_seconds = videos.iter().map(|video| video.duration_seconds).sum();

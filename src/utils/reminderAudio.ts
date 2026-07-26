@@ -131,7 +131,10 @@ const createAudioError = (error: unknown) => {
   return new Error(message || 'Click Test Sound once to allow reminder audio.');
 };
 
+// Volumes are stored and passed around on a 0-100 scale. The old
+// "greater than 1 means percent" guess made a deliberate 1% play at full
+// volume — the one case where guessing wrong is loudest.
 const normalizeVolume = (volume: number) => {
-  const normalized = volume > 1 ? volume / 100 : volume;
-  return Math.max(0, Math.min(1, normalized));
+  if (!Number.isFinite(volume)) return 1;
+  return Math.max(0, Math.min(1, volume / 100));
 };

@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use regex::Regex;
 use serde::Serialize;
@@ -57,11 +58,15 @@ pub fn clean_filename(filename: &str) -> String {
         .and_then(|s| s.to_str())
         .unwrap_or(filename);
 
-    let re = Regex::new(r"[_\-.]+").unwrap();
-    let name = re.replace_all(name, " ");
+    // Compiled once rather than per scanned file — this runs for every file in
+    // an import, and Regex::new is the expensive part.
+    static SEPARATORS: OnceLock<Regex> = OnceLock::new();
+    static WHITESPACE: OnceLock<Regex> = OnceLock::new();
+    let separators = SEPARATORS.get_or_init(|| Regex::new(r"[_\-.]+").unwrap());
+    let whitespace = WHITESPACE.get_or_init(|| Regex::new(r"\s+").unwrap());
 
-    let re = Regex::new(r"\s+").unwrap();
-    let name = re.replace_all(&name, " ");
+    let name = separators.replace_all(name, " ");
+    let name = whitespace.replace_all(&name, " ");
 
     name.trim().to_string()
 }
