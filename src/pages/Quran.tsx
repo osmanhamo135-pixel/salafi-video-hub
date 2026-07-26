@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
+  Bookmark,
   BookMarked,
   BookOpen,
   Check,
@@ -14,6 +15,7 @@ import {
   Plus,
   Repeat,
   Search,
+  Type,
 } from 'lucide-react';
 import {
   AyahTiming,
@@ -24,10 +26,39 @@ import {
   useQuranStore,
 } from '@/store/quranStore';
 import { audioElementHolder, useRadioStore } from '@/store/radioStore';
-import { useI18n } from '@/i18n';
+import { TranslationKey, useI18n } from '@/i18n';
 
 const BASMALA_TEXT = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
 const BASMALA_LIGATURE = '﷽';
+
+/**
+ * Makki / Madani — the one fact a mushaf prints in every surah header and the
+ * list did not carry at all. The store publishes `revelationType` as the API's
+ * own 'meccan' / 'medinan'.
+ */
+const revelationKey = (revelationType: string): TranslationKey =>
+  revelationType?.toLowerCase().startsWith('med') ? 'quranMadani' : 'quranMakki';
+
+/** Al-Baqarah, the longest surah — the scale every length mark is read against. */
+const LONGEST_SURAH_VERSES = 286;
+
+/**
+ * The length mark's width, compressed by a fractional power rather than drawn
+ * linearly.
+ *
+ * Linear, 95 of the 114 surahs sit under a fifth of the bar and every one of
+ * the mufassal reads as the same stub. Square-rooted, the top of the list
+ * flattens instead — An-Nisa and Al-An'am come out within two pixels of each
+ * other. 0.62 is the exponent where both ends stay separable: Al-Baqarah 100,
+ * An-Nisa 74, Yasin 43, Al-Mulk 25, An-Nas 9.
+ */
+const surahLengthPercent = (totalVerses: number) =>
+  Math.max(
+    5,
+    Math.round(
+      Math.pow(Math.min(totalVerses, LONGEST_SURAH_VERSES) / LONGEST_SURAH_VERSES, 0.62) * 100,
+    ),
+  );
 
 type QuranTab = 'read' | 'listen';
 type QuranRepeatMode = 'off' | 'ayah' | 'range' | 'surah';
@@ -110,14 +141,27 @@ const TabButton: React.FC<{
 );
 
 const ReadTab: React.FC = () => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const surahs = useQuranStore((state) => state.surahs);
   const currentSurah = useQuranStore((state) => state.currentSurah);
   const loadingSurah = useQuranStore((state) => state.loadingSurah);
   const lastRead = useQuranStore((state) => state.lastRead);
+  const bookmarks = useQuranStore((state) => state.bookmarks);
   const openSurah = useQuranStore((state) => state.openSurah);
   const [query, setQuery] = useState('');
   const pendingScrollRef = useRef<number | null>(null);
+
+  // Which surahs the reader has marked. Computed once for the whole list rather
+  // than scanned per row: 114 rows x every bookmark is the kind of quiet O(n·m)
+  // that only shows up once somebody has a few hundred bookmarks.
+  const bookmarkedSurahIds = useMemo(
+    () => new Set(bookmarks.map((bookmark) => bookmark.surahId)),
+    [bookmarks],
+  );
+  const lastReadSurah = useMemo(
+    () => (lastRead ? surahs.find((surah) => surah.id === lastRead.surahId) ?? null : null),
+    [lastRead, surahs],
+  );
 
   const normalized = query.trim().toLowerCase();
   const filtered = useMemo(
@@ -161,6 +205,32 @@ const ReadTab: React.FC = () => {
     scrollToVerse(currentSurah.id, verse);
   }, [currentSurah]);
 
+  /**
+   * Keep the open surah visible in the index.
+   *
+   * Resuming at Al-Kahf left the list showing surahs 1–10 with the marked row
+   * eighteen rows below the fold, so the one row the reader most needs to see
+   * was the one row they could not.
+   *
+   * Scrolls `list.scrollTop` directly rather than calling scrollIntoView: that
+   * walks up and scrolls EVERY ancestor scroller, which here includes the page
+   * container — and dragging the whole page because a sidebar row moved is
+   * exactly the kind of thing that fights the reader.
+   */
+  const listRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list || !currentSurah) return;
+    const row = list.querySelector<HTMLElement>('[aria-current="true"]');
+    if (!row) return;
+    const listRect = list.getBoundingClientRect();
+    const rowRect = row.getBoundingClientRect();
+    // Already fully in view: leave it alone. Re-centring a row the reader can
+    // see reads as the list twitching under their hand.
+    if (rowRect.top >= listRect.top && rowRect.bottom <= listRect.bottom) return;
+    list.scrollTop += rowRect.top - listRect.top - (listRect.height - rowRect.height) / 2;
+  }, [currentSurah?.id, filtered.length]);
+
   return (
     <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
       <aside className="flex max-h-[70vh] flex-col overflow-hidden border-border pb-1 xl:border-e xl:pe-5">
@@ -183,20 +253,49 @@ const ReadTab: React.FC = () => {
               className="field-quiet ps-6 text-sm"
             />
           </div>
-          {lastRead && (
+          {/* Resume. This used to be an 11px text link lost between the search
+              field and the list; it is the single most-used thing on the page
+              for anyone reading through a long surah, so it now names where
+              they were and reads as the first row of the list. */}
+          {lastRead && lastReadSurah && (
             <button
               type="button"
               onClick={handleContinue}
-              className="mt-2 inline-flex items-center gap-1.5 py-1 text-[11px] font-medium text-muted-text transition-colors hover:text-text-primary"
+              className="rule-row mt-1 w-full items-center py-2.5 text-start"
             >
-              <BookMarked className="h-3.5 w-3.5" />
-              {t('quranContinue')}
+              <span
+                aria-hidden="true"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-accent-gold/35 text-accent-gold"
+              >
+                <BookMarked className="h-3.5 w-3.5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[11px] leading-4 text-accent-gold">
+                  {t('quranContinue')}
+                </span>
+                <span className="mt-0.5 flex items-baseline gap-1.5 truncate text-[13px] leading-5 text-text-primary">
+                  <bdi className="truncate">
+                    {language === 'ar' ? lastReadSurah.name : lastReadSurah.transliteration}
+                  </bdi>
+                  <span className="shrink-0 text-[11px] text-text-faint">
+                    <bdi>
+                      {t('quranAyah')} {lastRead.verseId}
+                    </bdi>
+                  </span>
+                </span>
+              </span>
             </button>
           )}
         </div>
-        <div className="rule-list min-h-0 flex-1 overflow-y-auto">
+        <div ref={listRef} className="rule-list min-h-0 flex-1 overflow-y-auto">
           {filtered.map((surah) => (
-            <SurahRow key={surah.id} surah={surah} active={currentSurah?.id === surah.id} onOpen={() => void openSurah(surah.id)} />
+            <SurahRow
+              key={surah.id}
+              surah={surah}
+              active={currentSurah?.id === surah.id}
+              bookmarked={bookmarkedSurahIds.has(surah.id)}
+              onOpen={() => void openSurah(surah.id)}
+            />
           ))}
         </div>
       </aside>
@@ -207,48 +306,128 @@ const ReadTab: React.FC = () => {
             <Loader2 className="h-7 w-7 animate-spin text-muted-text" />
           </div>
         )}
-        {!loadingSurah && !currentSurah && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <BookOpen className="mb-3 h-9 w-9 text-text-faint" />
-            <p className="text-sm text-muted-text">{t('quranSelectSurah')}</p>
-          </div>
-        )}
+        {!loadingSurah && !currentSurah && <ReaderPlaceholder />}
         {!loadingSurah && currentSurah && <SurahReader />}
       </section>
     </div>
   );
 };
 
-const SurahRow: React.FC<{ surah: SurahMeta; active: boolean; onOpen: () => void }> = React.memo(
-  ({ surah, active, onOpen }) => {
-    const { t } = useI18n();
-    return (
-      <button
-        type="button"
-        onClick={onOpen}
-        aria-current={active ? 'true' : undefined}
-        className={`rule-row w-full py-2.5 text-start ${active ? 'rule-row-active' : ''}`}
+/**
+ * Nothing open yet. The reading pane is a framed mushaf page, so its empty
+ * state is the same frame standing empty rather than an icon floating in a
+ * void — the shape of what is about to appear.
+ */
+const ReaderPlaceholder: React.FC = () => {
+  const { t } = useI18n();
+  return (
+    <div className="mx-auto flex min-h-[19rem] max-w-[68rem] flex-col items-center justify-center px-6 py-16 text-center">
+      <span
+        aria-hidden="true"
+        className="mb-5 flex h-16 w-16 items-center justify-center border border-accent-gold/25"
       >
-        {/* Fixed-width numeral gutter: the ids line up as a ruled column. */}
-        <span className="w-6 shrink-0 text-end text-[11px] tabular-nums text-text-faint">
-          <bdi>{surah.id}</bdi>
+        <span className="flex h-[3.25rem] w-[3.25rem] items-center justify-center border border-accent-gold/15">
+          <BookOpen className="h-6 w-6 text-accent-gold/70" />
         </span>
-        <span className="min-w-0 flex-1 truncate text-sm text-text-primary" dir="auto">
-          {surah.transliteration}
+      </span>
+      <p className="text-sm text-text-soft">{t('quranSelectSurah')}</p>
+      <span aria-hidden="true" className="gold-thread mt-5 w-28" />
+    </div>
+  );
+};
+
+/**
+ * One surah in the index.
+ *
+ * This is the app's main navigation and it used to be `number · name · arabic ·
+ * count` on one line, 114 times, every cell the same size and weight. A reader
+ * choosing a surah wants four things the old row never carried: which one they
+ * have marked, whether it was revealed at Makkah or al-Madinah, roughly how
+ * long it is, and what its name means. They are laid out on two lines with a
+ * clear primary — the name — so the eye tracks down the names and only drops to
+ * the second line when it has found something. Still a ruled row, not a card:
+ * no border, no fill, no radius. The length mark is a hairline, not a chart.
+ */
+const SurahRow: React.FC<{
+  surah: SurahMeta;
+  active: boolean;
+  bookmarked: boolean;
+  onOpen: () => void;
+}> = React.memo(({ surah, active, bookmarked, onOpen }) => {
+  const { t, language } = useI18n();
+  // In Arabic the surah's own name leads and the transliteration becomes the
+  // secondary script; in English it is the other way round. Both scripts stay
+  // on every row — that bicameral pairing is most of the list's texture.
+  const arabicLeads = language === 'ar';
+  const primary = arabicLeads ? surah.name : surah.transliteration;
+  const secondary = arabicLeads ? surah.transliteration : surah.name;
+  const caption = arabicLeads
+    ? t(revelationKey(surah.revelationType))
+    : [t(revelationKey(surah.revelationType)), surah.translation].filter(Boolean).join(' · ');
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-current={active ? 'true' : undefined}
+      className={`rule-row w-full items-start gap-3 py-2.5 text-start ${active ? 'rule-row-active' : ''}`}
+    >
+      {/* Fixed-width numeral gutter: the ids line up as a ruled column. */}
+      <span
+        className={`mt-[3px] w-6 shrink-0 text-end text-[11px] leading-4 tabular-nums ${
+          active ? 'text-accent-gold' : 'text-text-faint'
+        }`}
+      >
+        <bdi>{surah.id}</bdi>
+      </span>
+
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5">
+          <span className="min-w-0 truncate text-[13px] font-medium leading-5 text-text-primary" title={primary}>
+            <bdi>{primary}</bdi>
+          </span>
+          {bookmarked && (
+            <Bookmark
+              className="h-2.5 w-2.5 shrink-0 text-accent-gold"
+              fill="currentColor"
+              aria-label={t('quranBookmark')}
+            />
+          )}
         </span>
-        <span className="arabic-text shrink-0 truncate text-sm text-muted-text" dir="auto">
-          {surah.name}
+        <span className="mt-px block truncate text-[11px] leading-4 text-text-faint" title={caption}>
+          <bdi>{caption}</bdi>
         </span>
+      </span>
+
+      <span className="shrink-0">
         <span
-          className="w-7 shrink-0 text-end text-[11px] tabular-nums text-text-faint"
-          title={t('quranVerses')}
+          className={`block max-w-[8.5rem] truncate text-end text-[13px] leading-5 text-muted-text ${
+            arabicLeads ? '' : 'arabic-text'
+          }`}
+          title={secondary}
         >
-          <bdi>{surah.totalVerses}</bdi>
+          <bdi>{secondary}</bdi>
         </span>
-      </button>
-    );
-  },
-);
+        {/* Length at a glance: the count, and a hairline measure beside it so
+            the whole index reads as a descending shape from Al-Baqarah down to
+            the mufassal. */}
+        <span className="mt-1.5 flex items-center justify-end gap-2" title={t('quranVerses')}>
+          <span className="w-8 text-end text-[10px] leading-none tabular-nums text-text-faint">
+            <bdi>{surah.totalVerses}</bdi>
+          </span>
+          <span aria-hidden="true" className="block h-[2px] w-12 bg-accent-gold/10">
+            {/* No physical side is set, so the fill grows from the reading
+                start in both directions — right-anchored under RTL. */}
+            <span
+              className={`block h-full ${active ? 'bg-accent-gold/70' : 'bg-accent-gold/35'}`}
+              style={{ width: `${surahLengthPercent(surah.totalVerses)}%` }}
+            />
+          </span>
+        </span>
+      </span>
+    </button>
+  );
+});
 
 SurahRow.displayName = 'SurahRow';
 
@@ -482,9 +661,18 @@ const ToolbarPanel: React.FC<{
   </>
 );
 
+/**
+ * A hairline between toolbar groups. Direction-agnostic by construction (a 1px
+ * box in the flow, no physical side), so it needs no RTL variant.
+ */
+const ToolbarDivider: React.FC = () => (
+  <span aria-hidden="true" className="hidden h-5 w-px shrink-0 bg-border sm:block" />
+);
+
 const SurahReader: React.FC = () => {
   const { t, language } = useI18n();
   const surah = useQuranStore((state) => state.currentSurah);
+  const surahIndex = useQuranStore((state) => state.surahs);
   const riwayah = useQuranStore((state) => state.riwayah);
   const setRiwayah = useQuranStore((state) => state.setRiwayah);
   const fontSize = useQuranStore((state) => state.fontSize);
@@ -704,6 +892,16 @@ const SurahReader: React.FC = () => {
   const toggleMenu = (menu: QuranToolbarMenu) =>
     setOpenMenu((current) => (current === menu ? 'none' : menu));
   const syncPlaying = syncActive && playing;
+  // The cartouche naming the surah scrolls away with the page, so the sticky
+  // toolbar carries the same identity in UI type: after ten screens of
+  // Al-Baqarah the chrome still says which surah is open.
+  const meta = surahIndex.find((entry) => entry.id === surah.id) ?? null;
+  const surahCaption = [
+    `${surah.total_verses} ${t('quranVerses')}`,
+    meta ? t(revelationKey(meta.revelationType)) : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
   const repeatOptions: Array<{ mode: QuranRepeatMode; label: string }> = [
     { mode: 'off', label: t('quranRepeatOff') },
     { mode: 'ayah', label: t('quranRepeatAyah') },
@@ -713,10 +911,23 @@ const SurahReader: React.FC = () => {
 
   return (
     <div>
-      {/* Toolbar: three primary objects on the line — play, reciter, riwayah —
-          everything else folds into a panel, so the mushaf keeps the page. */}
-      <div className="quran-toolbar sticky top-0 z-20 mb-4 px-1 py-2">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      {/* Toolbar: the surah's identity, then three primary objects on the line —
+          play, reciter, riwayah — everything else folds into a panel, so the
+          mushaf keeps the page. Hairline separators group them instead of a run
+          of same-weight words floating at equal spacing. */}
+      <div className="quran-toolbar sticky top-0 z-20 mb-4 px-1 py-2.5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <div className="me-1 min-w-0">
+            <p className="truncate text-sm font-medium leading-5 text-text-primary">
+              <bdi>{language === 'ar' ? surah.name : surah.transliteration}</bdi>
+            </p>
+            <p className="truncate text-[11px] leading-4 text-text-faint">
+              <bdi>{surahCaption}</bdi>
+            </p>
+          </div>
+
+          <ToolbarDivider />
+
           {!warshMode && read && (
             <div className="relative flex items-center gap-1">
               <button
@@ -725,15 +936,22 @@ const SurahReader: React.FC = () => {
                 disabled={preparingAudio}
                 title={t('quranPlaySurah')}
                 aria-label={t('quranPlaySurah')}
-                className="inline-flex items-center gap-1.5 rounded-sm py-1 text-[11px] font-medium text-text-primary transition-colors hover:text-accent-gold disabled:opacity-60"
+                className="group inline-flex items-center gap-2 py-1 text-xs font-medium text-text-primary transition-colors hover:text-accent-gold disabled:opacity-60 motion-reduce:transition-none"
               >
-                {preparingAudio ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-text" />
-                ) : syncPlaying ? (
-                  <Pause className="h-3.5 w-3.5 text-accent-gold" fill="currentColor" />
-                ) : (
-                  <Play className="h-3.5 w-3.5 text-accent-gold" fill="currentColor" />
-                )}
+                {/* The page's one primary action, so it gets a transport ring
+                    rather than another word at the same weight as the rest. */}
+                <span
+                  aria-hidden="true"
+                  className="flex h-7 w-7 items-center justify-center rounded-full border border-accent-gold/40 transition-colors group-hover:border-accent-gold motion-reduce:transition-none"
+                >
+                  {preparingAudio ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-text" />
+                  ) : syncPlaying ? (
+                    <Pause className="h-3 w-3 text-accent-gold" fill="currentColor" />
+                  ) : (
+                    <Play className="h-3 w-3 text-accent-gold" fill="currentColor" />
+                  )}
+                </span>
                 {!syncPlaying && (
                   <span>{preparingAudio ? t('quranPreparingAudio') : t('quranPlaySurah')}</span>
                 )}
@@ -826,6 +1044,8 @@ const SurahReader: React.FC = () => {
             </div>
           )}
 
+          {!warshMode && read && <ToolbarDivider />}
+
           {/* The reciter reads as a name, not a form control. */}
           {!warshMode && timingReads.length > 0 && (
             <div className="relative">
@@ -836,10 +1056,10 @@ const SurahReader: React.FC = () => {
                 aria-expanded={openMenu === 'reciter'}
                 title={t('quranSyncedReciter')}
                 aria-label={t('quranSyncedReciter')}
-                className="inline-flex max-w-[15rem] items-center gap-1 py-1 text-[11px] text-muted-text transition-colors hover:text-text-primary"
+                className="inline-flex max-w-[15rem] items-center gap-1 py-1 text-xs text-muted-text transition-colors hover:text-text-primary motion-reduce:transition-none"
               >
-                <span className="truncate" dir="auto">
-                  {readName}
+                <span className="truncate">
+                  <bdi>{readName}</bdi>
                 </span>
                 <ChevronDown className="h-3 w-3 shrink-0" />
               </button>
@@ -873,6 +1093,8 @@ const SurahReader: React.FC = () => {
             </div>
           )}
 
+          {!warshMode && timingReads.length > 0 && <ToolbarDivider />}
+
           {/* Riwayah: both readings stay legible at all times — which riwayah
               is on screen is a correctness question, never a hidden setting. */}
           <div className="segmented" role="group" aria-label={t('quranRiwayah')}>
@@ -898,8 +1120,12 @@ const SurahReader: React.FC = () => {
             </button>
             {openMenu === 'more' && (
               <ToolbarPanel label={t('quranTranslation')} align="end" onClose={closeMenu}>
+                {/* Two unlabelled ± buttons gave no idea what they changed or
+                    where the size currently sat. The specimen A and the live
+                    value say both without needing a dictionary string. */}
                 <div className="flex items-center justify-between gap-3 px-1 py-1">
-                  <span className="flex items-center gap-0.5">
+                  <Type aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-text" />
+                  <span className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => setFontSize(fontSize - 2)}
@@ -909,6 +1135,9 @@ const SurahReader: React.FC = () => {
                     >
                       <Minus className="h-3.5 w-3.5" />
                     </button>
+                    <span className="w-6 text-center text-[11px] tabular-nums text-text-faint">
+                      <bdi>{Math.round(fontSize)}</bdi>
+                    </span>
                     <button
                       type="button"
                       onClick={() => setFontSize(fontSize + 2)}
@@ -1157,11 +1386,11 @@ const ListenTab: React.FC = () => {
       : surahs;
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+    <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
       <aside className="flex max-h-[70vh] flex-col overflow-hidden border-border pb-1 xl:border-e xl:pe-5">
         <div className="shrink-0">
           <div className="rule-head">
-            <span className="text-xs font-semibold tracking-wide text-text-primary" dir="auto">
+            <span className="text-xs font-semibold tracking-wide text-text-primary">
               {t('quranReciters')}
             </span>
             <span className="text-[11px] tabular-nums text-muted-text">
@@ -1186,82 +1415,138 @@ const ListenTab: React.FC = () => {
             </div>
           )}
           {recitersError && !recitersLoading && (
-            <p className="py-3 text-xs text-danger-red">{recitersError}</p>
+            <p className="py-3 text-xs text-danger-red">
+              <bdi>{recitersError}</bdi>
+            </p>
           )}
-          {filteredReciters.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              onClick={() => selectReciter(entry.id)}
-              aria-current={reciter?.id === entry.id ? 'true' : undefined}
-              className={`rule-row w-full py-2.5 text-start ${
-                reciter?.id === entry.id ? 'rule-row-active' : ''
-              }`}
-            >
-              <span className="min-w-0 flex-1 truncate text-sm text-text-primary" dir="auto">
-                {entry.name}
-              </span>
-              <span className="max-w-[9rem] shrink-0 truncate text-[11px] text-text-faint" dir="auto">
-                {entry.moshafName}
-              </span>
-            </button>
-          ))}
+          {/* Same two-line rhythm as the surah index, so Read and Listen read as
+              one page rather than two designs. */}
+          {filteredReciters.map((entry) => {
+            const selected = reciter?.id === entry.id;
+            return (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => selectReciter(entry.id)}
+                aria-current={selected ? 'true' : undefined}
+                className={`rule-row w-full items-start gap-3 py-2.5 text-start ${
+                  selected ? 'rule-row-active' : ''
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${
+                    selected ? 'border-accent-gold/45 text-accent-gold' : 'border-border text-text-faint'
+                  }`}
+                >
+                  <Headphones className="h-3.5 w-3.5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span
+                    className="block truncate text-[13px] font-medium leading-5 text-text-primary"
+                    title={entry.name}
+                  >
+                    <bdi>{entry.name}</bdi>
+                  </span>
+                  <span
+                    className="mt-px block truncate text-[11px] leading-4 text-text-faint"
+                    title={entry.moshafName}
+                  >
+                    <bdi>{entry.moshafName}</bdi>
+                  </span>
+                </span>
+              </button>
+            );
+          })}
         </div>
       </aside>
 
-      <section className="premium-surface rounded-lg p-4">
+      <section className="flex max-h-[70vh] min-h-[19rem] flex-col">
         {reciter ? (
           <>
-            <p className="mb-3 text-sm font-semibold text-text-primary" dir="auto">
-              {reciter.name}
-            </p>
-            <div className="grid grid-cols-2 gap-1.5 md:grid-cols-3 xl:grid-cols-4">
-              {availableSurahs.map((surah) => {
-                const stationId = `quran-${reciter.id}-${surah.id}`;
-                const isCurrent = current?.id === stationId;
-                return (
-                  <button
-                    key={surah.id}
-                    type="button"
-                    onClick={() =>
-                      isCurrent
-                        ? togglePlay()
-                        : playStation({
-                            id: stationId,
-                            name: `${surah.transliteration} · ${reciter.name}`,
-                            url: surahAudioUrl(reciter.server, surah.id),
-                          })
-                    }
-                    className={`flex items-center gap-2 rounded-md border px-2.5 py-2 text-start transition-colors ${
-                      isCurrent
-                        ? 'border-primary-blue/45 bg-primary-blue/10'
-                        : 'border-border bg-background/50 hover:border-border-strong hover:bg-panel-hover'
-                    }`}
-                  >
-                    <span className="w-5 shrink-0 text-end text-[10px] tabular-nums text-text-faint">
-                      <bdi>{surah.id}</bdi>
-                    </span>
-                    <span
-                      className="min-w-0 flex-1 truncate text-xs font-medium text-text-primary"
-                      dir="auto"
+            <div className="rule-head shrink-0">
+              <span className="min-w-0 truncate text-sm font-semibold text-text-primary" title={reciter.name}>
+                <bdi>{reciter.name}</bdi>
+              </span>
+              <span className="shrink-0 text-[11px] tabular-nums text-muted-text">
+                <bdi>{availableSurahs.length}</bdi>
+              </span>
+            </div>
+            {/* Ruled rows in columns, not a grid of bordered boxes. The boxes
+                also carried `primary-blue` for the playing surah, which is a
+                SECOND accent on a page that otherwise has exactly one. */}
+            <div className="min-h-0 flex-1 overflow-y-auto pe-1">
+              <div className="grid grid-cols-1 gap-x-8 sm:grid-cols-2 2xl:grid-cols-3">
+                {availableSurahs.map((surah) => {
+                  const stationId = `quran-${reciter.id}-${surah.id}`;
+                  const isCurrent = current?.id === stationId;
+                  return (
+                    <button
+                      key={surah.id}
+                      type="button"
+                      onClick={() =>
+                        isCurrent
+                          ? togglePlay()
+                          : playStation({
+                              id: stationId,
+                              name: `${surah.transliteration} · ${reciter.name}`,
+                              url: surahAudioUrl(reciter.server, surah.id),
+                            })
+                      }
+                      className={`rule-row group w-full py-2 text-start ${
+                        isCurrent ? 'rule-row-active' : ''
+                      }`}
                     >
-                      {surah.transliteration}
-                    </span>
-                    {isCurrent && playing ? (
-                      <Pause className="h-3.5 w-3.5 shrink-0 text-primary-blue" fill="currentColor" />
-                    ) : (
-                      <Play className="h-3.5 w-3.5 shrink-0 text-muted-text" fill="currentColor" />
-                    )}
-                  </button>
-                );
-              })}
+                      <span
+                        className={`w-6 shrink-0 text-end text-[11px] tabular-nums ${
+                          isCurrent ? 'text-accent-gold' : 'text-text-faint'
+                        }`}
+                      >
+                        <bdi>{surah.id}</bdi>
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-[13px] text-text-primary">
+                        <bdi>{surah.transliteration}</bdi>
+                      </span>
+                      <span className="arabic-text shrink-0 max-w-[7rem] truncate text-[13px] text-muted-text">
+                        <bdi>{surah.name}</bdi>
+                      </span>
+                      {/* One hundred and fourteen play glyphs at full strength
+                          is a field of arrowheads; the mark belongs to the row
+                          being pointed at, and to whatever is playing. */}
+                      {isCurrent && playing ? (
+                        <Pause className="h-3.5 w-3.5 shrink-0 text-accent-gold" fill="currentColor" />
+                      ) : (
+                        <Play
+                          className={`h-3.5 w-3.5 shrink-0 transition-opacity motion-reduce:transition-none ${
+                            isCurrent
+                              ? 'text-accent-gold'
+                              : 'text-text-faint opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100'
+                          }`}
+                          fill="currentColor"
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </>
         ) : (
           !recitersLoading && (
-            <p className="py-10 text-center text-sm text-muted-text">
-              {recitersError ?? t('quranNoReciters')}
-            </p>
+            <div className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
+              <span
+                aria-hidden="true"
+                className="mb-5 flex h-16 w-16 items-center justify-center border border-accent-gold/25"
+              >
+                <span className="flex h-[3.25rem] w-[3.25rem] items-center justify-center border border-accent-gold/15">
+                  <Headphones className="h-6 w-6 text-accent-gold/70" />
+                </span>
+              </span>
+              <p className="max-w-sm text-sm text-text-soft">
+                <bdi>{recitersError ?? t('quranNoReciters')}</bdi>
+              </p>
+              <span aria-hidden="true" className="gold-thread mt-5 w-28" />
+            </div>
           )
         )}
       </section>

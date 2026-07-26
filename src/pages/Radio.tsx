@@ -3,6 +3,47 @@ import { AlertTriangle, Loader2, Pause, Play, RadioTower, RefreshCw, Search, Sta
 import { RadioStation, useRadioStore } from '@/store/radioStore';
 import { useI18n } from '@/i18n';
 
+/**
+ * The station's initial, set in a hairline ring. A station list has no
+ * artwork — and cannot have any, since no depiction of animate beings is
+ * permitted anywhere in this app — so the letter IS the station's mark. It
+ * gives each row something to recognise it by at a glance, which is the
+ * difference between tuning a set and reading a settings list.
+ *
+ * Takes the first character of the name in its own script: Arabic names get an
+ * Arabic letter, Latin names a Latin one.
+ */
+const stationInitial = (name: string) => {
+  const trimmed = name.trim();
+  // Iterate by code point, not by index: a name starting outside the BMP would
+  // otherwise render as half a surrogate pair.
+  for (const character of trimmed) {
+    if (/\p{L}|\p{N}/u.test(character)) return character;
+  }
+  return trimmed.slice(0, 1);
+};
+
+/**
+ * A broadcast level meter: three bars, offset so they do not move together.
+ * Not an ornament — it is the only thing on the page that says a stream is
+ * actually live right now.
+ *
+ * Under `prefers-reduced-motion` the global rule in index.css collapses the
+ * animation to a single 0.01ms iteration, so the bars are simply static rather
+ * than merely slower.
+ */
+const SignalBars: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <span aria-hidden="true" className={`flex items-end gap-[2px] ${className}`}>
+    {[0.55, 1, 0.75].map((scale, index) => (
+      <span
+        key={index}
+        className="w-[2px] animate-pulse rounded-full bg-current"
+        style={{ height: `${scale * 100}%`, animationDelay: `${index * 180}ms` }}
+      />
+    ))}
+  </span>
+);
+
 export const Radio: React.FC = () => {
   const { t, language } = useI18n();
   const stations = useRadioStore((state) => state.stations);
@@ -10,6 +51,9 @@ export const Radio: React.FC = () => {
   const loadError = useRadioStore((state) => state.loadError);
   const favorites = useRadioStore((state) => state.favorites);
   const loadStations = useRadioStore((state) => state.loadStations);
+  const current = useRadioStore((state) => state.current);
+  const playing = useRadioStore((state) => state.playing);
+  const togglePlay = useRadioStore((state) => state.togglePlay);
   const [query, setQuery] = useState('');
 
   useEffect(() => {
@@ -27,11 +71,16 @@ export const Radio: React.FC = () => {
 
   const favoriteStations = filtered.filter((station) => favorites.includes(station.id));
   const otherStations = filtered.filter((station) => !favorites.includes(station.id));
+  // Only a station from THIS list gets the dial. The audio element is shared
+  // with the Qur'an page's synced recitation, so `current` is frequently a
+  // surah, and announcing "Al-Kahf · Alafasy" as a live radio station on the
+  // Radio page would simply be wrong.
+  const onAir = current ? stations.find((station) => station.id === current.id) ?? null : null;
 
   return (
     <div className="page-container">
       <div className="content-max-width">
-        <div className="mb-6">
+        <div className="mb-5">
           <div className="premium-pill mb-2">
             <RadioTower className="h-3.5 w-3.5" />
             {t('radioPill')}
@@ -43,6 +92,52 @@ export const Radio: React.FC = () => {
             {t('radioOnlineNote')}
           </p>
         </div>
+
+        {/* Everything below the masthead is held to a set measure. A station
+            name is a short string; run at the page's full 1600px the list read
+            as four hairlines crossing an empty screen, with the favourite star
+            so far from the name they looked unrelated. */}
+        <div className="max-w-5xl">
+        {/* The dial readout. A tuner tells you what it is receiving in larger
+            type than the list of what it could receive; without it the page was
+            four rows with no sense of anything being tuned at all. */}
+        {onAir && (
+          <div className="mb-5 flex items-center gap-4 border-y border-border py-4">
+            <span
+              aria-hidden="true"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-accent-gold/35 text-accent-gold"
+            >
+              {playing ? <SignalBars className="h-4" /> : <RadioTower className="h-5 w-5" />}
+            </span>
+            <div className="min-w-0 flex-1">
+              {/* "Live" only while the stream is actually running. A paused or
+                  failed stream announcing itself as live is a lie the rest of
+                  the page then has to argue with. */}
+              {playing && (
+                <p className="flex items-center gap-1.5 text-[11px] font-medium text-accent-gold">
+                  <span aria-hidden="true" className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
+                  {t('radioLive')}
+                </p>
+              )}
+              <p className="mt-0.5 truncate text-xl font-medium text-text-primary" title={onAir.name}>
+                <bdi>{onAir.name}</bdi>
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={togglePlay}
+              title={playing ? t('pause') : t('play')}
+              aria-label={playing ? t('pause') : t('play')}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-accent-gold/40 text-accent-gold transition-colors hover:border-accent-gold hover:bg-accent-gold/10 motion-reduce:transition-none"
+            >
+              {playing ? (
+                <Pause className="h-4 w-4" fill="currentColor" />
+              ) : (
+                <Play className="h-4 w-4" fill="currentColor" />
+              )}
+            </button>
+          </div>
+        )}
 
         <div className="mb-5">
           <div className="relative">
@@ -92,6 +187,7 @@ export const Radio: React.FC = () => {
             />
           </>
         )}
+        </div>
       </div>
     </div>
   );
@@ -115,7 +211,10 @@ const StationSection: React.FC<{
       {stations.length === 0 ? (
         <p className="py-10 text-center text-sm text-muted-text">{emptyLabel}</p>
       ) : (
-        <div className="rule-list">
+        // Two columns from `lg` up — no more. Three left a dangling hairline
+        // under the last row wherever the station count is not a multiple of
+        // three, which reads as a broken ledger.
+        <div className="grid grid-cols-1 gap-x-10 lg:grid-cols-2">
           {stations.map((station) => (
             <StationCard key={station.id} station={station} />
           ))}
@@ -137,16 +236,38 @@ const StationCard: React.FC<{ station: RadioStation }> = React.memo(({ station }
   const isCurrent = current?.id === station.id;
   const isFavorite = favorites.includes(station.id);
 
+  const live = isCurrent && playing;
+
   return (
-    <div className={`rule-row ${isCurrent ? 'rule-row-active' : ''}`}>
+    <div className={`rule-row group gap-3 ${isCurrent ? 'rule-row-active' : ''}`}>
+      {/* The station's mark: its own initial in a hairline ring, which becomes
+          the level meter while it is on air. One object carries both identity
+          and state, so the row does not need a separate status column. */}
       <button
         type="button"
         onClick={() => (isCurrent ? togglePlay() : play(station))}
-        className={`icon-btn shrink-0 ${isCurrent && playing ? 'text-text-primary' : ''}`}
-        title={isCurrent && playing ? t('pause') : t('play')}
-        aria-label={isCurrent && playing ? t('pause') : t('play')}
+        title={live ? t('pause') : t('play')}
+        aria-label={live ? t('pause') : t('play')}
+        className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors motion-reduce:transition-none ${
+          isCurrent
+            ? 'border-accent-gold/45 text-accent-gold'
+            : 'border-border text-muted-text group-hover:border-border-strong group-hover:text-text-primary'
+        }`}
       >
-        {isCurrent && playing ? <Pause className="h-4 w-4" fill="currentColor" /> : <Play className="h-4 w-4" fill="currentColor" />}
+        {live ? (
+          <SignalBars className="h-3.5" />
+        ) : (
+          <>
+            <span className="text-sm font-medium transition-opacity group-hover:opacity-0 motion-reduce:transition-none">
+              <bdi>{stationInitial(station.name)}</bdi>
+            </span>
+            {/* The play glyph replaces the initial on hover: the ring is the
+                affordance, so the whole row has exactly one primary control. */}
+            <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 motion-reduce:transition-none">
+              <Play className="h-3.5 w-3.5" fill="currentColor" />
+            </span>
+          </>
+        )}
       </button>
 
       {/* <bdi> rather than dir="auto" on the <p>: dir="auto" flips the whole
@@ -154,13 +275,16 @@ const StationCard: React.FC<{ station: RadioStation }> = React.memo(({ station }
           flex cell, so a mixed list rendered ragged with the Arabic stations
           hard against the far edge. <bdi> isolates the string's bidi so it
           still shapes correctly, while alignment keeps following the list. */}
-      <p className="min-w-0 flex-1 truncate text-sm text-text-primary" title={station.name}>
+      <p
+        className={`min-w-0 flex-1 truncate text-sm ${live ? 'text-text-primary' : 'text-text-soft'}`}
+        title={station.name}
+      >
         <bdi>{station.name}</bdi>
       </p>
 
-      {isCurrent && playing && (
-        <span className="inline-flex shrink-0 items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-text">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
+      {live && (
+        <span className="inline-flex shrink-0 items-center gap-1.5 text-[10px] font-medium text-accent-gold">
+          <span aria-hidden="true" className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
           {t('radioLive')}
         </span>
       )}
@@ -168,7 +292,7 @@ const StationCard: React.FC<{ station: RadioStation }> = React.memo(({ station }
       <button
         type="button"
         onClick={() => toggleFavorite(station.id)}
-        className={`icon-btn shrink-0 ${isFavorite ? 'text-accent-gold' : ''}`}
+        className={`icon-btn shrink-0 ${isFavorite ? 'text-accent-gold' : 'text-text-faint'}`}
         title={t('favorite')}
         aria-label={t('favorite')}
         aria-pressed={isFavorite}

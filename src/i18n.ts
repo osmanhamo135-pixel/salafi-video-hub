@@ -4,6 +4,8 @@ import { useCallback, useMemo } from 'react';
 
 const dictionaries = {
   en: {
+    navGroupStudy: 'Study',
+    navGroupManage: 'Manage',
     navDashboard: 'Dashboard',
     navLibrary: 'Library',
     navReminders: 'Reminders',
@@ -41,6 +43,8 @@ const dictionaries = {
     quranContinue: 'Continue reading',
     quranTranslation: 'Translation',
     quranSelectSurah: 'Select a surah to start reading.',
+    quranMakki: 'Makki',
+    quranMadani: 'Madani',
     quranSurahs: 'Surahs',
     quranReciters: 'Reciters',
     quranSearchReciter: 'Search reciters...',
@@ -525,6 +529,8 @@ const dictionaries = {
     videoLoadTimedOut: 'The video took too long to load. Try opening it externally or convert it to MP4 H.264 + AAC.',
   },
   ar: {
+    navGroupStudy: 'الدراسة',
+    navGroupManage: 'الإدارة',
     navDashboard: 'الرئيسية',
     navLibrary: 'المكتبة',
     navReminders: 'التذكيرات',
@@ -562,6 +568,8 @@ const dictionaries = {
     quranContinue: 'متابعة القراءة',
     quranTranslation: 'الترجمة',
     quranSelectSurah: 'اختر سورة لبدء القراءة.',
+    quranMakki: 'مكية',
+    quranMadani: 'مدنية',
     quranSurahs: 'السور',
     quranReciters: 'القرّاء',
     quranSearchReciter: 'ابحث عن قارئ...',

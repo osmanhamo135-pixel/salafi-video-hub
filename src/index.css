@@ -80,6 +80,20 @@
     /* Print-mushaf convention: the ayah medallion stays warm gold in every
        theme, even where the UI accent is blue or bronze. */
     --mushaf-gold-rgb: 224 190 116;
+
+    /* ── Light and shade ────────────────────────────────────────────────
+       The material system needs two things no theme declares directly: the
+       colour LIGHT is, and the colour SHADE is. Every surface highlight is
+       drawn in --sheen, every ambient occlusion in --shade.
+
+       Nine of the ten themes have a dark ground, so light is the text colour
+       (near-white) and shade is the ground itself. Pearl is the only light
+       theme and it inverts both — it declares its own pair in its own block,
+       exactly as it already does for --mushaf-gold-rgb. That keeps the whole
+       system polarity-correct with two token declarations and zero per-theme
+       component code. */
+    --sheen-rgb: var(--text-main-rgb);
+    --shade-rgb: 0 0 0;
     --bg-main: rgb(var(--bg-main-rgb));
     --bg-sidebar: rgb(var(--bg-sidebar-rgb));
     --bg-panel: rgb(var(--bg-panel-rgb));
@@ -139,11 +153,23 @@
        the same hue carried down to a bronze that holds on paper — the printed
        convention, not a different colour. */
     --mushaf-gold-rgb: 158 118 40;
+    /* The only light theme, so the only one where light and shade invert.
+       Light is white (the theme's own text colour is near-black and would
+       paint a dark line where a highlight belongs), and shade is a cool ink
+       rather than the near-white ground. */
+    --sheen-rgb: 255 255 255;
+    --shade-rgb: 15 26 38;
     --bg-main-rgb: 243 246 247;
     --bg-sidebar-rgb: 229 236 238;
-    --bg-panel-rgb: 255 255 255;
-    --bg-card-rgb: 247 250 250;
-    --bg-card-hover-rgb: 235 244 243;
+    /* Panel / card / card-hover are the app's elevation ladder, and every
+       other theme orders them ground < panel < card, with card-hover the
+       response to a pointer. Pearl had panel and card the other way round, so
+       a level-2 card came out DARKER than the level-1 panel under it and the
+       ladder inverted on the one theme where a value step has the least
+       headroom to begin with. Re-ordered; the hue is unchanged. */
+    --bg-panel-rgb: 249 251 251;
+    --bg-card-rgb: 255 255 255;
+    --bg-card-hover-rgb: 238 245 245;
     --border-subtle-rgb: 15 118 110;
     --accent-teal-rgb: 15 118 110;
     --accent-turquoise-rgb: 13 148 136;
@@ -239,11 +265,16 @@
 
   html[data-theme='onyx'] {
     --quran-green-rgb: 82 196 130;
+    /* The ground stays pure black — that is the theme. The three surface
+       steps above it were the tightest ladder of any theme (10/15/22 over a
+       ground of 2), which left every card a hair off the page and was most of
+       why this theme read as flat. Opened up so a level is actually a level;
+       the ground, and so the theme's identity, is unchanged. */
     --bg-main-rgb: 2 2 3;
-    --bg-sidebar-rgb: 6 6 8;
-    --bg-panel-rgb: 10 10 12;
-    --bg-card-rgb: 15 15 18;
-    --bg-card-hover-rgb: 22 22 26;
+    --bg-sidebar-rgb: 7 7 9;
+    --bg-panel-rgb: 14 14 17;
+    --bg-card-rgb: 21 21 25;
+    --bg-card-hover-rgb: 30 30 35;
     --border-subtle-rgb: 212 178 90;
     --accent-teal-rgb: 209 170 84;
     --accent-turquoise-rgb: 240 214 150;
@@ -351,15 +382,220 @@
     --text: rgb(var(--text-main-rgb));
     --muted: rgb(var(--text-muted-rgb));
     --dim: rgb(var(--text-faint-rgb));
-    --hair: rgb(var(--accent-gold-rgb) / 0.12);
 
     --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px;
     --s5: 24px; --s6: 36px; --s7: 56px; --s8: 88px;
-    --r-sm: 4px; --r-md: 8px; --r-lg: 14px;
-    --fs-cap: 12px; --fs-sm: 14px; --fs-base: 16px;
-    --fs-lg: 20px; --fs-xl: 26px; --fs-2xl: 33px; --fs-3xl: 41px;
+
+    /* Two radii, per the Windows 11 two-value system: in-page elements
+       (buttons, fields, rows, chips) and containers that read as panels.
+       Tailwind's ladder points at these, so there is one source. */
+    --r-sm: 4px; --r-md: 6px; --r-lg: 10px; --r-xl: 14px;
+
+    /* ── Motion ────────────────────────────────────────────────────────
+       Fluent's duration tiers. --ease-out is the workhorse: a real decel
+       curve, never the browser's `ease`, which accelerates INTO the end of
+       the transition and is why default CSS hovers feel rubbery. */
+    --dur-press: 90ms;
+    --dur-fast: 140ms;
+    --dur-normal: 200ms;
+    --dur-slow: 300ms;
+    --ease-out: cubic-bezier(0.16, 0.84, 0.44, 1);
+    --ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
+    --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+    /* Legacy aliases. --dur was a single 280ms for hover AND panels, which is
+       ~3x the Fluent press tier: the UI visibly lagged the cursor. */
+    --dur: var(--dur-fast); --ease: var(--ease-out);
+
+    /* ── Type scale ────────────────────────────────────────────────────
+       The old scale ran 12/14/16/20/26/33/41 and read as uniform because the
+       app only ever used the bottom three steps. This one is built so the
+       steps that carry a page — display and section head — are far enough
+       from body that hierarchy is visible before you read a word.
+
+       Tracking tightens as size rises. That is the static-font substitute for
+       the `opsz` optical-size axis: a face cut for text is spaced for text,
+       and set at 37px without negative tracking it looks slack. It is applied
+       ONLY through --tr-*, and every --tr-* is forced to 0 under
+       html[data-language='ar'] — tracking breaks Arabic's cursive joins and
+       is never a legitimate operation on the script. */
+    --fs-cap: 11.5px;  --tr-cap: 0.014em;
+    --fs-sm: 13.5px;   --tr-sm: 0.004em;
+    --fs-base: 15px;   --tr-base: 0em;
+    --fs-md: 17.5px;   --tr-md: -0.004em;
+    --fs-lg: 21px;     --tr-lg: -0.011em;
+    --fs-xl: 27px;     --tr-xl: -0.016em;
+    --fs-2xl: 37px;    --tr-2xl: -0.022em;
+    --fs-3xl: 50px;    --tr-3xl: -0.028em;
     --lh-latin: 1.5; --lh-arabic: 1.85;
-    --dur: 280ms; --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* ── Hairlines ─────────────────────────────────────────────────────
+       One hue for every edge in the app, taken from the active accent. Three
+       weights, so an edge can step WITH the elevation ladder instead of
+       varying by hue: a card and the input inside it used to draw hairlines
+       of different colours from different tokens. */
+    --hair-rgb: var(--accent-gold-rgb);
+    --hair-faint: rgb(var(--hair-rgb) / 0.07);
+    --hair: rgb(var(--hair-rgb) / 0.13);
+    --hair-strong: rgb(var(--hair-rgb) / 0.26);
+
+    /* ── Gradient edges ────────────────────────────────────────────────
+       A hairline at constant alpha the whole way round is an OUTLINE, and
+       repeated outlines are the strongest generic-dark-dashboard tell. A real
+       edge catches light unevenly: brightest where the key light strikes it,
+       falling away on the far side. These run 146deg — from the upper-left,
+       the same direction the hero lights from — and are painted into the
+       border box with background-clip, so they follow border-radius exactly
+       (border-image cannot) and need no pseudo-element that an overflow or a
+       stacking context could eat.
+
+       Drawn in the ACCENT, not in --sheen. The accent is the one colour that
+       is lighter than the surface on the nine dark themes and darker than it
+       on Pearl, so a single definition reads as a lit edge in both
+       polarities — a white edge would simply vanish on a white card. */
+    --edge-1: linear-gradient(
+      146deg,
+      rgb(var(--hair-rgb) / 0.22) 0%,
+      rgb(var(--hair-rgb) / 0.12) 32%,
+      rgb(var(--hair-rgb) / 0.06) 68%,
+      rgb(var(--hair-rgb) / 0.04) 100%
+    );
+    --edge-2: linear-gradient(
+      146deg,
+      rgb(var(--hair-rgb) / 0.36) 0%,
+      rgb(var(--hair-rgb) / 0.19) 30%,
+      rgb(var(--hair-rgb) / 0.09) 66%,
+      rgb(var(--hair-rgb) / 0.055) 100%
+    );
+    --edge-3: linear-gradient(
+      146deg,
+      rgb(var(--hair-rgb) / 0.62) 0%,
+      rgb(var(--hair-rgb) / 0.34) 28%,
+      rgb(var(--hair-rgb) / 0.14) 64%,
+      rgb(var(--hair-rgb) / 0.08) 100%
+    );
+    --edge-accent: linear-gradient(
+      146deg,
+      rgb(var(--accent-gold-rgb) / 0.62) 0%,
+      rgb(var(--accent-gold-rgb) / 0.36) 40%,
+      rgb(var(--accent-gold-rgb) / 0.16) 100%
+    );
+
+    /* ── Interaction washes ────────────────────────────────────────────
+       Also accent-derived, and for the same reason: a --sheen wash lifts a
+       dark surface and does nothing at all to a white one. A warm wash reads
+       as light arriving on black and as a tint on paper, which is the correct
+       behaviour on both. Directional — strongest at the reading edge, gone by
+       the far one — so a hover reads as light moving across the row. */
+    --wash-hover: linear-gradient(
+      100deg,
+      rgb(var(--accent-gold-rgb) / 0.10) 0%,
+      rgb(var(--accent-gold-rgb) / 0.04) 54%,
+      rgb(var(--accent-gold-rgb) / 0.012) 96%
+    );
+    --wash-hover-rtl: linear-gradient(
+      260deg,
+      rgb(var(--accent-gold-rgb) / 0.10) 0%,
+      rgb(var(--accent-gold-rgb) / 0.04) 54%,
+      rgb(var(--accent-gold-rgb) / 0.012) 96%
+    );
+    --wash-active: linear-gradient(
+      100deg,
+      rgb(var(--accent-gold-rgb) / 0.16) 0%,
+      rgb(var(--accent-gold-rgb) / 0.07) 54%,
+      rgb(var(--accent-gold-rgb) / 0.02) 96%
+    );
+    --wash-active-rtl: linear-gradient(
+      260deg,
+      rgb(var(--accent-gold-rgb) / 0.16) 0%,
+      rgb(var(--accent-gold-rgb) / 0.07) 54%,
+      rgb(var(--accent-gold-rgb) / 0.02) 96%
+    );
+    /* Top-lit version, for controls small enough that a horizontal ramp
+       across them would not read. */
+    --wash-btn: linear-gradient(
+      177deg,
+      rgb(var(--accent-gold-rgb) / 0.13),
+      rgb(var(--accent-gold-rgb) / 0.05)
+    );
+    --wash-btn-strong: linear-gradient(
+      177deg,
+      rgb(var(--accent-gold-rgb) / 0.20),
+      rgb(var(--accent-gold-rgb) / 0.08)
+    );
+
+    /* ── Elevation ─────────────────────────────────────────────────────
+       Three levels. Each is (a) a value step taken from the theme's own
+       ground ladder, (b) a 1px inner top highlight where light catches the
+       top edge, and (c) ambient occlusion — a tight, heavily negative-spread
+       contact darkening under the element, NOT a drop shadow. The AO is drawn
+       in --shade, so it carries the light theme (where a value step of three
+       RGB points cannot separate anything) and costs nothing on the dark ones
+       (where black on near-black is invisible by definition and the value step
+       and the lit edge do all the work). That asymmetry is the point: depth is
+       whatever survives on the ground you are actually standing on.
+
+       The fills are gradients, not flat colours — a couple of points lighter
+       at the top, settling to the base at the bottom. That is one directional
+       light hitting a plane, and it is the single largest difference between
+       a surface and a fill. It is a few percent, deliberately: at any more it
+       becomes a 2011 bevel. */
+    --fill-1: linear-gradient(
+      177deg,
+      color-mix(in srgb, rgb(var(--sheen-rgb)) 3.5%, rgb(var(--bg-panel-rgb))) 0,
+      rgb(var(--bg-panel-rgb)) 150px
+    );
+    --fill-2: linear-gradient(
+      177deg,
+      color-mix(in srgb, rgb(var(--sheen-rgb)) 5%, rgb(var(--bg-card-rgb))) 0,
+      rgb(var(--bg-card-rgb)) 130px
+    );
+    --fill-3: linear-gradient(
+      177deg,
+      color-mix(in srgb, rgb(var(--sheen-rgb)) 6%, rgb(var(--bg-card-hover-rgb))) 0,
+      rgb(var(--bg-card-hover-rgb)) 130px
+    );
+    /* A recessed plane — a thumbnail well, a video letterbox. One step BELOW
+       its host rather than above it, so the eye reads a cut-out. */
+    --fill-well: linear-gradient(
+      177deg,
+      color-mix(in srgb, rgb(var(--shade-rgb)) 16%, rgb(var(--bg-main-rgb))) 0%,
+      color-mix(in srgb, rgb(var(--shade-rgb)) 7%, rgb(var(--bg-main-rgb))) 100%
+    );
+
+    --elev-1:
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.04),
+      0 1px 1px -1px rgb(var(--shade-rgb) / 0.20),
+      0 4px 12px -10px rgb(var(--shade-rgb) / 0.36);
+    --elev-2:
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.055),
+      0 1px 2px -1px rgb(var(--shade-rgb) / 0.24),
+      0 10px 24px -16px rgb(var(--shade-rgb) / 0.55);
+    --elev-3:
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.09),
+      0 2px 3px -2px rgb(var(--shade-rgb) / 0.28),
+      0 18px 38px -22px rgb(var(--shade-rgb) / 0.70);
+    /* Pressed: the highlight moves to the BOTTOM edge and the AO collapses —
+       the element has gone into the page rather than sitting on it. */
+    --elev-press:
+      inset 0 1px 2px rgb(var(--shade-rgb) / 0.28),
+      inset 0 -1px 0 rgb(var(--sheen-rgb) / 0.05);
+
+    /* Two-tone focus, per Windows: a ground-coloured inner stroke and an
+       accent outer one, so the ring survives on a surface of its own hue —
+       a single accent ring is invisible on the accent-filled primary button. */
+    --ring-focus:
+      0 0 0 2px rgb(var(--bg-main-rgb)),
+      0 0 0 4px rgb(var(--accent-gold-rgb) / 0.95);
+  }
+
+  /* Tracking is not a legitimate operation on Arabic: it is a connected
+     script and adding it breaks the joins between letters inside a word. The
+     type scale sets letter-spacing through Tailwind's font-size utilities, so
+     an element-level utility would beat any inherited rule — this zeroes it at
+     the element. The Latin wordmark is the one deliberate exception, and it is
+     Latin by construction. */
+  html[data-language='ar'] *:not(.hero-wordmark-latin) {
+    letter-spacing: 0 !important;
   }
 
   * {
@@ -440,12 +676,16 @@
     color: var(--bg-main);
   }
 
+  /* Two-tone focus. The ground-coloured inner stroke is what makes this work
+     on the primary button, whose fill IS the accent: a single accent ring at
+     0.85 sat 2px outside a solid accent and was effectively invisible. */
   button:focus-visible,
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible,
-  a:focus-visible {
-    outline: 2px solid rgb(var(--accent-gold-rgb) / 0.85);
+  a:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid rgb(var(--accent-gold-rgb));
     outline-offset: 2px;
   }
   
@@ -828,21 +1068,32 @@
     border-bottom: 0;
   }
 
-  /* Active row: an inset marker and one value step — never a filled box. */
+  /* Active row: an inset marker and one value step — never a filled box.
+     The marker is now a gradient: full accent at the top of the row, fading
+     down its height, so it reads as a lit edge rather than a painted tab. */
   .rule-row-active {
-    background: rgb(var(--accent-gold-rgb) / 0.05);
-    box-shadow: inset 2px 0 0 rgb(var(--accent-gold-rgb));
+    background: var(--wash-hover);
+    box-shadow:
+      inset 2px 0 0 rgb(var(--accent-gold-rgb)),
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.05);
     color: rgb(var(--text-main-rgb));
   }
 
   /* box-shadow has no logical form, so the inset marker is physically left and
      in Arabic it sat at the reading END of every active row — the selected
-     theme, the open surah, the current nav item. Flipped for RTL. */
+     theme, the open surah, the current nav item. Flipped for RTL, along with
+     the direction the row's light falls. */
   [dir='rtl'] .rule-row-active {
-    box-shadow: inset -2px 0 0 rgb(var(--accent-gold-rgb));
+    background: var(--wash-hover-rtl);
+    box-shadow:
+      inset -2px 0 0 rgb(var(--accent-gold-rgb)),
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.05);
   }
 
-  /* Segmented control: labels sharing a baseline rule, not boxes. */
+  /* Segmented control: labels sharing a baseline rule, not boxes.
+     Hover brings the rule up at a fraction of its selected weight and warms
+     the label — so the control answers the cursor before it is clicked,
+     instead of the label simply changing colour. */
   .segmented {
     display: inline-flex;
     align-items: stretch;
@@ -850,15 +1101,29 @@
   }
 
   .segmented button {
-    padding: 4px 2px;
+    position: relative;
+    padding: 5px 2px;
     font: inherit;
     font-size: var(--fs-cap);
+    letter-spacing: var(--tr-cap);
     color: rgb(var(--text-muted-rgb));
     background: none;
     border: 0;
     border-bottom: 1px solid transparent;
     cursor: pointer;
-    transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+    transition:
+      color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out),
+      opacity var(--dur-fast) var(--ease-out);
+  }
+
+  .segmented button:hover {
+    color: rgb(var(--text-soft-rgb));
+    border-bottom-color: rgb(var(--accent-gold-rgb) / 0.34);
+  }
+
+  .segmented button:active {
+    opacity: 0.72;
   }
 
   .segmented button[aria-pressed='true'] {
@@ -866,39 +1131,65 @@
     border-bottom-color: rgb(var(--accent-gold-rgb));
   }
 
+  /* An icon button is 30px of nothing until you touch it, then it becomes a
+     small lit surface: a value step, a top highlight, a warmed gradient edge.
+     Press drives the highlight to the bottom edge — the control has gone INTO
+     the page. */
   .icon-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 30px;
     height: 30px;
-    border: 0;
+    border: 1px solid transparent;
     border-radius: var(--r-sm);
     background: none;
     color: rgb(var(--text-muted-rgb));
     cursor: pointer;
-    transition: color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+    transition:
+      color var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out),
+      transform var(--dur-press) var(--ease-out);
   }
 
   .icon-btn:hover {
     color: rgb(var(--text-main-rgb));
-    background: rgb(var(--accent-gold-rgb) / 0.06);
+    background: var(--wash-btn) padding-box, var(--edge-2) border-box;
+    box-shadow: var(--elev-1);
   }
 
-  /* Quiet field: a baseline rule instead of a boxed input. */
+  .icon-btn:active {
+    transform: translateY(0.5px);
+    box-shadow: var(--elev-press);
+  }
+
+  /* Quiet field: a baseline rule instead of a boxed input. The rule is the
+     whole control, so it is where every state has to happen — it warms on
+     hover, and on focus it goes to full accent with a soft pool of light
+     seated under it rather than a ring drawn round a box. */
   .field-quiet {
     width: 100%;
     padding: 8px 2px;
     color: rgb(var(--text-main-rgb));
-    background: none;
+    background: linear-gradient(180deg, transparent 62%, rgb(var(--accent-gold-rgb) / 0));
     border: 0;
     border-bottom: 1px solid var(--hair);
     outline: none;
-    transition: border-color var(--dur) var(--ease);
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      background var(--dur-normal) var(--ease-out),
+      box-shadow var(--dur-normal) var(--ease-out);
+  }
+
+  .field-quiet:hover:not(:focus) {
+    border-bottom-color: var(--hair-strong);
   }
 
   .field-quiet:focus {
     border-bottom-color: rgb(var(--accent-gold-rgb));
+    background: linear-gradient(180deg, transparent 46%, rgb(var(--accent-gold-rgb) / 0.055));
+    box-shadow: 0 6px 12px -12px rgb(var(--accent-gold-rgb) / 0.9);
   }
 
   .field-quiet::placeholder {
@@ -991,20 +1282,35 @@
     border-bottom: 0;
   }
 
-  /* Every interactive element gets the same focus ring. */
+  /* Every interactive element gets the same two-tone ring: a ground-coloured
+     inner stroke and an accent outer one. Drawn as box-shadow rather than an
+     outline so it stacks with (rather than replaces) the element's own
+     elevation, and so it follows border-radius on the rounded ones. */
   .rule-row:focus-visible,
   .segmented button:focus-visible,
   .icon-btn:focus-visible,
+  .quiet-action:focus-visible,
   .field-quiet:focus-visible {
-    outline: 2px solid rgb(var(--accent-gold-rgb));
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: var(--ring-focus);
+  }
+
+  .icon-btn:focus-visible {
+    color: rgb(var(--text-main-rgb));
   }
 
   @media (prefers-reduced-motion: reduce) {
     .segmented button,
     .icon-btn,
-    .field-quiet {
+    .field-quiet,
+    .quiet-action {
       transition: none;
+    }
+
+    /* Motion is REMOVED, not shortened: the displacement itself goes, so a
+       press does not jump the control by half a pixel with no tween. */
+    .icon-btn:active {
+      transform: none;
     }
   }
 
@@ -1016,9 +1322,13 @@
     position: relative;
     display: grid;
     place-items: center;
-    min-height: 26rem;
-    height: 62vh;
-    max-height: 40rem;
+    /* Sized to its content plus breathing room, not to a share of the window.
+       At 62vh the hero was 620px tall around 332px of content — 144px of dead
+       ground above and below — which pushed the resume card, the most useful
+       thing on the page, just under the fold at 1000px. */
+    min-height: 23rem;
+    height: 52vh;
+    max-height: 34rem;
     overflow: hidden;
     isolation: isolate;
     border-radius: var(--r-lg);
@@ -1351,25 +1661,71 @@
 
   /* ── The ruled page (mistara) — the app's signature.
      Sections are separated by rules and value steps, never boxes. */
+  /* A section head's rule is not uniform either: it is strongest under the
+     title, where the eye starts, and fades out across the width. A ruled page
+     is ruled with a pen, not with a border property. */
   .rule-head {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     padding-bottom: var(--s3);
-    border-bottom: 1px solid var(--hair);
+    border-bottom: 0;
+    background-image:
+      linear-gradient(
+        90deg,
+        rgb(var(--hair-rgb) / 0.30) 0%,
+        rgb(var(--hair-rgb) / 0.13) 34%,
+        rgb(var(--hair-rgb) / 0.05) 100%
+      );
+    background-repeat: no-repeat;
+    background-position: bottom left;
+    background-size: 100% 1px;
   }
 
+  [dir='rtl'] .rule-head {
+    background-position: bottom right;
+    background-image:
+      linear-gradient(
+        270deg,
+        rgb(var(--hair-rgb) / 0.30) 0%,
+        rgb(var(--hair-rgb) / 0.13) 34%,
+        rgb(var(--hair-rgb) / 0.05) 100%
+      );
+  }
+
+  /* A row is a rule and a value step. Hover gives it a directional wash that
+     falls away from the reading edge, and lights the top hairline of the row —
+     so the pointer reads as light moving over a page rather than a cell
+     turning a different colour. */
   .rule-row {
     display: flex;
     align-items: center;
     gap: var(--s4);
     padding: 0.875rem 0.125rem;
     border-bottom: 1px solid var(--hair);
-    transition: background-color var(--dur) var(--ease);
+    transition:
+      background var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out);
   }
 
   .rule-row:hover {
-    background: rgb(var(--accent-gold-rgb) / 0.04);
+    background: var(--wash-hover);
+    border-bottom-color: var(--hair-strong);
+    box-shadow: inset 0 1px 0 rgb(var(--sheen-rgb) / 0.035);
+  }
+
+  [dir='rtl'] .rule-row:hover {
+    background: var(--wash-hover-rtl);
+  }
+
+  .rule-row:active {
+    background: var(--wash-active);
+    box-shadow: inset 0 1px 2px rgb(var(--shade-rgb) / 0.14);
+  }
+
+  [dir='rtl'] .rule-row:active {
+    background: var(--wash-active-rtl);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1381,20 +1737,22 @@
   @keyframes page-enter {
     from {
       opacity: 0;
-      transform: translateY(6px);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
     }
   }
 
-  .page-container > * {
-    animation: page-enter 180ms ease-out both;
+  /* One fade on the container, no transform, no per-child stagger. Every
+     direct child used to slide up 6px on every route change, which meant the
+     hero — a static, reverent object — bounced on every navigation, and
+     uniform content lift-in is the house style of dashboard templates. */
+  .page-container {
+    animation: page-enter var(--dur-normal) var(--ease-out) both;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .page-container > * {
+    .page-container {
       animation: none;
     }
   }
@@ -1408,8 +1766,35 @@
        The two opposing glows were also cancelling into a flat wash, so the warm
        one now leads and the cool one only cools the far corner. */
     background:
-      radial-gradient(120% 80% at 86% -6%, rgb(var(--accent-gold-rgb) / 0.10), transparent 62%),
-      radial-gradient(90% 70% at 6% 104%, rgb(var(--accent-emerald-rgb) / 0.035), transparent 68%),
+      /* The vignette, first so it sits over the light: the corners fall away
+         from the key, which is most of what makes the reference plates read as
+         a photographed room rather than a fill. Held very low deliberately —
+         on the dark themes the ground is already at the floor and this does
+         nothing, and on Pearl anything heavier stops reading as falloff and
+         starts reading as dirt on the paper. */
+      radial-gradient(
+        132% 104% at 22% 0%,
+        transparent 42%,
+        rgb(var(--shade-rgb) / 0.028) 76%,
+        rgb(var(--shade-rgb) / 0.062) 100%
+      ),
+      /* one warm key, high and to the reading edge, the same direction the
+         hero lights from — two opposing glows cancel into a flat wash */
+      radial-gradient(96% 62% at 22% -8%, rgb(var(--accent-gold-rgb) / 0.085), transparent 68%),
+      radial-gradient(130% 88% at 22% -8%, rgb(var(--accent-gold-rgb) / 0.035), transparent 76%),
+      var(--bg-main);
+  }
+
+  [dir='rtl'] .page-container {
+    background:
+      radial-gradient(
+        132% 104% at 78% 0%,
+        transparent 42%,
+        rgb(var(--shade-rgb) / 0.028) 76%,
+        rgb(var(--shade-rgb) / 0.062) 100%
+      ),
+      radial-gradient(96% 62% at 78% -8%, rgb(var(--accent-gold-rgb) / 0.085), transparent 68%),
+      radial-gradient(130% 88% at 78% -8%, rgb(var(--accent-gold-rgb) / 0.035), transparent 76%),
       var(--bg-main);
   }
   
@@ -1417,65 +1802,246 @@
     @apply max-w-content mx-auto w-full pb-10;
   }
 
-  /* Surfaces separate by a hairline and a value step — never by a drop
-     shadow. Depth comes from the one key light per screen. */
+  /* ── Surfaces ───────────────────────────────────────────────────────────
+     A surface is not a fill with an outline round it. It is a plane with a
+     light on it: a body one value step off its ground, a 1px highlight along
+     the top edge where the light catches, an edge that is bright at the lit
+     corner and dies away at the far one, and a tight contact darkening
+     underneath. Anchored surfaces never carry a generic drop shadow — the
+     ambient occlusion in --elev-* is a contact term, offset by a pixel or two
+     with a heavily negative spread, not a halo.
+
+     The two backgrounds are the whole trick: the first is clipped to the
+     padding box and is the body, the second is clipped to the border box and
+     paints the 1px transparent border, which is how a gradient edge follows
+     border-radius. */
+  /* The public names. .surface-1/2/3 are the ladder; .premium-* are the
+     historical aliases the pages already carry. Compose them with .surface-lift
+     for a card that answers the pointer, and .surface-well for a recessed
+     plane (a thumbnail bed, a letterbox). Nothing else in the app should be
+     hand-rolling a border-plus-fill: if a thing needs to look raised, it takes
+     a level. */
+  .surface-1,
   .premium-surface {
-    border: 1px solid var(--hair);
-    background: rgb(var(--bg-card-rgb) / 0.55);
-    box-shadow: none;
+    border: 1px solid transparent;
+    background: var(--fill-1) padding-box, var(--edge-1) border-box;
+    box-shadow: var(--elev-1);
+  }
+
+  .surface-2 {
+    border: 1px solid transparent;
+    background: var(--fill-2) padding-box, var(--edge-2) border-box;
+    box-shadow: var(--elev-2);
+  }
+
+  .surface-3 {
+    border: 1px solid transparent;
+    background: var(--fill-3) padding-box, var(--edge-3) border-box;
+    box-shadow: var(--elev-3);
+  }
+
+  .surface-well {
+    background: var(--fill-well);
+    box-shadow:
+      inset 0 1px 3px rgb(var(--shade-rgb) / 0.5),
+      inset 0 -1px 0 rgb(var(--sheen-rgb) / 0.045);
+  }
+
+  .surface-lift {
+    transition:
+      background var(--dur-normal) var(--ease-out),
+      box-shadow var(--dur-normal) var(--ease-out),
+      transform var(--dur-normal) var(--ease-out);
+  }
+
+  .surface-lift:hover {
+    background: var(--fill-3) padding-box, var(--edge-3) border-box;
+    box-shadow: var(--elev-3);
+    transform: translateY(-1px);
+  }
+
+  .surface-lift:active {
+    transform: translateY(0);
+    box-shadow: var(--elev-1);
+    transition-duration: var(--dur-press);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .surface-lift {
+      transition: none;
+    }
+
+    .surface-lift:hover,
+    .surface-lift:active {
+      transform: none;
+    }
   }
 
   .premium-card {
-    border: 1px solid var(--hair);
-    background: rgb(var(--bg-card-rgb) / 0.42);
-    box-shadow: none;
-    transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+    border: 1px solid transparent;
+    background: var(--fill-2) padding-box, var(--edge-2) border-box;
+    box-shadow: var(--elev-2);
+    transition:
+      background var(--dur-normal) var(--ease-out),
+      box-shadow var(--dur-normal) var(--ease-out),
+      transform var(--dur-normal) var(--ease-out);
   }
 
+  /* Hover is a lift, not a tint: one value step up the ladder, the edge
+     warms toward the accent at the lit corner, the occlusion deepens and
+     spreads, and the whole plane rises a single pixel. One pixel is enough —
+     the shadow change is doing the work, the translate only confirms it. */
   .premium-card-hover:hover {
-    border-color: rgb(var(--accent-gold-rgb) / 0.26);
+    background: var(--fill-3) padding-box, var(--edge-3) border-box;
+    box-shadow: var(--elev-3);
+    transform: translateY(-1px);
   }
 
-  .premium-card-hover:hover {
-    background: rgb(var(--bg-card-hover-rgb) / 0.55);
+  .premium-card-hover:active {
+    transform: translateY(0);
+    box-shadow: var(--elev-1);
+    transition-duration: var(--dur-press);
   }
 
   .premium-pill {
     @apply inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-xs font-medium;
-    border: 1px solid var(--hair);
+    border: 1px solid transparent;
     color: rgb(var(--accent-gold-rgb));
-    background: rgb(var(--accent-gold-rgb) / 0.07);
+    background:
+      linear-gradient(
+        177deg,
+        rgb(var(--accent-gold-rgb) / 0.13),
+        rgb(var(--accent-gold-rgb) / 0.05)
+      ) padding-box,
+      var(--edge-accent) border-box;
+    box-shadow: inset 0 1px 0 rgb(var(--sheen-rgb) / 0.05);
   }
 
+  /* The accent-filled button is the one surface in the app whose body IS the
+     accent, so its light has to come from the accent's own range: a lighter
+     tint of it along the top, the flat accent below. */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-background transition-colors disabled:cursor-not-allowed disabled:opacity-60;
-    background: rgb(var(--accent-gold-rgb));
-    box-shadow: none;
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-background disabled:cursor-not-allowed disabled:opacity-60;
+    border: 1px solid transparent;
+    background:
+      linear-gradient(
+        177deg,
+        rgb(var(--sheen-rgb) / 0.16),
+        rgb(var(--sheen-rgb) / 0) 56%,
+        rgb(var(--shade-rgb) / 0.07) 100%
+      ) padding-box,
+      linear-gradient(rgb(var(--accent-gold-rgb)), rgb(var(--accent-gold-rgb))) padding-box,
+      linear-gradient(
+        146deg,
+        rgb(var(--sheen-rgb) / 0.34),
+        rgb(var(--accent-gold-rgb) / 0.6) 62%,
+        rgb(var(--shade-rgb) / 0.14)
+      ) border-box;
+    box-shadow:
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.24),
+      0 1px 2px -1px rgb(var(--shade-rgb) / 0.30),
+      0 8px 18px -14px rgb(var(--accent-gold-rgb) / 0.85);
+    transition:
+      background var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out),
+      transform var(--dur-press) var(--ease-out);
   }
 
-  .btn-primary:hover {
-    background: rgb(var(--accent-gold-rgb) / 0.88);
+  .btn-primary:hover:not(:disabled) {
+    background:
+      linear-gradient(
+        177deg,
+        rgb(var(--sheen-rgb) / 0.26),
+        rgb(var(--sheen-rgb) / 0.05) 56%,
+        rgb(var(--shade-rgb) / 0.05) 100%
+      ) padding-box,
+      linear-gradient(rgb(var(--accent-gold-rgb)), rgb(var(--accent-gold-rgb))) padding-box,
+      linear-gradient(
+        146deg,
+        rgb(var(--sheen-rgb) / 0.5),
+        rgb(var(--accent-gold-rgb) / 0.7) 62%,
+        rgb(var(--shade-rgb) / 0.14)
+      ) border-box;
+    box-shadow:
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.34),
+      0 2px 3px -2px rgb(var(--shade-rgb) / 0.34),
+      0 12px 24px -14px rgb(var(--accent-gold-rgb) / 0.95);
   }
 
+  .btn-primary:active:not(:disabled) {
+    transform: translateY(0.5px);
+    box-shadow:
+      inset 0 1px 3px rgb(var(--shade-rgb) / 0.34),
+      inset 0 -1px 0 rgb(var(--sheen-rgb) / 0.16);
+  }
+
+  /* Flattened off the old vertical bevel: this is one value step and a lit
+     edge, the same material as a card, at button scale. */
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-md border border-border px-4 py-2.5 text-sm font-medium text-text-primary transition-colors hover:border-border-strong disabled:cursor-not-allowed disabled:opacity-60;
-    background: linear-gradient(
-      180deg,
-      rgb(var(--bg-card-rgb) / 0.96),
-      rgb(var(--bg-panel-rgb) / 0.96)
-    );
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium text-text-primary disabled:cursor-not-allowed disabled:opacity-60;
+    border: 1px solid transparent;
+    background: var(--fill-2) padding-box, var(--edge-2) border-box;
+    box-shadow: var(--elev-1);
+    transition:
+      background var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out),
+      transform var(--dur-press) var(--ease-out);
   }
 
-  .btn-secondary:hover {
-    background: linear-gradient(
-      180deg,
-      rgb(var(--bg-card-hover-rgb) / 0.98),
-      rgb(var(--bg-card-rgb) / 0.98)
-    );
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--fill-3) padding-box, var(--edge-3) border-box;
+    box-shadow: var(--elev-2);
+  }
+
+  .btn-secondary:active:not(:disabled) {
+    transform: translateY(0.5px);
+    box-shadow: var(--elev-press);
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm text-muted-text transition-colors hover:bg-panel-hover hover:text-text-primary;
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm text-muted-text;
+    border: 1px solid transparent;
+    transition:
+      color var(--dur-fast) var(--ease-out),
+      background var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out),
+      transform var(--dur-press) var(--ease-out);
+  }
+
+  .btn-ghost:hover:not(:disabled) {
+    color: rgb(var(--text-main-rgb));
+    background: var(--wash-btn) padding-box, var(--edge-2) border-box;
+    box-shadow: var(--elev-1);
+  }
+
+  .btn-ghost:active:not(:disabled) {
+    transform: translateY(0.5px);
+    box-shadow: var(--elev-press);
+  }
+
+  .btn-primary:focus-visible,
+  .btn-secondary:focus-visible,
+  .btn-ghost:focus-visible {
+    outline: none;
+    box-shadow: var(--ring-focus);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .premium-card,
+    .btn-primary,
+    .btn-secondary,
+    .btn-ghost {
+      transition: none;
+    }
+
+    /* Removed, not shortened. */
+    .premium-card-hover:hover,
+    .premium-card-hover:active,
+    .btn-primary:active:not(:disabled),
+    .btn-secondary:active:not(:disabled),
+    .btn-ghost:active:not(:disabled) {
+      transform: none;
+    }
   }
 
 
@@ -1516,21 +2082,34 @@
      as broken image placeholders rather than ornament. */
   .thumbnail-fallback {
     @apply relative flex h-full w-full items-center justify-center overflow-hidden;
-    background: rgb(var(--bg-card-rgb));
+    background: var(--fill-well);
     color: rgb(var(--text-faint-rgb));
+    /* A well, not a hole: the shade is deepest where the wall meets the floor
+       at the top, and there is a seated highlight at the bottom lip. */
+    box-shadow:
+      inset 0 1px 3px rgb(var(--shade-rgb) / 0.5),
+      inset 0 -1px 0 rgb(var(--sheen-rgb) / 0.045);
   }
 
   .icon-medallion {
-    @apply relative flex items-center justify-center rounded-lg border border-primary-blue/20 bg-primary-blue/10 text-primary-blue;
-    box-shadow: inset 0 0 0 1px rgb(var(--accent-gold-rgb) / 0.08);
+    @apply relative flex items-center justify-center rounded-md text-primary-blue;
+    border: 1px solid transparent;
+    background:
+      linear-gradient(
+        177deg,
+        rgb(var(--accent-gold-rgb) / 0.14),
+        rgb(var(--accent-gold-rgb) / 0.05)
+      ) padding-box,
+      var(--edge-accent) border-box;
+    box-shadow: inset 0 1px 0 rgb(var(--sheen-rgb) / 0.07);
   }
 
   .icon-medallion::after {
     content: '';
     position: absolute;
-    inset: 4px;
-    border: 1px solid rgb(var(--accent-gold-rgb) / 0.14);
-    border-radius: 6px;
+    inset: 3px;
+    border: 1px solid rgb(var(--accent-gold-rgb) / 0.12);
+    border-radius: 4px;
     pointer-events: none;
   }
 
@@ -1561,20 +2140,105 @@
      means neither is one. The real hero has a key light with a direction; this
      panel does not need to invent another. */
   .salafi-dashboard-hero {
-    background: rgb(var(--bg-card-rgb) / 0.55);
+    border: 1px solid transparent;
+    background: var(--fill-1) padding-box, var(--edge-1) border-box;
+    box-shadow: var(--elev-1);
   }
 
   .download-batch-card {
-    box-shadow: inset 0 1px 0 rgb(var(--accent-gold-rgb) / 0.04);
+    box-shadow: var(--elev-1);
   }
 
+  /* Same material as a card, recessed rather than raised: the highlight sits
+     on the BOTTOM edge and the occlusion is inset, which is what a well is. */
   .surface-input {
-    @apply rounded-md border border-border bg-panel px-3 py-2 text-sm text-text-primary placeholder:text-muted-text/60 outline-none transition focus:border-primary-blue/50 focus:ring-1 focus:ring-primary-blue/30;
+    @apply rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-muted-text/60 outline-none;
+    border: 1px solid transparent;
+    background:
+      linear-gradient(
+        177deg,
+        rgb(var(--bg-panel-rgb) / 0.9),
+        rgb(var(--bg-panel-rgb) / 0.7)
+      ) padding-box,
+      var(--edge-1) border-box;
+    box-shadow:
+      inset 0 1px 2px rgb(var(--shade-rgb) / 0.22),
+      inset 0 -1px 0 rgb(var(--sheen-rgb) / 0.035);
+    transition:
+      background var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out);
   }
 
+  .surface-input:hover:not(:focus) {
+    background:
+      linear-gradient(
+        177deg,
+        rgb(var(--bg-panel-rgb) / 0.98),
+        rgb(var(--bg-panel-rgb) / 0.8)
+      ) padding-box,
+      var(--edge-2) border-box;
+  }
+
+  .surface-input:focus {
+    background:
+      linear-gradient(
+        177deg,
+        rgb(var(--bg-panel-rgb)),
+        rgb(var(--bg-panel-rgb) / 0.86)
+      ) padding-box,
+      var(--edge-accent) border-box;
+    box-shadow:
+      inset 0 1px 2px rgb(var(--shade-rgb) / 0.18),
+      0 0 0 3px rgb(var(--accent-gold-rgb) / 0.14);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .surface-input {
+      transition: none;
+    }
+  }
+
+  /* Over a video still, so the ground is unknown: this is the one surface
+     that has to carry its own darkness. It is still token-derived — --shade
+     is the theme's ink, --sheen its light. */
   .media-badge {
-    @apply rounded-md border border-white/10 bg-black/70 px-1.5 py-0.5 text-[11px] font-medium text-white;
-    box-shadow: inset 0 1px 0 rgb(var(--text-main-rgb) / 0.08);
+    @apply rounded-sm px-1.5 py-0.5 text-[11px] font-medium;
+    border: 1px solid transparent;
+    color: rgb(var(--sheen-rgb));
+    background:
+      linear-gradient(
+        177deg,
+        rgb(var(--shade-rgb) / 0.72),
+        rgb(var(--shade-rgb) / 0.82)
+      ) padding-box,
+      linear-gradient(
+        146deg,
+        rgb(var(--sheen-rgb) / 0.22),
+        rgb(var(--sheen-rgb) / 0.06)
+      ) border-box;
+    box-shadow: inset 0 1px 0 rgb(var(--sheen-rgb) / 0.10);
+  }
+
+  /* ── The window base ────────────────────────────────────────────────────
+     Per the Windows layering model the base layer is opaque and quiet and the
+     content layer sits above it. The sidebar is that base: it does not get a
+     card's material, it gets an edge. Its inline-end edge is a lit hairline
+     that is brightest at the top, where the key light is, plus a narrow
+     occlusion falling onto the content — so the content plane reads as being
+     in front of the sidebar rather than beside it.
+
+     Only box-shadow, deliberately: the sidebar's fill is set by a utility at
+     the call site and a `background` here would lose to it. */
+  .app-sidebar {
+    box-shadow:
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.04),
+      8px 0 20px -14px rgb(var(--shade-rgb) / 0.95);
+  }
+
+  [dir='rtl'] .app-sidebar {
+    box-shadow:
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.04),
+      -8px 0 20px -14px rgb(var(--shade-rgb) / 0.95);
   }
 }
 

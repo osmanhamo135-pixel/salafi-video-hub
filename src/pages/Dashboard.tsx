@@ -1,15 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import {
-  Bell,
-  Clock,
-  Image,
-  ShieldCheck,
-  TimerReset,
-} from 'lucide-react';
+import { BellOff } from 'lucide-react';
 import { Reminder } from '@/types';
 import { useAppStore } from '@/store/appStore';
-import { ContinueWatching } from '@/components/dashboard/ContinueWatching';
+import { ContinueWatching, useEyebrowClass } from '@/components/dashboard/ContinueWatching';
 import { RecentlyAdded } from '@/components/dashboard/RecentlyAdded';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { Hero } from '@/components/home/Hero';
@@ -19,6 +13,7 @@ import { useI18n } from '@/i18n';
 
 export const Dashboard: React.FC = () => {
   const { language, t } = useI18n();
+  const eyebrow = useEyebrowClass();
   const stats = useAppStore((s) => s.stats);
   const loadStats = useAppStore((s) => s.loadStats);
   const playlistsLoading = useAppStore((s) => s.playlistsLoading);
@@ -67,110 +62,171 @@ export const Dashboard: React.FC = () => {
     ? formatDurationLong(stats.totalDuration, language)
     : formatDurationLong(0, language);
 
-  const metrics = [
+  /* Demoted from four equal-weight figures to a caption row. None of these is
+     what someone opens the app to find out; they are context for the one
+     figure that is. */
+  const supporting = [
     { label: t('totalVideos'), value: (stats?.totalVideos ?? 0).toLocaleString() },
     { label: t('playlists'), value: (stats?.totalPlaylists ?? 0).toLocaleString() },
     { label: t('libraryStorage'), value: formatBytes(stats?.totalStorageBytes ?? 0) },
-    { label: t('completed'), value: (stats?.completedVideos ?? 0).toLocaleString() },
+    {
+      label: t('watchArchive'),
+      value: stats?.totalDuration ? watchArchive : t('durationNotScanned'),
+    },
+    {
+      label: t('thumbnailEngine'),
+      value: thumbnailJobsRunning ? `${thumbnailPercent}%` : t('ready'),
+      detail: thumbnailJobsRunning
+        ? `${thumbnailGeneratedCount} ${t('ready')}, ${thumbnailFailedCount} ${t('failed')}`
+        : `${thumbnailGeneratedCount} ${t('generatedThisRun')}`,
+    },
   ];
+
+  /* Arabic has no case, and letter-spacing breaks Arabic letter joining, so
+     the display tracking on the page title is Latin-only. */
+  const titleType = language === 'ar'
+    ? 'text-4xl leading-[1.25] sm:text-5xl'
+    : 'text-4xl leading-[1.03] tracking-[-0.02em] sm:text-[3.25rem]';
 
   return (
     <div className="page-container">
       <div className="content-max-width">
         <Hero />
 
-        <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <div className="premium-pill mb-2">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              {t('premiumLibraryCommand')}
+        {/* Masthead. The hero hands off to a title at display scale and a
+            single filled action, then a thread closes the block — without it
+            the page fell from a lit room straight into 14px body copy. */}
+        <header className="mt-2">
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between xl:gap-10">
+            <div className="min-w-0">
+              <div className="flex items-center gap-3">
+                <span aria-hidden="true" className="h-px w-8 bg-accent-gold/50" />
+                <span
+                  className={
+                    language === 'ar'
+                      ? 'text-[11px] font-medium text-accent-gold'
+                      : 'text-[11px] font-semibold uppercase tracking-[0.16em] text-accent-gold'
+                  }
+                >
+                  {t('premiumLibraryCommand')}
+                </span>
+              </div>
+              <h1 className={`mt-4 font-semibold text-text-primary ${titleType}`}>
+                {t('dashboard')}
+              </h1>
+              <p className="mt-3 max-w-lg text-sm text-muted-text sm:text-base">
+                {t('dashboardSubtitle')}
+              </p>
             </div>
-            <h1 className="text-3xl font-semibold text-text-primary">{t('dashboard')}</h1>
-            <p className="mt-1 text-sm text-muted-text">{t('dashboardSubtitle')}</p>
+            <QuickActions />
           </div>
-          <QuickActions />
-        </div>
+          {/* A directional thread, brightest at the reading edge and gone by
+              the far margin — the same key light the hero is lit by, rather
+              than a symmetric divider. Flipped for RTL. */}
+          <div
+            aria-hidden="true"
+            className="mt-8 h-px w-full"
+            style={{
+              background: `linear-gradient(${language === 'ar' ? '270deg' : '90deg'}, rgb(var(--accent-gold-rgb) / 0.55), rgb(var(--accent-gold-rgb) / 0.14) 34%, rgb(var(--accent-gold-rgb) / 0.04) 68%, transparent)`,
+            }}
+          />
+        </header>
 
-        <section>
-          <div className="rule-head mb-1">
-            <h2 className="text-sm font-semibold text-text-primary">{t('libraryAtAGlance')}</h2>
-            <span className="text-xs tabular-nums text-muted-text">
-              <bdi>{watchArchive}</bdi>
-            </span>
-          </div>
-
-          <div className="grid gap-6 py-6 lg:grid-cols-[minmax(0,200px)_minmax(0,1fr)] lg:items-center">
-            <ProgressRing
-              label={t('libraryReadiness')}
-              value={completionPercent}
-              detail={`${stats?.completedVideos ?? 0} ${t('of')} ${stats?.totalVideos ?? 0} ${t('completedLower')}`}
-            />
-
-            {isLoading ? (
-              <div className="flex flex-col sm:flex-row">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`min-w-0 flex-1 py-2 ${i > 0 ? 'border-t border-border pt-3 sm:border-s sm:border-t-0 sm:ps-5 sm:pt-2' : 'sm:pe-5'}`}
-                  >
-                    <div className="h-7 w-20 rounded bg-panel-hover motion-safe:animate-pulse" />
-                    <div className="mt-2 h-3 w-16 rounded bg-panel-hover motion-safe:animate-pulse" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col sm:flex-row">
-                {metrics.map((metric, i) => (
-                  <div
-                    key={metric.label}
-                    className={`min-w-0 flex-1 py-2 ${i > 0 ? 'border-t border-border pt-3 sm:border-s sm:border-t-0 sm:ps-5 sm:pt-2' : 'sm:pe-5'}`}
-                  >
-                    <p className="text-2xl font-semibold tabular-nums text-text-primary">
-                      <bdi>{metric.value}</bdi>
-                    </p>
-                    <p className="mt-1 truncate text-xs text-muted-text" title={metric.label}>
-                      {metric.label}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="rule-list">
-            <InsightRow
-              icon={TimerReset}
-              label={t('nextSession')}
-              value={nextReminder?.time ?? t('none')}
-              detail={nextReminder?.title ?? `${reminders.length} ${reminders.length === 1 ? t('activeReminder') : t('activeRemindersLower')}`}
-            />
-            <InsightRow
-              icon={Clock}
-              label={t('watchArchive')}
-              value={watchArchive}
-              detail={stats?.totalDuration ? t('watchTime') : t('durationNotScanned')}
-            />
-            <InsightRow
-              icon={Image}
-              label={t('thumbnailEngine')}
-              value={thumbnailJobsRunning ? `${thumbnailPercent}%` : t('ready')}
-              detail={
-                thumbnailJobsRunning
-                  ? `${thumbnailGeneratedCount} ${t('ready')}, ${thumbnailFailedCount} ${t('failed')}`
-                  : `${thumbnailGeneratedCount} ${t('generatedThisRun')}`
-              }
-              progress={thumbnailJobsRunning ? thumbnailPercent : undefined}
-            />
-          </div>
-        </section>
-
+        {/* The lesson you were part-way through, first and largest. */}
         <ContinueWatching />
 
-        <div className="grid gap-x-10 xl:grid-cols-[minmax(0,1fr)_340px]">
+        {/* One figure at display scale; everything else is caption. */}
+        <section className="mt-16">
+          <div className="mb-8 border-b border-border pb-3">
+            <h2 className={eyebrow}>{t('libraryAtAGlance')}</h2>
+          </div>
+
+          {isLoading ? (
+            <GlanceSkeleton />
+          ) : (
+            <>
+              <div className="grid gap-10 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-16">
+                <div>
+                  <div className="flex items-end gap-5">
+                    <p className="text-6xl font-semibold leading-none tabular-nums text-text-primary sm:text-7xl">
+                      <bdi>{completionPercent}%</bdi>
+                    </p>
+                    <div className="pb-1">
+                      <p className="text-sm font-medium text-text-primary">
+                        {t('libraryReadiness')}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-text">
+                        <bdi>
+                          {(stats?.completedVideos ?? 0).toLocaleString()} {t('of')}{' '}
+                          {(stats?.totalVideos ?? 0).toLocaleString()} {t('completedLower')}
+                        </bdi>
+                      </p>
+                    </div>
+                  </div>
+                  <Meter percent={completionPercent} className="mt-7" />
+                </div>
+
+                {/* What is next, at half the weight of what is done. */}
+                <div className="lg:border-s lg:border-border lg:ps-16">
+                  <p className={eyebrow}>{t('nextSession')}</p>
+                  {/* Nothing scheduled is not an alarm: the figure drops out of
+                      the accent and the supporting lines go with it, rather
+                      than shouting "None" in gold. */}
+                  <p
+                    className={`mt-3 text-3xl font-semibold leading-none tabular-nums ${
+                      nextReminder ? 'text-accent-gold' : 'text-text-faint'
+                    }`}
+                  >
+                    <bdi>{nextReminder?.time ?? t('none')}</bdi>
+                  </p>
+                  {nextReminder && (
+                    <>
+                      <p className="mt-3 truncate text-sm text-text-primary" title={nextReminder.title}>
+                        <bdi>{nextReminder.title}</bdi>
+                      </p>
+                      <p className="mt-1 text-xs text-muted-text">
+                        <bdi>{reminders.length}</bdi>{' '}
+                        {reminders.length === 1 ? t('activeReminder') : t('activeRemindersLower')}
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-12 flex flex-col sm:flex-row">
+                {supporting.map((metric, i) => (
+                  <div
+                    key={metric.label}
+                    className={`min-w-0 flex-1 py-3 sm:py-0 ${
+                      i > 0
+                        ? 'border-t border-border pt-3 sm:border-s sm:border-t-0 sm:pt-0 sm:ps-6'
+                        : 'sm:pe-6'
+                    }`}
+                  >
+                    <p className="truncate text-[11px] text-muted-text" title={metric.label}>
+                      {metric.label}
+                    </p>
+                    <p
+                      className="mt-1.5 truncate text-sm font-medium tabular-nums text-text-soft"
+                      title={metric.detail ?? metric.value}
+                    >
+                      <bdi>{metric.value}</bdi>
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {thumbnailJobsRunning && <Meter percent={thumbnailPercent} className="mt-6" subtle />}
+            </>
+          )}
+        </section>
+
+        <div className="grid gap-x-16 xl:grid-cols-[minmax(0,1fr)_320px]">
           <RecentlyAdded />
           <TodaysRemindersPanel
             reminders={reminders}
             loading={remindersLoading}
+            eyebrow={eyebrow}
             t={t}
           />
         </div>
@@ -179,101 +235,97 @@ export const Dashboard: React.FC = () => {
   );
 };
 
-/* The one key figure on the page, and the only accented mark below the hero:
-   an arc, not a boxed tile. Both stops are token-derived so it re-colours in
-   every theme. */
-const ProgressRing: React.FC<{
-  label: string;
-  value: number;
-  detail: string;
-}> = ({ label, value, detail }) => {
-  const safeValue = Math.min(Math.max(value, 0), 100);
-
+const Meter: React.FC<{ percent: number; className?: string; subtle?: boolean }> = ({
+  percent,
+  className = '',
+  subtle = false,
+}) => {
+  const safe = Math.min(Math.max(percent, 0), 100);
   return (
-    <div className="flex flex-col items-center gap-3 text-center">
+    <div
+      className={`w-full rounded-full ${subtle ? 'h-px' : 'h-[3px]'} ${className}`}
+      style={{ background: 'rgb(var(--text-muted-rgb) / 0.18)' }}
+      role="presentation"
+    >
       <div
-        className="relative flex h-32 w-32 items-center justify-center rounded-full"
+        className="h-full rounded-full motion-safe:transition-[width] motion-safe:duration-700 motion-safe:ease-out"
         style={{
-          background: `conic-gradient(rgb(var(--accent-gold-rgb)) ${safeValue * 3.6}deg, rgb(var(--text-muted-rgb) / 0.22) 0deg)`,
+          width: `${safe}%`,
+          background: subtle
+            ? 'rgb(var(--accent-gold-rgb) / 0.7)'
+            : 'rgb(var(--accent-gold-rgb))',
         }}
-      >
-        <div className="absolute inset-[7px] rounded-full bg-background" />
-        <p className="relative text-3xl font-semibold tabular-nums text-text-primary">
-          <bdi>{safeValue}%</bdi>
-        </p>
-      </div>
-      <div>
-        <p className="text-xs text-text-primary">{label}</p>
-        <p className="mt-0.5 text-xs text-muted-text">{detail}</p>
-      </div>
+      />
     </div>
   );
 };
 
-const InsightRow: React.FC<{
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-  detail: string;
-  progress?: number;
-}> = ({ icon: Icon, label, value, detail, progress }) => (
-  <div className="rule-row">
-    <Icon className="h-4 w-4 shrink-0 text-muted-text" />
-    <div className="min-w-0 flex-1">
-      <p className="truncate text-sm text-text-primary">{label}</p>
-      <p className="mt-0.5 truncate text-xs text-muted-text" title={detail}><bdi>{detail}</bdi></p>
-      {typeof progress === 'number' && (
-        <div className="mt-2 h-px w-full bg-border">
-          <div
-            className="h-px bg-muted-text"
-            style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}
-          />
-        </div>
-      )}
+const GlanceSkeleton: React.FC = () => (
+  <div className="grid gap-10 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-16">
+    <div>
+      <div className="h-16 w-40 rounded bg-panel-hover motion-safe:animate-pulse" />
+      <div className="mt-7 h-[3px] w-full rounded bg-panel-hover motion-safe:animate-pulse" />
     </div>
-    <p className="shrink-0 text-sm font-medium tabular-nums text-text-primary">
-      <bdi>{value}</bdi>
-    </p>
+    <div className="lg:border-s lg:border-border lg:ps-16">
+      <div className="h-3 w-24 rounded bg-panel-hover motion-safe:animate-pulse" />
+      <div className="mt-3 h-8 w-24 rounded bg-panel-hover motion-safe:animate-pulse" />
+      <div className="mt-3 h-3 w-32 rounded bg-panel-hover motion-safe:animate-pulse" />
+    </div>
   </div>
 );
 
+/* A schedule, not a list: the time leads in the accent at a fixed measure so
+   the column reads down as times, and the titles hang off it. */
 const TodaysRemindersPanel: React.FC<{
   reminders: Reminder[];
   loading: boolean;
+  eyebrow: string;
   t: (key: import('@/i18n').TranslationKey) => string;
-}> = ({ reminders, loading, t }) => (
-  <section className="mt-8">
-    <div className="rule-head mb-1">
-      <h2 className="text-sm font-semibold text-text-primary">{t('todaysReminders')}</h2>
-      <span className="text-xs tabular-nums text-muted-text">
-        <bdi>{reminders.length}</bdi>
-      </span>
+}> = ({ reminders, loading, eyebrow, t }) => (
+  <section className="mt-20">
+    <div className="mb-2 flex items-baseline justify-between gap-4 border-b border-border pb-3">
+      <h2 className={eyebrow}>{t('todaysReminders')}</h2>
+      {!loading && reminders.length > 0 && (
+        <span className="text-[11px] tabular-nums text-text-faint">
+          <bdi>{reminders.length}</bdi>
+        </span>
+      )}
     </div>
     {loading ? (
-      <div className="rule-list">
+      <div className="flex flex-col">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="rule-row">
-            <div className="h-4 w-4 shrink-0 rounded bg-panel-hover motion-safe:animate-pulse" />
+          <div key={i} className="flex items-center gap-4 border-b border-border py-4">
+            <div className="h-3 w-12 shrink-0 rounded bg-panel-hover motion-safe:animate-pulse" />
             <div className="h-3 flex-1 rounded bg-panel-hover motion-safe:animate-pulse" />
           </div>
         ))}
       </div>
     ) : reminders.length === 0 ? (
-      <div className="py-12 text-center">
-        <p className="text-sm text-muted-text">{t('noRemindersSet')}</p>
-        <p className="mt-1 text-xs text-text-faint">{t('createRemindersInTab')}</p>
+      <div className="px-4 py-16 text-center">
+        <span
+          className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-border"
+          style={{ background: 'rgb(var(--accent-gold-rgb) / 0.05)' }}
+        >
+          <BellOff className="h-5 w-5 text-accent-gold/60" />
+        </span>
+        <p className="mt-5 text-sm font-medium text-text-primary">{t('noRemindersSet')}</p>
+        <p className="mx-auto mt-2 max-w-[15rem] text-xs text-muted-text">
+          {t('createRemindersInTab')}
+        </p>
       </div>
     ) : (
-      <div className="rule-list">
+      <div className="flex flex-col">
         {reminders.slice(0, 6).map((reminder) => (
-          <div key={reminder.id} className="rule-row">
-            <Bell className="h-4 w-4 shrink-0 text-muted-text" />
+          <div
+            key={reminder.id}
+            className="flex items-baseline gap-4 border-b border-border py-4 last:border-b-0"
+          >
+            <span className="w-12 shrink-0 text-sm font-medium tabular-nums text-accent-gold">
+              <bdi>{reminder.time}</bdi>
+            </span>
             <p className="min-w-0 flex-1 truncate text-sm text-text-primary" title={reminder.title}>
               <bdi>{reminder.title}</bdi>
             </p>
-            <span className="shrink-0 text-xs tabular-nums text-muted-text">
-              <bdi>{reminder.time}</bdi>
-            </span>
           </div>
         ))}
       </div>

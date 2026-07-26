@@ -459,13 +459,15 @@ const ToggleRow: React.FC<{
       aria-labelledby={`dl-${label}`}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors motion-reduce:transition-none ${
-        checked ? 'bg-accent-gold' : 'bg-border-strong'
-      } ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+      className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors duration-150 motion-reduce:transition-none ${
+        checked
+          ? 'border-accent-gold/40 bg-accent-gold/20'
+          : 'border-border-strong/60 bg-border-strong/30'
+      } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
     >
       <span
-        className={`pointer-events-none absolute start-0.5 top-0.5 inline-block h-5 w-5 rounded-full transition-transform motion-reduce:transition-none ${
-          checked ? 'translate-x-5 bg-background rtl:-translate-x-5' : 'translate-x-0 bg-muted-text'
+        className={`pointer-events-none absolute start-[3px] top-[3px] inline-block h-3 w-3 rounded-full transition-transform duration-150 motion-reduce:transition-none ${
+          checked ? 'translate-x-4 bg-accent-gold rtl:-translate-x-4' : 'translate-x-0 bg-muted-text'
         }`}
       />
     </button>

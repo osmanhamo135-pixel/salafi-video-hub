@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Play } from 'lucide-react';
+import { FolderPlus, Play } from 'lucide-react';
 import { Playlist, Video } from '@/types';
 import { useAppStore } from '@/store/appStore';
 import { usePlayerStore } from '@/store/playerStore';
 import { formatDuration } from '@/utils/formatTime';
 import { LocalThumbnail } from '@/components/ui/LocalThumbnail';
+import { useEyebrowClass } from '@/components/dashboard/ContinueWatching';
 import { useI18n } from '@/i18n';
 
 /* .thumbnail-fallback bakes in an .icon-medallion (primary-blue border + fill)
@@ -15,6 +16,7 @@ const QUIET_FALLBACK = 'thumbnail-fallback thumbnail-fallback-quiet';
 
 export const RecentlyAdded: React.FC = () => {
   const { t } = useI18n();
+  const eyebrow = useEyebrowClass();
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const loadedRef = useRef(false);
@@ -85,19 +87,21 @@ export const RecentlyAdded: React.FC = () => {
   };
 
   return (
-    <section className="mt-8">
-      <div className="rule-head mb-1">
-        <h2 className="text-sm font-semibold text-text-primary">{t('recentlyAdded')}</h2>
-        <span className="text-xs tabular-nums text-muted-text">
-          <bdi>{videos.length}</bdi>
-        </span>
+    <section className="mt-20">
+      <div className="mb-2 flex items-baseline justify-between gap-4 border-b border-border pb-3">
+        <h2 className={eyebrow}>{t('recentlyAdded')}</h2>
+        {!loading && videos.length > 0 && (
+          <span className="text-[11px] tabular-nums text-text-faint">
+            <bdi>{videos.length}</bdi>
+          </span>
+        )}
       </div>
 
       {loading ? (
-        <div className="rule-list">
+        <div className="flex flex-col">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="rule-row">
-              <div className="h-[54px] w-24 shrink-0 rounded bg-panel-hover motion-safe:animate-pulse" />
+            <div key={i} className="flex items-center gap-4 border-b border-border py-4">
+              <div className="h-[63px] w-28 shrink-0 rounded bg-panel-hover motion-safe:animate-pulse" />
               <div className="min-w-0 flex-1 space-y-2">
                 <div className="h-3 w-2/5 rounded bg-panel-hover motion-safe:animate-pulse" />
                 <div className="h-3 w-1/4 rounded bg-panel-hover motion-safe:animate-pulse" />
@@ -106,12 +110,18 @@ export const RecentlyAdded: React.FC = () => {
           ))}
         </div>
       ) : videos.length === 0 ? (
-        <div className="py-12 text-center">
-          <p className="text-sm text-muted-text">{t('noVideosYet')}</p>
-          <p className="mt-1 text-xs text-text-faint">{t('importFolderHint')}</p>
+        <div className="px-6 py-16 text-center">
+          <span
+            className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-border"
+            style={{ background: 'rgb(var(--accent-gold-rgb) / 0.05)' }}
+          >
+            <FolderPlus className="h-6 w-6 text-accent-gold/60" />
+          </span>
+          <p className="mt-5 text-base font-medium text-text-primary">{t('noVideosYet')}</p>
+          <p className="mx-auto mt-2 max-w-xs text-sm text-muted-text">{t('importFolderHint')}</p>
         </div>
       ) : (
-        <div className="rule-list">
+        <div className="flex flex-col">
           {groups.map((group) => (
             <RecentRow
               key={group.key}
@@ -144,37 +154,50 @@ const RecentRow: React.FC<{
       type="button"
       onClick={() => canPlay && onPlay(video, playlist)}
       disabled={!canPlay}
-      className="rule-row group w-full text-start disabled:cursor-default"
+      className="group flex w-full items-center gap-5 border-b border-border py-4 text-start transition-colors last:border-b-0 hover:bg-accent-gold/[0.04] disabled:cursor-default"
     >
-      <div className="relative h-[54px] w-24 shrink-0 overflow-hidden rounded bg-background">
+      <div className="relative h-[63px] w-28 shrink-0 overflow-hidden rounded bg-background">
         <LocalThumbnail
           path={video.thumbnailPath}
           label={video.title}
           className="h-full w-full object-cover"
-          iconClassName="h-4 w-4 text-muted-text"
+          iconClassName="h-5 w-5 text-text-faint"
           fallbackClassName={QUIET_FALLBACK}
         />
         {canPlay && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/60 opacity-0 transition-opacity group-hover:opacity-100">
-            <Play className="h-5 w-5 fill-current text-text-primary" />
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
+            <span
+              className="absolute inset-0"
+              style={{ background: 'rgb(var(--bg-main-rgb) / 0.6)' }}
+            />
+            <Play className="relative h-4 w-4 fill-current text-accent-gold" />
           </div>
         )}
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <p className="truncate text-sm text-text-primary" title={video.title}>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <p
+          className="truncate text-sm font-medium text-text-primary transition-colors group-hover:text-accent-gold"
+          title={video.title}
+        >
           <bdi>{video.title}</bdi>
         </p>
         <div className="flex min-w-0 items-center gap-2 text-xs text-muted-text">
           <span className="truncate" title={title}><bdi>{title}</bdi></span>
+          <span aria-hidden="true" className="text-text-faint">·</span>
           <span className="truncate">
             <bdi>{video.speaker || video.category || uncategorizedLabel}</bdi>
           </span>
-          {count > 1 && <bdi className="shrink-0 tabular-nums">+{count - 1}</bdi>}
+          {count > 1 && (
+            <>
+              <span aria-hidden="true" className="text-text-faint">·</span>
+              <bdi className="shrink-0 tabular-nums">+{count - 1}</bdi>
+            </>
+          )}
         </div>
       </div>
 
-      <span className="shrink-0 text-xs tabular-nums text-muted-text">
+      <span className="shrink-0 text-xs tabular-nums text-text-faint">
         <bdi>{formatDuration(video.durationSeconds, language)}</bdi>
       </span>
     </button>
