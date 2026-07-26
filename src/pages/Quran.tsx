@@ -970,7 +970,20 @@ const SurahReader: React.FC = () => {
         </button>
       )}
 
-      <div className={`quran-reading-surface mx-auto mt-2 max-w-[68rem] ${warshMode ? 'quran-riwayah-warsh' : ''}`}>
+      {/* Three elements, and the split matters:
+            .quran-reading-frame     holds the jadwal and bounds the height
+            .quran-reading-viewport  the scroller
+            .quran-reading-surface   unchanged; still the cue's offsetParent
+          Al-Baqarah rendered 36,000px tall inside a 900px window — 42 screens of
+          page scroll — because only the surah sidebar was ever bounded. The
+          scroll cannot go on the surface itself: positionWordCue derives the
+          cue's transform from the delta between the word's rect and its
+          offsetParent's, and an absolutely positioned child of a scroller moves
+          with the content, so the cue would sit scrollTop pixels out. With the
+          scroller one level up, both rects move together and the delta holds. */}
+      <div className="quran-reading-frame mx-auto mt-2 max-w-[68rem]">
+        <div className="quran-reading-viewport">
+      <div className={`quran-reading-surface ${warshMode ? 'quran-riwayah-warsh' : ''}`}>
         {/* The gliding recitation cue — one pill that follows the exact word. */}
         <span aria-hidden="true" id={`quran-cue-${surah.id}`} className="quran-word-cue" />
         {/* The surah header band: the name in a quiet cartouche between two
@@ -1098,6 +1111,8 @@ const SurahReader: React.FC = () => {
             })}
           </p>
         )}
+      </div>
+        </div>
       </div>
     </div>
   );
