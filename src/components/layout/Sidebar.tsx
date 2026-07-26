@@ -67,8 +67,11 @@ export const Sidebar: React.FC = () => {
               className={({ isActive: linkActive }) => 
                 `relative flex items-center gap-3 rounded-md border px-3 py-2.5 text-sm font-medium transition-colors ${
                   linkActive || isActive
-                    ? 'border-primary-blue/25 bg-primary-blue/10 text-text-primary shadow-[inset_3px_0_0_rgba(15,185,177,0.85)]' 
-                    : 'border-transparent text-muted-text hover:border-primary-blue/10 hover:bg-primary-blue/[0.045] hover:text-text-primary'
+                    // The active marker was a hardcoded teal rgba, so on every
+                    // theme but the teal one the sidebar disagreed with the rest
+                    // of the app. Uses the accent token like .rule-row-active does.
+                    ? 'border-accent-gold/25 bg-accent-gold/10 text-text-primary shadow-[inset_3px_0_0_rgb(var(--accent-gold-rgb))]' 
+                    : 'border-transparent text-muted-text hover:border-accent-gold/10 hover:bg-accent-gold/[0.045] hover:text-text-primary'
                 }`
               }
             >
