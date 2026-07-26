@@ -1,6 +1,6 @@
 import React from 'react';
 import { Reminder } from '@/types';
-import { Pencil, Trash2, Clock, Repeat, Film, ListVideo } from 'lucide-react';
+import { Pencil, Trash2, Repeat, Film, ListVideo } from 'lucide-react';
 import { repeatLabelKeys, useI18n } from '@/i18n';
 import { formatReminderDueLabel } from '@/utils/reminderSchedule';
 
@@ -30,7 +30,7 @@ export const ReminderCard: React.FC<ReminderCardProps> = ({
   const repeatLabel = t(repeatLabelKeys[reminder.repeat]);
 
   return (
-    <div className="rule-row gap-4">
+    <div className="rule-row gap-4 py-3.5">
       {/* Toggle Switch */}
       {/* Smaller, and the "on" track is a tint rather than a solid accent fill.
           At full saturation it was the loudest thing on the page — a control
@@ -57,34 +57,45 @@ export const ReminderCard: React.FC<ReminderCardProps> = ({
         />
       </button>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
+      {/* The time leads, at a fixed measure, so a column of reminders reads down
+          as times — which is the thing you actually scan a reminder list for.
+          It used to sit inside a 12px metadata line behind the title. */}
+      <div className="w-[124px] shrink-0 text-start">
+        <p
+          className={`text-lg font-semibold tabular-nums leading-none ${
+            reminder.enabled ? 'text-accent-gold' : 'text-text-faint'
+          }`}
+        >
+          <bdi>{reminder.time}</bdi>
+        </p>
+        <p className="mt-1 truncate text-[11px] text-muted-text">
+          <bdi>{dueLabel}</bdi>
+        </p>
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="mb-0.5 flex items-center gap-2">
           <h3
-            dir="auto"
-            className={`text-sm font-medium truncate ${
+            className={`truncate text-[15px] font-medium ${
               reminder.enabled ? 'text-text-primary' : 'text-muted-text line-through'
             }`}
           >
-            {reminder.title}
+            <bdi>{reminder.title}</bdi>
           </h3>
-          {reminder.targetType === 'video' ? (
-            <Film className="w-3.5 h-3.5 text-muted-text flex-shrink-0" />
-          ) : (
-            <ListVideo className="w-3.5 h-3.5 text-muted-text flex-shrink-0" />
-          )}
         </div>
-        <div className="flex items-center gap-3 text-xs text-muted-text">
-          <span dir="auto" className="truncate">{targetName}</span>
-          <span className="flex flex-shrink-0 items-center gap-1">
-            <Clock className="w-3 h-3" />
-            <bdi>{dueLabel}</bdi>
-          </span>
-          <span className="flex flex-shrink-0 items-center gap-1">
-            <Repeat className="w-3 h-3" />
+        <div className="flex items-center gap-2.5 text-xs text-muted-text">
+          {reminder.targetType === 'video' ? (
+            <Film className="h-3.5 w-3.5 shrink-0" />
+          ) : (
+            <ListVideo className="h-3.5 w-3.5 shrink-0" />
+          )}
+          <span className="truncate"><bdi>{targetName}</bdi></span>
+          <span className="text-text-faint">·</span>
+          <span className="flex shrink-0 items-center gap-1">
+            <Repeat className="h-3 w-3" />
             {repeatLabel}
             {reminder.repeat === 'custom' && reminder.customDays && reminder.customDays.length > 0 && (
-              <bdi className="text-[10px] ms-0.5">
+              <bdi className="ms-0.5 text-[10px]">
                 ({reminder.customDays.map((day) => shortDays[day]).join(', ')})
               </bdi>
             )}
