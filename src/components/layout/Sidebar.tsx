@@ -71,7 +71,7 @@ export const Sidebar: React.FC = () => {
                     // value step, never a filled box. The active item used to be
                     // a bordered, filled box *with* the marker, which broke the
                     // app's own stated rule in the same breath as following it.
-                    ? 'border-transparent bg-accent-gold/[0.05] text-text-primary shadow-[inset_3px_0_0_rgb(var(--accent-gold-rgb))]' 
+                    ? 'border-transparent bg-accent-gold/[0.05] text-text-primary shadow-[inset_3px_0_0_rgb(var(--accent-gold-rgb))] rtl:shadow-[inset_-3px_0_0_rgb(var(--accent-gold-rgb))]' 
                     : 'border-transparent text-muted-text hover:border-accent-gold/10 hover:bg-accent-gold/[0.045] hover:text-text-primary'
                 }`
               }

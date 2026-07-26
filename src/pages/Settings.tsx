@@ -169,7 +169,7 @@ export const Settings: React.FC = () => {
   })();
 
   const handleRemoveFolder = async (path: string) => {
-    if (!confirm(`${t('remove')} — ${path}?`)) return;
+    if (!confirm(`${t('removeFolderConfirm')}\n\n${path}`)) return;
     try {
       await removeImportedFolder(path);
       await refreshPlaylists();
@@ -193,7 +193,7 @@ export const Settings: React.FC = () => {
   };
 
   const handleRepairDatabase = async () => {
-    if (!confirm(`${t('repairDatabase')}?`)) return;
+    if (!confirm(t('repairDatabaseConfirm'))) return;
     setRepairing(true);
     try {
       await invoke('repair_database');
@@ -206,7 +206,7 @@ export const Settings: React.FC = () => {
   };
 
   const handleRemoveOrphans = async () => {
-    if (!confirm(`${t('removeOrphanedEntries')}?`)) return;
+    if (!confirm(t('removeOrphansConfirm'))) return;
     setRemovingOrphans(true);
     try {
       const removed = await invoke<number>('remove_orphaned_entries');
@@ -220,7 +220,7 @@ export const Settings: React.FC = () => {
   };
 
   const handleClearThumbnailCache = async () => {
-    if (!confirm(`${t('clearThumbnailCache')}?`)) return;
+    if (!confirm(t('clearThumbnailCacheConfirm'))) return;
     setClearingCache(true);
     try {
       await invoke('clear_thumbnail_cache');

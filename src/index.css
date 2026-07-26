@@ -809,6 +809,13 @@
     color: rgb(var(--text-main-rgb));
   }
 
+  /* box-shadow has no logical form, so the inset marker is physically left and
+     in Arabic it sat at the reading END of every active row — the selected
+     theme, the open surah, the current nav item. Flipped for RTL. */
+  [dir='rtl'] .rule-row-active {
+    box-shadow: inset -2px 0 0 rgb(var(--accent-gold-rgb));
+  }
+
   /* Segmented control: labels sharing a baseline rule, not boxes. */
   .segmented {
     display: inline-flex;
@@ -1416,7 +1423,9 @@
   }
 
   .brand-mark {
-    @apply relative flex items-center justify-center rounded-full border border-accent-gold/35 bg-black text-accent-gold;
+    /* bg-background, not bg-black: on the light theme a hardcoded black disc
+       is a hole in the corner of the sidebar. */
+    @apply relative flex items-center justify-center rounded-full border border-accent-gold/35 bg-background text-accent-gold;
     box-shadow: inset 0 0 0 1px rgb(var(--accent-gold-rgb) / 0.08);
   }
 
