@@ -95,7 +95,7 @@ const TabButton: React.FC<{
     onClick={onClick}
     className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
       active
-        ? 'border-primary-blue/45 bg-primary-blue/15 text-primary-blue'
+        ? 'border-accent-gold/45 bg-accent-gold/15 text-accent-gold'
         : 'border-border bg-panel text-muted-text hover:border-border-strong hover:text-text-primary'
     }`}
   >

@@ -132,6 +132,13 @@
 
   html[data-theme='pearl'] {
     --quran-green-rgb: 16 138 87;
+    /* The medallion gold is deliberately fixed across themes so a ring never
+       turns cyan in Samaa. Pearl is the exception: it is the only theme with a
+       light ground, and a pale gold on cream leaves the ayah numbers and the
+       surah cartouche washed out to the point of being hard to read. This is
+       the same hue carried down to a bronze that holds on paper — the printed
+       convention, not a different colour. */
+    --mushaf-gold-rgb: 158 118 40;
     --bg-main-rgb: 243 246 247;
     --bg-sidebar-rgb: 229 236 238;
     --bg-panel-rgb: 255 255 255;
