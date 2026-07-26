@@ -790,7 +790,9 @@
        border box; any border here would shift the cue off the spoken word. */
     border: none;
     border-radius: 10px;
-    padding: clamp(2.1rem, 3.4vw, 3.4rem) clamp(1.75rem, 4vw, 3.25rem);
+    /* The inline padding clears the jadwal's inner rule at every width — the
+       band and its rules occupy the first ~32px of the page margin. */
+    padding: clamp(2.1rem, 3.4vw, 3.4rem) clamp(2.4rem, 4.2vw, 3.5rem);
     color: rgb(var(--text-main-rgb));
     background: radial-gradient(
       118% 74% at 50% 0%,
@@ -846,13 +848,79 @@
     border-radius: 0;
   }
 
+  /* The outer rule. */
   .quran-reading-frame::before {
-    inset: clamp(0.5rem, 1vw, 0.85rem);
+    inset: clamp(0.5rem, 0.9vw, 0.7rem);
   }
 
+  /* The inner rule, set just inside the ornamental band. */
   .quran-reading-frame::after {
-    inset: clamp(0.68rem, 1.2vw, 1.02rem);
+    inset: clamp(1.72rem, 2.3vw, 2.05rem);
     border-color: rgb(var(--mushaf-gold-rgb) / 0.14);
+  }
+
+  /* The ornamental band that runs between the two rules, with a khatam — the
+     eight-pointed star of two overlapping squares — closing each corner.
+
+     Painted as a CSS mask rather than as a picture: the tiles are opaque black
+     geometry and the colour comes from the theme's gold underneath, so one set
+     of tiles serves all five themes with no per-theme asset. Eight mask layers
+     ride on this single element — four sides, four corners — and they union
+     where they meet, which is what a real frame does: the corner star
+     terminates both bands that run into it.
+
+     The rules deliberately live on the frame's pseudo-elements rather than on
+     this element. A CSS mask applies to an element's whole subtree, so a
+     hairline drawn on ::before here would be cut to the band's own silhouette
+     and mostly disappear. */
+  .quran-jadwal {
+    --jadwal-h: url('./assets/marks/jadwal-band-h.svg');
+    --jadwal-v: url('./assets/marks/jadwal-band-v.svg');
+    --jadwal-c: url('./assets/marks/jadwal-corner.svg');
+    position: absolute;
+    inset: clamp(0.85rem, 1.35vw, 1.1rem);
+    z-index: 0;
+    pointer-events: none;
+    background: rgb(var(--mushaf-gold-rgb) / 0.40);
+    -webkit-mask-image:
+      var(--jadwal-h), var(--jadwal-h), var(--jadwal-v), var(--jadwal-v),
+      var(--jadwal-c), var(--jadwal-c), var(--jadwal-c), var(--jadwal-c);
+    mask-image:
+      var(--jadwal-h), var(--jadwal-h), var(--jadwal-v), var(--jadwal-v),
+      var(--jadwal-c), var(--jadwal-c), var(--jadwal-c), var(--jadwal-c);
+    -webkit-mask-repeat:
+      repeat-x, repeat-x, repeat-y, repeat-y,
+      no-repeat, no-repeat, no-repeat, no-repeat;
+    mask-repeat:
+      repeat-x, repeat-x, repeat-y, repeat-y,
+      no-repeat, no-repeat, no-repeat, no-repeat;
+    -webkit-mask-position:
+      top center, bottom center, left center, right center,
+      top left, top right, bottom right, bottom left;
+    mask-position:
+      top center, bottom center, left center, right center,
+      top left, top right, bottom right, bottom left;
+    -webkit-mask-size:
+      40px 10px, 40px 10px, 10px 40px, 10px 40px,
+      20px 20px, 20px 20px, 20px 20px, 20px 20px;
+    mask-size:
+      40px 10px, 40px 10px, 10px 40px, 10px 40px,
+      20px 20px, 20px 20px, 20px 20px, 20px 20px;
+    animation: jadwal-in 620ms var(--ease-out) both;
+  }
+
+  /* The frame draws itself in; the text it frames does not. Qur'anic text is
+     never faded in or animated, so the animation is confined to the ornament —
+     the ayat are fully present from the first painted frame. */
+  @keyframes jadwal-in {
+    from {
+      opacity: 0;
+      transform: scale(1.014);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 
   /* Content sits above the frame; the frame is page furniture, not a layer over
@@ -1109,17 +1177,34 @@
     color: rgb(var(--text-muted-rgb));
     background: none;
     border: 0;
-    border-bottom: 1px solid transparent;
     cursor: pointer;
     transition:
       color var(--dur-fast) var(--ease-out),
-      border-color var(--dur-fast) var(--ease-out),
       opacity var(--dur-fast) var(--ease-out);
+  }
+
+  /* The underline grows from the centre of the tab you chose rather than
+     blinking on. Scaling a per-tab rule beats sliding one shared indicator
+     here: the two labels are different widths in both languages, so a shared
+     indicator would have to be measured in JS to land correctly. */
+  .segmented button::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 1.5px;
+    background: rgb(var(--accent-gold-rgb));
+    transform: scaleX(0);
+    transition: transform var(--dur-normal) var(--ease-spring);
   }
 
   .segmented button:hover {
     color: rgb(var(--text-soft-rgb));
-    border-bottom-color: rgb(var(--accent-gold-rgb) / 0.34);
+  }
+
+  .segmented button:hover::after {
+    background: rgb(var(--accent-gold-rgb) / 0.34);
+    transform: scaleX(1);
   }
 
   .segmented button:active {
@@ -1128,7 +1213,12 @@
 
   .segmented button[aria-pressed='true'] {
     color: rgb(var(--text-main-rgb));
-    border-bottom-color: rgb(var(--accent-gold-rgb));
+  }
+
+  .segmented button[aria-pressed='true']::after,
+  .segmented button[aria-pressed='true']:hover::after {
+    background: rgb(var(--accent-gold-rgb));
+    transform: scaleX(1);
   }
 
   /* An icon button is 30px of nothing until you touch it, then it becomes a
@@ -1399,34 +1489,28 @@
     z-index: 0;
     opacity: 0.88;
 
-    --pitch: 1;
-    --shelves:
-      /* uprights dividing the wall into bays */
-      repeating-linear-gradient(
-        90deg,
-        rgb(var(--bg-main-rgb) / 0.96) 0 calc(20px * var(--pitch)),
-        rgb(var(--bg-main-rgb) / 0.45) calc(20px * var(--pitch)) calc(30px * var(--pitch)),
-        transparent calc(30px * var(--pitch)) calc(356px * var(--pitch))
+    /* The hero's ground is light, not scenery.
+
+       This used to draw a library wall out of repeating gradients — uprights,
+       shelf boards, book spines. At the pitch it actually rendered, the spines
+       were 15-23px wide under a 4-10px blur, so they averaged into a vertical
+       smear directly behind the Basmala. Scenery built from stripes cannot
+       survive the blur that makes it look like scenery.
+
+       Pools of warm light give the hero depth without pretending to be a
+       photograph of a room, and they hold up at any size because there is no
+       detail in them to lose. */
+    --pool-x: 24%;
+    --glow:
+      radial-gradient(
+        44% 62% at var(--pool-x) 20%,
+        rgb(var(--accent-gold-rgb) / 0.20),
+        transparent 72%
       ),
-      /* shelf boards, each throwing a shadow down into the bay below it */
-      repeating-linear-gradient(
-        180deg,
-        rgb(var(--bg-main-rgb) / 0.98) 0 calc(18px * var(--pitch)),
-        rgb(var(--bg-main-rgb) / 0.72) calc(18px * var(--pitch)) calc(34px * var(--pitch)),
-        rgb(var(--bg-main-rgb) / 0.30) calc(34px * var(--pitch)) calc(62px * var(--pitch)),
-        transparent calc(62px * var(--pitch)) calc(214px * var(--pitch))
-      ),
-      /* the spines, behind the timber: warm, irregular, catching the light */
-      repeating-linear-gradient(
-        90deg,
-        rgb(var(--accent-gold-rgb) / 0.40) 0 calc(15px * var(--pitch)),
-        rgb(var(--bg-main-rgb) / 0.72) calc(15px * var(--pitch)) calc(23px * var(--pitch)),
-        rgb(var(--accent-emerald-rgb) / 0.26) calc(23px * var(--pitch)) calc(44px * var(--pitch)),
-        rgb(var(--bg-main-rgb) / 0.80) calc(44px * var(--pitch)) calc(50px * var(--pitch)),
-        rgb(var(--accent-gold-rgb) / 0.30) calc(50px * var(--pitch)) calc(73px * var(--pitch)),
-        rgb(var(--bg-main-rgb) / 0.68) calc(73px * var(--pitch)) calc(82px * var(--pitch)),
-        rgb(var(--accent-gold-rgb) / 0.20) calc(82px * var(--pitch)) calc(101px * var(--pitch)),
-        rgb(var(--bg-main-rgb) / 0.76) calc(101px * var(--pitch)) calc(109px * var(--pitch))
+      radial-gradient(
+        38% 54% at calc(var(--pool-x) + 34%) 42%,
+        rgb(var(--accent-emerald-rgb) / 0.13),
+        transparent 74%
       ),
       linear-gradient(180deg, rgb(var(--bg-card-rgb)), rgb(var(--bg-main-rgb)));
 
@@ -1440,29 +1524,29 @@
   .hero-band {
     position: absolute;
     inset: 0;
-    background: var(--shelves);
+    background: var(--glow);
   }
 
-  /* The bands overlap and fade into one another. A hard clip between them left
-     a visible vertical seam, which is worse than no perspective at all. */
+  /* The bands overlap and fade into one another, each with its light a little
+     further across the hero, so the ground has somewhere to recede to. A hard
+     clip between them left a visible vertical seam, which is worse than no
+     depth at all. */
   .hero-band-near {
-    --pitch: 1.34;
-    filter: blur(4px) saturate(120%);
+    --pool-x: 18%;
     -webkit-mask-image: linear-gradient(90deg, black 0 26%, transparent 56%);
     mask-image: linear-gradient(90deg, black 0 26%, transparent 56%);
   }
 
   .hero-band-mid {
-    --pitch: 0.96;
-    filter: blur(7px) saturate(118%);
+    --pool-x: 46%;
+    opacity: 0.86;
     -webkit-mask-image: linear-gradient(90deg, transparent 22%, black 44% 62%, transparent 84%);
     mask-image: linear-gradient(90deg, transparent 22%, black 44% 62%, transparent 84%);
   }
 
   .hero-band-far {
-    --pitch: 0.66;
-    opacity: 0.9;
-    filter: blur(10px) saturate(114%);
+    --pool-x: 70%;
+    opacity: 0.7;
     -webkit-mask-image: linear-gradient(90deg, transparent 58%, black 88%);
     mask-image: linear-gradient(90deg, transparent 58%, black 88%);
   }
@@ -1838,6 +1922,26 @@
     border: 1px solid transparent;
     background: var(--fill-3) padding-box, var(--edge-3) border-box;
     box-shadow: var(--elev-3);
+    /* Level 3 is where overlays live — menus, the floating player. They sit
+       over content rather than beside it, so they take a frosted backdrop:
+       what is underneath stays present as texture instead of being replaced by
+       a flat slab, which is what makes an overlay read as glass above the page
+       rather than as a hole cut into it. */
+    -webkit-backdrop-filter: blur(22px) saturate(1.35);
+    backdrop-filter: blur(22px) saturate(1.35);
+  }
+
+  /* The ground the whole app sits on. One flat dark plane reads as a void; a
+     room has light in it. Three very low pools — gold high on the side the
+     hero occupies, teal across the top, green low and opposite — give the
+     background somewhere to come from. Every colour here is one the themes
+     already own, so no theme gains a hue it did not have. */
+  .app-ground {
+    background:
+      radial-gradient(62% 46% at 78% -4%, rgb(var(--accent-gold-rgb) / 0.075), transparent 68%),
+      radial-gradient(54% 44% at 4% 98%, rgb(var(--quran-green-rgb) / 0.055), transparent 70%),
+      radial-gradient(86% 52% at 42% 0%, rgb(var(--accent-teal-rgb) / 0.05), transparent 62%),
+      linear-gradient(180deg, var(--bg-sidebar) 0%, var(--bg-main) 26rem);
   }
 
   .surface-well {

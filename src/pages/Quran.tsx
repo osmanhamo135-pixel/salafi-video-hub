@@ -1216,6 +1216,10 @@ const SurahReader: React.FC = () => {
           with the content, so the cue would sit scrollTop pixels out. With the
           scroller one level up, both rects move together and the delta holds. */}
       <div className="quran-reading-frame mx-auto mt-2 max-w-[68rem]">
+        {/* The illuminated band. It is a sibling of the scroller, not a child,
+            so it frames the visible page and does not scroll away with the
+            text. */}
+        <div className="quran-jadwal" aria-hidden="true" />
         <div className="quran-reading-viewport">
       <div className={`quran-reading-surface ${warshMode ? 'quran-riwayah-warsh' : ''}`}>
         {/* The gliding recitation cue — one pill that follows the exact word. */}
