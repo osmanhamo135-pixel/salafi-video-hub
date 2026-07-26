@@ -3,6 +3,11 @@ export default {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
+    // The Basmala and نور marks are inlined SVGs whose group class names
+    // (.basmala-stroke, .basmala-harakat, .mark-stroke, .mark-ijam) appear
+    // nowhere else. Without this the component-layer fill rules are purged and
+    // both marks render in the SVG default black.
+    "./src/assets/marks/*.svg",
   ],
   theme: {
     extend: {

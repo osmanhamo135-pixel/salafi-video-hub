@@ -933,26 +933,54 @@
     text-align: center;
   }
 
-  /* The Basmala. Complete, static, never clipped, never restyled: the warm
-     light lives in the background layer, never as a shadow on the glyph. */
+  /* The Basmala. Complete, static, never clipped, never restyled.
+     Rendered as outlined paths taken straight from the bundled Amiri Quran
+     font — the U+FDFD ligature's own components, split into letterforms and
+     harakat by the font's GDEF mark class. Nothing is traced or redrawn, and
+     because the split is the typeface's own classification the two groups can
+     be coloured independently the way a printed mushaf colours its marks.
+     scripts/build-basmala-svg.py regenerates it from the font.
+
+     The warm light lives in the background layer, never as a shadow on the
+     glyph, and the viewBox guarantees it scales without ever clipping. */
   .hero-basmala {
-    margin: 0 0 var(--s7);
-    padding-bottom: 0.42em;
-    max-width: 100%;
-    font-family: 'Amiri Quran', 'Noto Naskh Arabic', serif;
-    font-size: clamp(38px, 6.2vw, 108px);
-    line-height: 1;
-    white-space: nowrap;
-    color: rgb(var(--text-main-rgb));
+    display: block;
+    width: min(100%, 62rem);
+    margin: 0 auto var(--s6);
   }
 
+  .hero-basmala svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .basmala-stroke,
+  .mark-stroke {
+    fill: rgb(var(--text-main-rgb));
+  }
+
+  /* The harakat carry the theme accent, as in the reference plates. Kept at
+     full opacity so every mark stays completely legible. */
+  .basmala-harakat,
+  .mark-ijam {
+    fill: rgb(var(--accent-gold-rgb));
+  }
+
+  /* Deliberately small: in the reference plates the mark is a quiet signature
+     under the Basmala, roughly a twelfth of its width — not a second headline. */
   .hero-mark {
-    margin: 0 0 var(--s5);
-    padding-bottom: 0.18em;
-    font-family: 'Aref Ruqaa', 'Amiri Quran', serif;
-    font-size: clamp(30px, 3.8vw, 60px);
-    line-height: 1.1;
-    color: rgb(var(--text-main-rgb));
+    display: block;
+    width: clamp(38px, 3.4vw, 58px);
+    margin: calc(var(--s2) * -1) auto var(--s6);
+  }
+
+  .hero-mark svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
   }
 
   .hero-wordmark {

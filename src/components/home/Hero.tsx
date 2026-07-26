@@ -3,8 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { BookOpen, Radio } from 'lucide-react';
 import { useQuranStore } from '@/store/quranStore';
 import { useI18n } from '@/i18n';
+// Outlined paths from the bundled font, in two groups so the harakat can take
+// the theme accent. See scripts/build-basmala-svg.py.
+import basmalaSvg from '@/assets/marks/basmala.svg?raw';
+import noorSvg from '@/assets/marks/noor.svg?raw';
 
-const BASMALA_LIGATURE = '﷽';
 const BASMALA_TEXT = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
 
 /**
@@ -51,16 +54,23 @@ export const Hero: React.FC = () => {
       <div className="hero-scrim" aria-hidden="true" />
 
       <div className="hero-inner">
-        <p className="hero-basmala" role="img" aria-label={`${BASMALA_TEXT} — ${t('heroBasmalaMeaning')}`}>
-          {BASMALA_LIGATURE}
-        </p>
+        {/* The verse is announced in full to assistive tech; the inline SVG
+            itself is aria-hidden so the paths are never read out. */}
+        <div
+          className="hero-basmala"
+          role="img"
+          aria-label={`${BASMALA_TEXT} — ${t('heroBasmalaMeaning')}`}
+          dangerouslySetInnerHTML={{ __html: basmalaSvg }}
+        />
 
         {/* The نور mark, on the same two-group system as the Basmala:
-            strokes take the text colour, the accent detail takes the theme
-            accent. Swaps to the supplied vector without markup changes. */}
-        <p className="hero-mark" role="img" aria-label={t('heroMarkLabel')}>
-          نور
-        </p>
+            letterforms take the text colour, the i'jam takes the theme accent. */}
+        <div
+          className="hero-mark"
+          role="img"
+          aria-label={t('heroMarkLabel')}
+          dangerouslySetInnerHTML={{ __html: noorSvg }}
+        />
 
         <h1 className="hero-wordmark">
           {language === 'ar' ? (
