@@ -5,19 +5,40 @@ import appIcon from '@/assets/app-icon.png';
 import { APP_NAME, APP_STAGE } from '@/utils/constants';
 import { TranslationKey, useI18n } from '@/i18n';
 
-const navItems = [
-  { path: '/', labelKey: 'navDashboard', icon: LayoutDashboard },
-  { path: '/library', labelKey: 'navLibrary', icon: Library },
-  { path: '/quran', labelKey: 'navQuran', icon: BookOpen },
-  { path: '/watch', labelKey: 'navWatch', icon: MonitorPlay },
-  { path: '/radio', labelKey: 'navRadio', icon: RadioTower },
-  { path: '/reminders', labelKey: 'navReminders', icon: Bell },
-  { path: '/downloads', labelKey: 'navDownloads', icon: Download },
-  { path: '/settings', labelKey: 'navSettings', icon: Settings },
+/**
+ * Eight undifferentiated rows gave the nav no rhythm and no sense of what the
+ * app is for. Grouped, it reads as a shape: the day's landing, the things you
+ * study with, and the things you maintain.
+ */
+const navGroups = [
+  {
+    labelKey: null,
+    items: [{ path: '/', labelKey: 'navDashboard', icon: LayoutDashboard }],
+  },
+  {
+    labelKey: 'navGroupStudy',
+    items: [
+      { path: '/quran', labelKey: 'navQuran', icon: BookOpen },
+      { path: '/library', labelKey: 'navLibrary', icon: Library },
+      { path: '/watch', labelKey: 'navWatch', icon: MonitorPlay },
+      { path: '/radio', labelKey: 'navRadio', icon: RadioTower },
+    ],
+  },
+  {
+    labelKey: 'navGroupManage',
+    items: [
+      { path: '/reminders', labelKey: 'navReminders', icon: Bell },
+      { path: '/downloads', labelKey: 'navDownloads', icon: Download },
+      { path: '/settings', labelKey: 'navSettings', icon: Settings },
+    ],
+  },
 ] satisfies Array<{
-  path: string;
-  labelKey: TranslationKey;
-  icon: React.ComponentType<{ className?: string }>;
+  labelKey: TranslationKey | null;
+  items: Array<{
+    path: string;
+    labelKey: TranslationKey;
+    icon: React.ComponentType<{ className?: string }>;
+  }>;
 }>;
 
 export const Sidebar: React.FC = () => {
@@ -27,12 +48,12 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside 
-      className={`app-sidebar flex flex-col bg-[linear-gradient(180deg,var(--bg-sidebar)_0%,var(--bg-main)_100%)] border-r border-primary-blue/15 transition-all duration-200 ${
+      className={`app-sidebar flex flex-col bg-[linear-gradient(180deg,var(--bg-sidebar)_0%,var(--bg-main)_100%)] border-e border-border transition-all duration-200 ${
         isPlayerOpen ? 'w-0 opacity-0 overflow-hidden' : 'w-[240px] opacity-100'
       }`}
     >
       {/* Logo */}
-      <div className="relative flex items-center gap-3 border-b border-primary-blue/15 px-5 py-5">
+      <div className="relative flex items-center gap-3 border-b border-border px-5 py-5">
         <div className="gold-thread absolute inset-x-5 bottom-0" />
         <div className="brand-mark h-14 w-14 shrink-0 overflow-hidden p-1">
           <img
@@ -54,42 +75,62 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location.pathname === item.path || 
-            (item.path !== '/' && location.pathname.startsWith(item.path));
-          
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive: linkActive }) => 
-                `relative flex items-center gap-3 border px-3 py-2.5 text-sm font-medium transition-colors ${
-                  linkActive || isActive
-                    // Matches .rule-row-active exactly: an inset marker and one
-                    // value step, never a filled box. The active item used to be
-                    // a bordered, filled box *with* the marker, which broke the
-                    // app's own stated rule in the same breath as following it.
-                    ? 'border-transparent bg-accent-gold/[0.05] text-text-primary shadow-[inset_3px_0_0_rgb(var(--accent-gold-rgb))] rtl:shadow-[inset_-3px_0_0_rgb(var(--accent-gold-rgb))]' 
-                    : 'border-transparent text-muted-text hover:border-accent-gold/10 hover:bg-accent-gold/[0.045] hover:text-text-primary'
-                }`
-              }
-            >
-              <Icon className="w-[18px] h-[18px]" />
-              <span>{t(item.labelKey)}</span>
-            </NavLink>
-          );
-        })}
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        {navGroups.map((group, groupIndex) => (
+          <div key={group.labelKey ?? 'primary'} className={groupIndex > 0 ? 'mt-5' : ''}>
+            {group.labelKey && (
+              <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-faint">
+                {t(group.labelKey)}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  location.pathname === item.path ||
+                  (item.path !== '/' && location.pathname.startsWith(item.path));
+
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={({ isActive: linkActive }) =>
+                      // An inset marker and one value step, never a filled box —
+                      // the same treatment as .rule-row-active. The marker is
+                      // physically left, so it flips for RTL or it lands at the
+                      // reading END of the active item.
+                      `group relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
+                        linkActive || isActive
+                          ? 'bg-accent-gold/[0.055] text-text-primary shadow-[inset_3px_0_0_rgb(var(--accent-gold-rgb))] rtl:shadow-[inset_-3px_0_0_rgb(var(--accent-gold-rgb))]'
+                          : 'text-muted-text hover:bg-accent-gold/[0.03] hover:text-text-primary'
+                      }`
+                    }
+                  >
+                    {({ isActive: linkActive }) => (
+                      <>
+                        <Icon
+                          className={`h-[18px] w-[18px] shrink-0 transition-colors duration-150 ${
+                            linkActive || isActive ? 'text-accent-gold' : 'text-text-faint group-hover:text-muted-text'
+                          }`}
+                        />
+                        <span>{t(item.labelKey)}</span>
+                      </>
+                    )}
+                  </NavLink>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-primary-blue/15 px-5 py-4">
-        <div className="ornate-corner islamic-pattern relative flex items-center gap-2 overflow-hidden rounded-md border border-primary-blue/15 bg-background/80 px-3 py-2">
-          <Sparkles className="h-4 w-4 text-primary-blue" />
-          <div>
-            <p className="text-[11px] font-medium text-text-primary">{t('offlineStorage')}</p>
-            <p className="text-[10px] text-muted-text">{t('offlineStorageDetail')}</p>
+      <div className="border-t border-border px-5 py-4">
+        <div className="flex items-center gap-2.5">
+          <Sparkles className="h-4 w-4 shrink-0 text-accent-gold/70" />
+          <div className="min-w-0">
+            <p className="truncate text-[11px] font-medium text-text-primary">{t('offlineStorage')}</p>
+            <p className="truncate text-[10px] text-muted-text">{t('offlineStorageDetail')}</p>
           </div>
         </div>
       </div>
