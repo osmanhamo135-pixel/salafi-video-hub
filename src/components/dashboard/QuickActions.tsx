@@ -73,7 +73,7 @@ export const QuickActions: React.FC = () => {
           className="btn-primary"
         >
           {importing ? (
-            <Loader2 size={16} className="animate-spin" />
+            <Loader2 size={16} className="motion-safe:animate-spin" />
           ) : (
             <FolderOpen size={16} />
           )}
@@ -100,17 +100,19 @@ export const QuickActions: React.FC = () => {
         )}
       </div>
 
+      {/* Status reads as an inset marker and a value step, never a filled box —
+          the same idiom as .rule-row-active. */}
       {importError && (
-        <div className="flex items-center gap-2 text-danger-red text-sm bg-danger-red/10 border border-danger-red/20 rounded-lg px-3 py-2">
-          <AlertCircle size={16} />
-          <span>{importError}</span>
+        <div className="flex items-start gap-2 border-s-2 border-danger-red/70 ps-3 text-sm text-danger-red">
+          <AlertCircle size={16} className="mt-0.5 shrink-0" />
+          <span dir="auto">{importError}</span>
         </div>
       )}
 
       {importSummary && (
-        <div className="flex items-center gap-2 text-success-green text-sm bg-success-green/10 border border-success-green/20 rounded-lg px-3 py-2">
-          <CheckCircle2 size={16} />
-          <span>{importSummary}</span>
+        <div className="flex items-start gap-2 border-s-2 border-success-green/70 ps-3 text-sm text-success-green">
+          <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
+          <span dir="auto">{importSummary}</span>
         </div>
       )}
     </div>

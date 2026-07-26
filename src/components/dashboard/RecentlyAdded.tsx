@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Film, FolderOpen, Play } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { Playlist, Video } from '@/types';
 import { useAppStore } from '@/store/appStore';
 import { usePlayerStore } from '@/store/playerStore';
@@ -12,7 +12,6 @@ export const RecentlyAdded: React.FC = () => {
   const { t } = useI18n();
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const loadedRef = useRef(false);
   const playlists = useAppStore((s) => s.playlists);
   const loadPlaylists = useAppStore((s) => s.loadPlaylists);
@@ -80,67 +79,57 @@ export const RecentlyAdded: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <section>
-        <h2 className="text-lg font-semibold text-text-primary mt-8 mb-4">{t('recentlyAdded')}</h2>
-        <div className="flex gap-4 overflow-x-auto pb-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="premium-card h-[180px] min-w-[260px] animate-pulse rounded-lg" />
+  return (
+    <section className="mt-8">
+      <div className="rule-head mb-1">
+        <h2 className="text-sm font-semibold text-text-primary">{t('recentlyAdded')}</h2>
+        <span className="text-xs tabular-nums text-muted-text">
+          <bdi>{videos.length}</bdi>
+        </span>
+      </div>
+
+      {loading ? (
+        <div className="rule-list">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="rule-row">
+              <div className="h-[54px] w-24 shrink-0 rounded bg-panel-hover motion-safe:animate-pulse" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-3 w-2/5 rounded bg-panel-hover motion-safe:animate-pulse" />
+                <div className="h-3 w-1/4 rounded bg-panel-hover motion-safe:animate-pulse" />
+              </div>
+            </div>
           ))}
         </div>
-      </section>
-    );
-  }
-
-  if (videos.length === 0) {
-    return (
-      <section>
-        <h2 className="text-lg font-semibold text-text-primary mt-8 mb-4">{t('recentlyAdded')}</h2>
-        <div className="premium-card ornate-corner relative flex flex-col items-center justify-center rounded-lg p-8 text-muted-text">
-          <div className="icon-medallion mb-3 h-14 w-14">
-            <Film size={28} className="text-primary-blue/70" />
-          </div>
-          <p className="text-sm">{t('noVideosYet')}</p>
-          <p className="text-xs mt-1 opacity-70">{t('importFolderHint')}</p>
+      ) : videos.length === 0 ? (
+        <div className="py-12 text-center">
+          <p className="text-sm text-muted-text">{t('noVideosYet')}</p>
+          <p className="mt-1 text-xs text-text-faint">{t('importFolderHint')}</p>
         </div>
-      </section>
-    );
-  }
-
-  return (
-    <section>
-      <div className="mt-8 mb-4">
-        <h2 className="text-lg font-semibold text-text-primary">{t('recentlyAdded')}</h2>
-        <p className="text-xs text-muted-text">
-          <bdi>{videos.length}</bdi> {t('videosLower')} {t('groupedInto')} <bdi>{groups.length}</bdi> {t('playlistsLower')}
-        </p>
-      </div>
-      <div ref={scrollRef} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4">
-        {groups.map((group) => (
-          <RecentGroupCard
-            key={group.key}
-            title={group.title}
-            count={group.items.length}
-            item={group.items[0]}
-            onPlay={handlePlay}
-            uncategorizedLabel={t('uncategorized')}
-            addedLabel={t('added')}
-          />
-        ))}
-      </div>
+      ) : (
+        <div className="rule-list">
+          {groups.map((group) => (
+            <RecentRow
+              key={group.key}
+              title={group.title}
+              count={group.items.length}
+              item={group.items[0]}
+              onPlay={handlePlay}
+              uncategorizedLabel={t('uncategorized')}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 };
 
-const RecentGroupCard: React.FC<{
+const RecentRow: React.FC<{
   title: string;
   count: number;
   item: { video: Video; playlist: Playlist | null };
   onPlay: (video: Video, playlist: Playlist | null) => void;
   uncategorizedLabel: string;
-  addedLabel: string;
-}> = ({ title, count, item, onPlay, uncategorizedLabel, addedLabel }) => {
+}> = ({ title, count, item, onPlay, uncategorizedLabel }) => {
   const { language } = useI18n();
   const { video, playlist } = item;
   const canPlay = !!playlist;
@@ -150,44 +139,39 @@ const RecentGroupCard: React.FC<{
       type="button"
       onClick={() => canPlay && onPlay(video, playlist)}
       disabled={!canPlay}
-      className="premium-card premium-card-hover group overflow-hidden rounded-lg text-start disabled:cursor-default"
+      className="rule-row group w-full text-start disabled:cursor-default"
     >
-      <div className="relative aspect-video overflow-hidden bg-elevated-panel">
+      <div className="relative h-[54px] w-24 shrink-0 overflow-hidden rounded bg-background">
         <LocalThumbnail
           path={video.thumbnailPath}
           label={video.title}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.025]"
-          iconClassName="h-7 w-7 text-muted-text/60"
+          className="h-full w-full object-cover"
+          iconClassName="h-4 w-4 text-muted-text"
           fallbackClassName="thumbnail-fallback"
         />
-        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 to-transparent" />
         {canPlay && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity group-hover:opacity-100">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-blue/90 shadow-teal">
-              <Play size={20} className="ms-0.5 text-background" fill="currentColor" />
-            </div>
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/60 opacity-0 transition-opacity group-hover:opacity-100">
+            <Play className="h-5 w-5 fill-current text-text-primary" />
           </div>
         )}
-        <div className="media-badge absolute bottom-2 right-2">
-          {formatDuration(video.durationSeconds, language)}
-        </div>
       </div>
-      <div className="p-3">
-        <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-text">
-          <FolderOpen className="h-4 w-4 shrink-0 text-primary-blue" />
-          <span className="truncate">{title}</span>
-          <span className="ms-auto rounded-full border border-primary-blue/15 bg-primary-blue/10 px-2 py-0.5 text-[11px] text-primary-blue">
-            {count}
+
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <p dir="auto" className="truncate text-sm text-text-primary" title={video.title}>
+          {video.title}
+        </p>
+        <div className="flex min-w-0 items-center gap-2 text-xs text-muted-text">
+          <span dir="auto" className="truncate" title={title}>{title}</span>
+          <span dir="auto" className="truncate">
+            {video.speaker || video.category || uncategorizedLabel}
           </span>
+          {count > 1 && <span className="shrink-0 tabular-nums">+<bdi>{count - 1}</bdi></span>}
         </div>
-        <p className="truncate text-sm font-semibold text-text-primary">{video.title}</p>
-        <p className="mt-0.5 truncate text-xs text-muted-text">
-          {video.speaker || video.category || uncategorizedLabel}
-        </p>
-        <p className="mt-1 text-xs text-muted-text">
-          {addedLabel} {new Date(video.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-        </p>
       </div>
+
+      <span className="shrink-0 text-xs tabular-nums text-muted-text">
+        <bdi>{formatDuration(video.durationSeconds, language)}</bdi>
+      </span>
     </button>
   );
 };

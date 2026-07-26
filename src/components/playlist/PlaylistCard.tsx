@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { CalendarClock, Play, Clock, Film } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { Playlist } from '@/types';
 import { formatDuration } from '@/utils/formatTime';
 import { LocalThumbnail } from '@/components/ui/LocalThumbnail';
@@ -37,25 +37,32 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
     ? new Date(playlist.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
     : t('notWatched');
 
+  /* Ruled row — the default. One click target, a quiet play affordance on the
+     thumbnail, and the menu as an .icon-btn. No card, no border, no accent. */
   if (variant === 'list') {
     return (
-      <div className="premium-card premium-card-hover group relative flex items-center gap-3 overflow-hidden rounded-lg p-2">
+      <div className="rule-row group">
         <button
           type="button"
-          onClick={() => onOpen(playlist)}
-          className="relative h-[86px] w-[150px] shrink-0 overflow-hidden rounded-md bg-elevated-panel"
+          onClick={() => onContinue(playlist)}
+          title={t('continue')}
+          aria-label={t('continue')}
+          className="relative h-[54px] w-24 shrink-0 overflow-hidden rounded bg-background"
         >
           <LocalThumbnail
             path={playlist.thumbnailPath}
             label={playlist.name}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-            iconClassName="h-7 w-7 text-muted-text/45"
+            className="h-full w-full object-cover"
+            iconClassName="h-4 w-4 text-muted-text"
             fallbackClassName="thumbnail-fallback"
           />
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/60 opacity-0 transition-opacity group-hover:opacity-100">
+            <Play className="h-5 w-5 fill-current text-text-primary" />
+          </span>
           {hasProgress && (
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/55">
-              <div className="h-full bg-primary-blue" style={{ width: `${progressPercent}%` }} />
-            </div>
+            <span className="absolute inset-x-0 bottom-0 block h-0.5 bg-background/70">
+              <span className="block h-full bg-muted-text" style={{ width: `${progressPercent}%` }} />
+            </span>
           )}
         </button>
 
@@ -64,154 +71,96 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
           onClick={() => onOpen(playlist)}
           className="min-w-0 flex-1 text-start"
         >
-          <h3 className="truncate text-sm font-semibold text-text-primary" title={playlist.name}>
+          <p dir="auto" className="truncate text-sm text-text-primary" title={playlist.name}>
             {playlist.name}
-          </h3>
-          <p className="mt-1 truncate text-xs text-muted-text" title={playlist.folderPath}>
-            {playlist.folderPath}
           </p>
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-text">
-            <span className="flex items-center gap-1">
-              <Film className="h-3.5 w-3.5" />
-              {playlist.videoCount} {t('videosLower')}
+          <div className="mt-0.5 flex min-w-0 items-center gap-2 text-xs text-muted-text">
+            <span dir="auto" className="truncate" title={playlist.folderPath}>
+              {playlist.folderPath}
             </span>
-            <span className="flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
-              {formatDuration(playlist.totalDurationSeconds, language)}
-            </span>
-            <span className="flex items-center gap-1">
-              <CalendarClock className="h-3.5 w-3.5" />
-              {lastUpdated}
-            </span>
-            {hasProgress && <span className="text-primary-blue">{Math.round(progressPercent)}% {t('watched')}</span>}
           </div>
         </button>
 
-        <div className="flex shrink-0 items-center gap-2 pe-1">
-          <button
-            onClick={() => onContinue(playlist)}
-            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary-blue px-3 text-xs font-semibold text-background transition-colors hover:bg-primary-blue-hover"
-          >
-            <Play className="h-3.5 w-3.5 fill-current" />
-            {t('continue')}
-          </button>
-          <button
-            onClick={() => onOpen(playlist)}
-            className="inline-flex h-9 items-center rounded-md border border-border px-3 text-xs font-medium text-text-primary transition-colors hover:border-border-strong hover:bg-panel-hover"
-          >
-            {t('details')}
-          </button>
-          <PlaylistMenu
-            playlistId={playlist.id}
-            playlistName={playlist.name}
-            onOpen={() => onOpen(playlist)}
-            onRescan={() => onRescan(playlist.id)}
-            onRegenerateThumbnails={() => onRegenerateThumbnails(playlist.id)}
-            onRemove={() => onRemove(playlist.id)}
-          />
+        <div className="hidden shrink-0 items-center gap-4 text-xs tabular-nums text-muted-text sm:flex">
+          <span><bdi>{playlist.videoCount}</bdi> {t('videosLower')}</span>
+          <span><bdi>{formatDuration(playlist.totalDurationSeconds, language)}</bdi></span>
+          <span className="hidden lg:inline"><bdi>{lastUpdated}</bdi></span>
+          <span className="w-14 text-end">
+            {hasProgress ? <bdi>{Math.round(progressPercent)}%</bdi> : null}
+          </span>
         </div>
+
+        <PlaylistMenu
+          playlistId={playlist.id}
+          playlistName={playlist.name}
+          onOpen={() => onOpen(playlist)}
+          onRescan={() => onRescan(playlist.id)}
+          onRegenerateThumbnails={() => onRegenerateThumbnails(playlist.id)}
+          onRemove={() => onRemove(playlist.id)}
+        />
       </div>
     );
   }
 
+  /* Poster grid — kept for the grid toggle, but reduced to a hairline and a
+     value step: no ornate corners, no filled buttons, no accent text. */
   return (
-    <div className="premium-card premium-card-hover ornate-corner group relative flex flex-col overflow-hidden rounded-lg">
-      {/* Thumbnail area - 16:9 aspect ratio */}
-      <div className="relative aspect-video w-full overflow-hidden bg-elevated-panel">
+    <div className="premium-card premium-card-hover group relative flex flex-col overflow-hidden rounded-lg">
+      <button
+        type="button"
+        onClick={() => onContinue(playlist)}
+        title={t('continue')}
+        aria-label={t('continue')}
+        className="relative aspect-video w-full overflow-hidden bg-elevated-panel"
+      >
         <LocalThumbnail
           path={playlist.thumbnailPath}
           label={playlist.name}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-          iconClassName="w-8 h-8 text-muted-text/45"
+          className="h-full w-full object-cover"
+          iconClassName="h-8 w-8 text-muted-text/45"
           fallbackClassName="thumbnail-fallback"
         />
 
-        {/* Hover overlay with open button */}
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/55 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
-          <button
-            onClick={() => onContinue(playlist)}
-            className="btn-primary px-4 py-2"
-          >
-            <Play className="w-4 h-4 fill-current" />
-            {t('continue')}
-          </button>
-        </div>
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/60 opacity-0 transition-opacity group-hover:opacity-100">
+          <Play className="h-7 w-7 fill-current text-text-primary" />
+        </span>
 
-        {/* Video count badge */}
-        <div className="media-badge absolute bottom-2 right-2 flex items-center gap-1 px-2">
-          <Film className="w-3 h-3" />
-          {playlist.videoCount}
-        </div>
-      </div>
-
-      {/* Card content */}
-      <div className="flex flex-col flex-1 p-3 gap-2">
-        {/* Title */}
-        <h3
-          className="text-sm font-semibold text-text-primary leading-snug line-clamp-2 min-h-[2.5rem]"
-          title={playlist.name}
-        >
-          {playlist.name}
-        </h3>
-
-        {/* Folder path */}
-        <p
-          className="truncate text-xs text-muted-text"
-          title={playlist.folderPath}
-        >
-          {playlist.folderPath}
-        </p>
-
-        {/* Stats row */}
-        <div className="grid grid-cols-2 gap-2 text-xs text-muted-text mt-auto pt-1">
-          <span className="flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            {formatDuration(playlist.totalDurationSeconds, language)}
-          </span>
-          <span className="flex items-center gap-1 min-w-0" title={`${t('lastUpdated')} ${lastUpdated}`}>
-            <CalendarClock className="w-3 h-3 shrink-0" />
-            <span className="truncate">{lastUpdated}</span>
-          </span>
-          {hasProgress && (
-            <span className="col-span-2 text-primary-blue">
-              {Math.round(progressPercent)}% {t('watched')}
-            </span>
-          )}
-        </div>
-
-        {/* Progress bar */}
         {hasProgress && (
-          <div className="mt-0.5 h-1 w-full overflow-hidden rounded-full bg-background">
-            <div
-              className="h-full rounded-full bg-primary-blue transition-all"
-              style={{ width: `${progressPercent}%` }}
+          <span className="absolute inset-x-0 bottom-0 block h-0.5 bg-background/70">
+            <span className="block h-full bg-muted-text" style={{ width: `${progressPercent}%` }} />
+          </span>
+        )}
+      </button>
+
+      <div className="flex flex-1 flex-col gap-1 p-3">
+        <button type="button" onClick={() => onOpen(playlist)} className="min-w-0 text-start">
+          <h3
+            dir="auto"
+            className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-snug text-text-primary"
+            title={playlist.name}
+          >
+            {playlist.name}
+          </h3>
+          <p dir="auto" className="truncate text-xs text-muted-text" title={playlist.folderPath}>
+            {playlist.folderPath}
+          </p>
+        </button>
+
+        <div className="mt-auto flex items-center gap-3 border-t border-border pt-2 text-xs tabular-nums text-muted-text">
+          <span><bdi>{playlist.videoCount}</bdi></span>
+          <span className="truncate"><bdi>{formatDuration(playlist.totalDurationSeconds, language)}</bdi></span>
+          <span className="truncate"><bdi>{lastUpdated}</bdi></span>
+          {hasProgress && <span className="ms-auto"><bdi>{Math.round(progressPercent)}%</bdi></span>}
+          <div className={hasProgress ? '' : 'ms-auto'}>
+            <PlaylistMenu
+              playlistId={playlist.id}
+              playlistName={playlist.name}
+              onOpen={() => onOpen(playlist)}
+              onRescan={() => onRescan(playlist.id)}
+              onRegenerateThumbnails={() => onRegenerateThumbnails(playlist.id)}
+              onRemove={() => onRemove(playlist.id)}
             />
           </div>
-        )}
-
-        {/* Actions row */}
-        <div className="flex items-center justify-between pt-1.5 mt-auto">
-          <button
-            onClick={() => onContinue(playlist)}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary-blue px-3 py-1.5 text-xs font-semibold text-background transition-colors hover:bg-primary-blue-hover"
-          >
-            <Play className="w-3.5 h-3.5 fill-current" />
-            {t('continue')}
-          </button>
-          <button
-            onClick={() => onOpen(playlist)}
-            className="rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-text-primary transition-colors hover:border-border-strong hover:bg-panel-hover"
-          >
-            {t('details')}
-          </button>
-          <PlaylistMenu
-            playlistId={playlist.id}
-            playlistName={playlist.name}
-            onOpen={() => onOpen(playlist)}
-            onRescan={() => onRescan(playlist.id)}
-            onRegenerateThumbnails={() => onRegenerateThumbnails(playlist.id)}
-            onRemove={() => onRemove(playlist.id)}
-          />
         </div>
       </div>
     </div>

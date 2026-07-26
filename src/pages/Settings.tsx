@@ -5,24 +5,20 @@ import { open } from '@tauri-apps/plugin-dialog';
 import {
   Activity,
   AlertCircle,
-  Bell,
+  Check,
   CheckCircle,
   Database,
   Download,
   ExternalLink,
   FolderOpen,
-  Languages,
-  HardDrive,
-  Image,
   Loader2,
   RefreshCw,
   Scissors,
   Trash2,
   Upload,
   Volume2,
-  Wrench,
   XCircle,
-  Zap,
+  Image,
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -64,15 +60,17 @@ const Toggle: React.FC<{
     aria-checked={checked}
     disabled={disabled}
     onClick={() => onChange(!checked)}
-    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-blue/50 ${
-      checked ? 'bg-primary-blue' : 'bg-border'
+    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors motion-reduce:transition-none ${
+      checked ? 'bg-accent-gold' : 'bg-border-strong'
     } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
   >
+    {/* Logical inset + an RTL-flipped travel: with `left`/`translate-x` alone
+        the knob slid the wrong way on the Arabic layout.
+        bg-background, not bg-white: on the light themes a white knob on a
+        light track is invisible. */}
     <span
-      // bg-background, not bg-white: on the light themes a white knob on a
-      // light track is invisible.
-      className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow transition ${
-        checked ? 'translate-x-5' : 'translate-x-0'
+      className={`pointer-events-none absolute start-0.5 top-0.5 inline-block h-5 w-5 rounded-full transition-transform motion-reduce:transition-none ${
+        checked ? 'translate-x-5 bg-background rtl:-translate-x-5' : 'translate-x-0 bg-muted-text'
       }`}
     />
   </button>
@@ -171,11 +169,11 @@ export const Settings: React.FC = () => {
   })();
 
   const handleRemoveFolder = async (path: string) => {
-    if (!confirm(`Remove "${path}" from imported folders?\n\nThis will not delete any files.`)) return;
+    if (!confirm(`${t('remove')} — ${path}?`)) return;
     try {
       await removeImportedFolder(path);
       await refreshPlaylists();
-      showToast('Folder removed successfully');
+      showToast(t('done'));
     } catch (error) {
       showToast(getErrorMessage(error), 'error');
     }
@@ -186,7 +184,7 @@ export const Settings: React.FC = () => {
     try {
       await invoke('rescan_all');
       await refreshPlaylists();
-      showToast('Library rescanned successfully');
+      showToast(`${t('rescanAll')}: ${t('done')}`);
     } catch (error) {
       showToast(getErrorMessage(error), 'error');
     } finally {
@@ -195,11 +193,11 @@ export const Settings: React.FC = () => {
   };
 
   const handleRepairDatabase = async () => {
-    if (!confirm('Repair database? This will run SQLite integrity checks.')) return;
+    if (!confirm(`${t('repairDatabase')}?`)) return;
     setRepairing(true);
     try {
       await invoke('repair_database');
-      showToast('Database check passed');
+      showToast(`${t('repairDatabase')}: ${t('ok')}`);
     } catch (error) {
       showToast(getErrorMessage(error), 'error');
     } finally {
@@ -208,12 +206,12 @@ export const Settings: React.FC = () => {
   };
 
   const handleRemoveOrphans = async () => {
-    if (!confirm('Remove database entries for videos that no longer exist on disk?')) return;
+    if (!confirm(`${t('removeOrphanedEntries')}?`)) return;
     setRemovingOrphans(true);
     try {
       const removed = await invoke<number>('remove_orphaned_entries');
       await refreshPlaylists();
-      showToast(`Removed ${removed} orphaned entr${removed === 1 ? 'y' : 'ies'}`);
+      showToast(`${t('removeOrphanedEntries')}: ${removed}`);
     } catch (error) {
       showToast(getErrorMessage(error), 'error');
     } finally {
@@ -222,12 +220,12 @@ export const Settings: React.FC = () => {
   };
 
   const handleClearThumbnailCache = async () => {
-    if (!confirm('Clear all generated thumbnails from the app cache?')) return;
+    if (!confirm(`${t('clearThumbnailCache')}?`)) return;
     setClearingCache(true);
     try {
       await invoke('clear_thumbnail_cache');
       await refreshPlaylists();
-      showToast('Thumbnail cache cleared');
+      showToast(`${t('clearThumbnailCache')}: ${t('done')}`);
     } catch (error) {
       showToast(getErrorMessage(error), 'error');
     } finally {
@@ -258,7 +256,7 @@ export const Settings: React.FC = () => {
       const result = await invoke<ThumbnailBatchResult>('regenerate_missing_thumbnails');
       await refreshPlaylists();
       showToast(
-        `Generated ${result.generated_count}, skipped ${result.skipped_count}, failed ${result.failed_count}`,
+        `${result.generated_count} ${t('ready')} · ${result.skipped_count} ${t('skipped')} · ${result.failed_count} ${t('failed')}`,
         result.failed_count > 0 ? 'error' : 'success',
       );
     } catch (error) {
@@ -272,7 +270,7 @@ export const Settings: React.FC = () => {
     setExporting(true);
     try {
       const path = await exportBackup();
-      showToast(`Backup exported to ${path}`);
+      showToast(`${t('exportBackup')}: ${path}`);
     } catch (error) {
       showToast(getErrorMessage(error), 'error');
     } finally {
@@ -292,7 +290,7 @@ export const Settings: React.FC = () => {
       await importBackup(selected);
       await loadSettings();
       await refreshPlaylists();
-      showToast('Backup imported successfully');
+      showToast(`${t('importBackup')}: ${t('done')}`);
     } catch (error) {
       showToast(getErrorMessage(error), 'error');
     } finally {
@@ -321,7 +319,7 @@ export const Settings: React.FC = () => {
         soundPath: currentSettings.reminderSoundPath,
         volume: currentSettings.reminderVolume,
       });
-      showToast('Playing test sound');
+      showToast(t('playing'));
     } catch (error) {
       showToast(getErrorMessage(error), 'error');
     } finally {
@@ -342,7 +340,7 @@ export const Settings: React.FC = () => {
       });
       if (!selected || Array.isArray(selected)) return;
       await updateSettings({ reminderSoundPath: selected });
-      showToast('Reminder sound updated');
+      showToast(`${t('defaultReminderSound')}: ${t('done')}`);
     } catch (error) {
       showToast(getErrorMessage(error), 'error');
     }
@@ -352,7 +350,7 @@ export const Settings: React.FC = () => {
     return (
       <div className="page-container">
         <div className="content-max-width flex flex-col items-center justify-center py-24">
-          <Loader2 className="mb-3 h-8 w-8 animate-spin text-primary-blue" />
+          <Loader2 className="mb-3 h-7 w-7 animate-spin text-muted-text" />
           <p className="text-sm text-muted-text">{t('loadingSettings')}</p>
         </div>
       </div>
@@ -362,27 +360,27 @@ export const Settings: React.FC = () => {
   if (!settings) {
     return (
       <div className="page-container">
-        <div className="content-max-width flex flex-col items-center justify-center py-24">
-          <div className="premium-surface ornate-corner relative w-full max-w-lg rounded-lg p-6 text-center">
-            <AlertCircle className="mx-auto mb-3 h-9 w-9 text-danger-red" />
-            <h1 className="text-lg font-semibold text-text-primary">{t('settingsTitle')}</h1>
-            <p className="mt-2 text-sm text-muted-text">
-              {settingsError ?? 'Settings could not be loaded.'}
-            </p>
-            <button type="button" onClick={() => loadSettings()} className="btn-primary mt-5 px-4 py-2">
-              <RefreshCw className="h-4 w-4" />
-              {t('retry')}
-            </button>
-          </div>
+        <div className="content-max-width flex flex-col items-center justify-center py-24 text-center">
+          <AlertCircle className="mb-3 h-8 w-8 text-muted-text" />
+          <h1 className="text-lg font-semibold text-text-primary">{t('settingsTitle')}</h1>
+          <p className="mt-2 text-sm text-muted-text">
+            {settingsError ?? 'Settings could not be loaded.'}
+          </p>
+          <button type="button" onClick={() => loadSettings()} className="btn-primary mt-5 px-4 py-2">
+            <RefreshCw className="h-4 w-4" />
+            {t('retry')}
+          </button>
         </div>
       </div>
     );
   }
 
+  // The status of a helper binary is information, not decoration: only the
+  // state that actually needs the user's attention carries a colour.
   const ffmpegBadge = (() => {
     if (!ffmpegStatus) {
       return (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-muted-text/10 px-2.5 py-1 text-xs font-medium text-muted-text">
+        <span className="inline-flex items-center gap-1.5 text-xs text-muted-text">
           <Loader2 className="h-3 w-3 animate-spin" />
           {t('checking')}
         </span>
@@ -390,16 +388,16 @@ export const Settings: React.FC = () => {
     }
     if (ffmpegStatus.status === 'missing') {
       return (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-danger-red/15 px-2.5 py-1 text-xs font-medium text-danger-red">
-          <XCircle className="h-3 w-3" />
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-danger-red">
+          <XCircle className="h-3.5 w-3.5" />
           {t('missing')}
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-success-green/15 px-2.5 py-1 text-xs font-medium text-success-green">
-        <CheckCircle className="h-3 w-3" />
-        {ffmpegStatus.status}{ffmpegStatus.version ? ` ${ffmpegStatus.version}` : ''}
+      <span className="inline-flex items-center gap-1.5 text-xs text-muted-text">
+        <CheckCircle className="h-3.5 w-3.5" />
+        <bdi>{ffmpegStatus.status}{ffmpegStatus.version ? ` ${ffmpegStatus.version}` : ''}</bdi>
       </span>
     );
   })();
@@ -409,133 +407,143 @@ export const Settings: React.FC = () => {
   return (
     <div className="page-container">
       <div className="content-max-width">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="icon-medallion h-9 w-9">
-            <Wrench className="h-5 w-5 text-primary-blue" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-semibold text-text-primary">{t('settingsTitle')}</h1>
-            <p className="text-xs text-muted-text">{t('settingsSubtitle')}</p>
-          </div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-semibold tracking-normal text-text-primary">{t('settingsTitle')}</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-text">{t('settingsSubtitle')}</p>
         </div>
 
         {toast && (
           <div
-            className={`mb-4 flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium ${
+            className={`mb-4 flex items-center gap-2 border-b py-2.5 text-sm ${
               toast.type === 'success'
-                ? 'border-success-green/20 bg-success-green/10 text-success-green'
-                : 'border-danger-red/20 bg-danger-red/10 text-danger-red'
+                ? 'border-border text-text-primary'
+                : 'border-danger-red/30 text-danger-red'
             }`}
           >
-            {toast.type === 'success' ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-            {toast.message}
+            {toast.type === 'success'
+              ? <CheckCircle className="h-4 w-4 shrink-0 text-muted-text" />
+              : <AlertCircle className="h-4 w-4 shrink-0" />}
+            <span className="min-w-0 break-all" dir="auto">{toast.message}</span>
           </div>
         )}
 
         {settingsError && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg border border-warning-orange/20 bg-warning-orange/10 px-4 py-2.5 text-sm font-medium text-warning-orange">
-            <AlertCircle className="h-4 w-4" />
-            {settingsError}
+          <div className="mb-4 flex items-center gap-2 border-b border-warning-orange/30 py-2.5 text-sm text-warning-orange">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span dir="auto">{settingsError}</span>
           </div>
         )}
 
-        <SettingsSection icon={Languages} title={t('experience')}>
+        <Section title={t('experience')}>
           <SettingRow label={t('language')} description={t('languageDescription')}>
-            <div className="flex flex-wrap justify-end gap-2">
-              {languageOptions.map((option) => {
-                const active = settings.language === option.id;
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => updateSettings({ language: option.id as AppLanguage })}
-                    className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
-                      active
-                        ? 'border-primary-blue/45 bg-primary-blue/15 text-primary-blue'
-                        : 'border-border bg-panel text-muted-text hover:border-border-strong hover:text-text-primary'
-                    }`}
-                  >
-                    {t(option.labelKey)}
-                  </button>
-                );
-              })}
+            <div className="segmented" role="group" aria-label={t('language')}>
+              {languageOptions.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  aria-pressed={settings.language === option.id}
+                  onClick={() => updateSettings({ language: option.id as AppLanguage })}
+                >
+                  {t(option.labelKey)}
+                </button>
+              ))}
             </div>
           </SettingRow>
 
-          <div className="mb-4 rounded-lg border border-border bg-background/60 px-4 py-3">
-            <p className="arabic-text text-2xl font-semibold text-text-primary">{t('arabicPreview')}</p>
-            <p className="mt-1 text-xs text-muted-text">{t('languageDescription')}</p>
-          </div>
+          {/* The Arabic specimen: a typographic preview of the second language,
+              not a callout — a ruled line, no framed strip. */}
+          <SettingRow label={t('arabic')}>
+            <p className="arabic-text truncate text-xl text-text-soft">{t('arabicPreview')}</p>
+          </SettingRow>
 
-          <SettingRow label={t('appTheme')} description={t('appThemeDescription')}>
-            <div className="grid w-full max-w-3xl grid-cols-1 gap-2 sm:grid-cols-2">
+          <div className="mt-6">
+            <div className="rule-head">
+              <h3 className="text-sm text-text-primary">{t('appTheme')}</h3>
+              <span className="text-[11px] text-muted-text">{t('appThemeDescription')}</span>
+            </div>
+            <div className="rule-list" role="radiogroup" aria-label={t('appTheme')}>
               {themeOptions.map((theme) => {
                 const active = settings.theme === theme.id;
                 return (
                   <button
                     key={theme.id}
                     type="button"
+                    role="radio"
+                    aria-checked={active}
                     onClick={() => updateSettings({ theme: theme.id as AppTheme })}
-                    className={`flex items-center gap-3 rounded-lg border px-3 py-3 text-start transition-colors ${
-                      active
-                        ? 'border-primary-blue/45 bg-primary-blue/10 text-text-primary'
-                        : 'border-border bg-background/70 text-muted-text hover:border-border-strong hover:text-text-primary'
-                    }`}
+                    className={`rule-row w-full text-start ${active ? 'rule-row-active' : ''}`}
                   >
-                    <span className="flex shrink-0 overflow-hidden rounded-md border border-white/10">
+                    {/* The only literal colours on the page, and legitimately
+                        so: they are the specimen of the theme being offered. */}
+                    {/* The hairline is load-bearing: a near-black swatch on a
+                        near-black page is otherwise invisible. */}
+                    <span className="flex shrink-0 overflow-hidden rounded-[3px] border border-border">
                       {theme.swatches.map((color) => (
-                        <span key={color} className="h-8 w-5" style={{ backgroundColor: color }} />
+                        <span key={color} className="h-5 w-4" style={{ backgroundColor: color }} />
                       ))}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold">{t(theme.labelKey)}</span>
-                      <span className="block text-xs text-muted-text">{t(theme.descriptionKey)}</span>
+                      <span className={`block truncate text-sm ${active ? 'text-text-primary' : 'text-text-soft'}`}>
+                        {t(theme.labelKey)}
+                      </span>
+                      <span className="block truncate text-xs text-muted-text">{t(theme.descriptionKey)}</span>
                     </span>
-                    {active && <span className="rounded-md bg-primary-blue/15 px-2 py-1 text-[10px] font-semibold text-primary-blue">{t('applied')}</span>}
+                    <span className="flex w-5 shrink-0 justify-center">
+                      {active && <Check className="h-4 w-4 text-accent-gold" aria-label={t('applied')} />}
+                    </span>
                   </button>
                 );
               })}
             </div>
-          </SettingRow>
-        </SettingsSection>
-
-        <SettingsSection icon={FolderOpen} title={t('library')}>
-          <div className="mb-4">
-            <p className="mb-2 text-sm text-muted-text">{t('importedFolders')}</p>
-            {settings.importedFolders.length === 0 ? (
-              <div className="rounded-lg border border-border bg-background p-4 text-center text-sm text-muted-text">
-                {t('noFoldersImported')}
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                {settings.importedFolders.map((path) => (
-                  <div key={path} className="group flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2.5">
-                    <span dir="ltr" className="truncate text-start text-sm text-text-primary" title={path}>{path}</span>
-                    <button
-                      onClick={() => handleRemoveFolder(path)}
-                      className="shrink-0 rounded px-2 py-1 text-xs font-medium text-danger-red opacity-0 transition-colors hover:bg-danger-red/10 group-hover:opacity-100 focus:opacity-100"
-                    >
-                      {t('remove')}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
-          <div className="flex flex-wrap gap-2">
+        </Section>
+
+        <Section title={t('library')}>
+          <div className="rule-head">
+            <h3 className="text-sm text-text-primary">{t('importedFolders')}</h3>
+            <span className="text-[11px] tabular-nums text-muted-text">
+              <bdi>{settings.importedFolders.length}</bdi>
+            </span>
+          </div>
+          {settings.importedFolders.length === 0 ? (
+            <p className="py-4 text-sm text-muted-text">{t('noFoldersImported')}</p>
+          ) : (
+            <div className="rule-list">
+              {settings.importedFolders.map((path) => (
+                <div key={path} className="rule-row group">
+                  <FolderOpen className="h-4 w-4 shrink-0 text-muted-text" />
+                  <span dir="auto" className="min-w-0 flex-1 truncate text-sm text-text-primary" title={path}>
+                    {path}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveFolder(path)}
+                    aria-label={t('remove')}
+                    title={t('remove')}
+                    className="icon-btn shrink-0 opacity-0 hover:text-danger-red group-hover:opacity-100 focus:opacity-100"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <ActionBar>
             <ActionButton icon={RefreshCw} loading={rescanning} label={t('rescanAll')} loadingLabel={t('rescanning')} onClick={handleRescanAll} />
             <ActionButton icon={Database} loading={repairing} label={t('repairDatabase')} loadingLabel={t('repairing')} onClick={handleRepairDatabase} />
             <ActionButton danger icon={Scissors} loading={removingOrphans} label={t('removeOrphanedEntries')} loadingLabel={t('removing')} onClick={handleRemoveOrphans} />
-          </div>
-        </SettingsSection>
+          </ActionBar>
+        </Section>
 
-        <SettingsSection icon={Image} title={t('thumbnails')}>
+        <Section title={t('thumbnails')}>
           <SettingRow label={t('ffmpegStatus')}>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               {ffmpegBadge}
               <button
+                type="button"
                 onClick={() => detectFfmpeg()}
-                className="rounded-md p-1.5 text-muted-text transition-colors hover:bg-elevated-panel hover:text-text-primary"
+                className="icon-btn"
+                aria-label={t('ffmpegStatus')}
                 title={t('ffmpegStatus')}
               >
                 <RefreshCw className="h-3.5 w-3.5" />
@@ -543,27 +551,36 @@ export const Settings: React.FC = () => {
             </div>
           </SettingRow>
           {ffmpegStatus?.status === 'missing' && (
-            <div className="mb-3 rounded-lg border border-warning-orange/25 bg-warning-orange/10 px-4 py-3 text-xs text-warning-orange">
-              {t('ffmpegInstallHelp')}
-            </div>
+            <p className="py-2 text-xs text-warning-orange">{t('ffmpegInstallHelp')}</p>
           )}
-          <TextSetting label={t('ffmpegPath')} value={settings.ffmpegPath ?? ffmpegStatus?.path ?? ''} onChange={(value) => updateSettings({ ffmpegPath: value || null })} />
-          <TextSetting label={t('ffprobePath')} value={settings.ffprobePath ?? ffmpegStatus?.ffprobePath ?? ''} onChange={(value) => updateSettings({ ffprobePath: value || null })} />
+          <TextSetting
+            label={t('ffmpegPath')}
+            placeholder={t('automatic')}
+            value={settings.ffmpegPath ?? ffmpegStatus?.path ?? ''}
+            onChange={(value) => updateSettings({ ffmpegPath: value || null })}
+          />
+          <TextSetting
+            label={t('ffprobePath')}
+            placeholder={t('automatic')}
+            value={settings.ffprobePath ?? ffmpegStatus?.ffprobePath ?? ''}
+            onChange={(value) => updateSettings({ ffprobePath: value || null })}
+          />
           <SettingRow label={t('thumbnailCache')}>
             <input
               type="text"
               readOnly
+              dir="auto"
               value={settings.thumbnailCachePath ?? t('defaultAppCache')}
-              className="surface-input w-full min-w-0 py-1.5 text-muted-text"
+              className="field-quiet max-w-md border-b-transparent text-end text-sm text-muted-text"
             />
           </SettingRow>
-          <SettingRow label={t('thumbnailMode')}>
+          <SettingRow label={t('thumbnailMode')} description={t('thumbnailHelp')}>
             <select
               value={settings.automaticThumbnailsMode}
               onChange={(event) => updateSettings({
                 automaticThumbnailsMode: event.target.value as typeof settings.automaticThumbnailsMode,
               })}
-              className="surface-input w-full max-w-xs py-1.5"
+              className="field-quiet max-w-[14rem] border-b-transparent text-sm"
             >
               <option value="automatic">{t('automatic')}</option>
               <option value="visible-only">{t('visibleOnly')}</option>
@@ -571,74 +588,89 @@ export const Settings: React.FC = () => {
               <option value="disabled">{t('disabled')}</option>
             </select>
           </SettingRow>
-          <p className="mb-3 text-xs text-muted-text">{t('thumbnailHelp')}</p>
-          <div className="flex flex-wrap gap-2">
+          <ActionBar>
             {ffmpegStatus?.status === 'missing' && (
               <ActionButton icon={Download} loading={installingFfmpeg} label={t('installFfmpeg')} loadingLabel={t('installingFfmpeg')} onClick={handleInstallFfmpeg} />
             )}
             <ActionButton danger icon={Trash2} loading={clearingCache} label={t('clearThumbnailCache')} loadingLabel={t('clearing')} onClick={handleClearThumbnailCache} />
             <ActionButton icon={Image} loading={regeneratingThumbs} label={t('regenerateMissingThumbnails')} loadingLabel={t('generating')} onClick={handleRegenerateMissingThumbnails} />
-          </div>
+          </ActionBar>
           {(thumbnailJobsRunning || regeneratingThumbs) && (
-            <div className="mt-3 rounded-md border border-primary-blue/20 bg-primary-blue/10 px-3 py-2 text-xs text-primary-blue">
-              {t('generating')} {Math.min(thumbnailProcessedCount, thumbnailTotal)} / {thumbnailTotal}
-              {thumbnailGeneratedCount > 0 && ` - ${thumbnailGeneratedCount} ${t('ready')}`}
-              {thumbnailFailedCount > 0 && ` - ${thumbnailFailedCount} ${t('failed')}`}
-              {thumbnailSkippedCount > 0 && ` - ${thumbnailSkippedCount} ${t('skipped')}`}
-            </div>
+            <p className="mt-2 text-xs text-muted-text">
+              {t('generating')} <bdi>{Math.min(thumbnailProcessedCount, thumbnailTotal)} / {thumbnailTotal}</bdi>
+              {thumbnailGeneratedCount > 0 && <> · <bdi>{thumbnailGeneratedCount} {t('ready')}</bdi></>}
+              {thumbnailFailedCount > 0 && <> · <bdi>{thumbnailFailedCount} {t('failed')}</bdi></>}
+              {thumbnailSkippedCount > 0 && <> · <bdi>{thumbnailSkippedCount} {t('skipped')}</bdi></>}
+            </p>
           )}
-        </SettingsSection>
+        </Section>
 
-        <SettingsSection icon={Zap} title={t('performance')}>
+        <Section title={t('performance')}>
           <SettingRow label={t('performanceMode')} description={t('performanceModeDescription')}>
             <Toggle checked={settings.performanceMode} onChange={(checked) => updateSettings({ performanceMode: checked })} />
           </SettingRow>
-        </SettingsSection>
+        </Section>
 
-        <SettingsSection icon={Bell} title={t('reminderDefaults')}>
-          <SettingRow label={t('defaultReminderSound')}>
-            <div className="flex w-full max-w-2xl flex-col gap-2 sm:flex-row">
+        <Section title={t('reminderDefaults')}>
+          <SettingRow label={t('defaultReminderSound')} flush>
+            <div className="flex w-full max-w-2xl items-center gap-2">
               <DraftInput
                 value={settings.reminderSoundPath ?? ''}
                 onCommit={(next) => updateSettings({ reminderSoundPath: next || null })}
                 placeholder={t('noSoundSet')}
-                className="surface-input min-w-0 flex-1 py-1.5"
+                className="field-quiet min-w-0 flex-1 text-sm"
               />
-              <div className="flex shrink-0 gap-2">
-                <button type="button" onClick={handlePickReminderSound} className="btn-secondary px-3 py-1.5 text-xs">
-                  <FolderOpen className="h-3.5 w-3.5" />
-                  {t('browse')}
-                </button>
-                <button type="button" onClick={() => updateSettings({ reminderSoundPath: null })} className="btn-secondary px-3 py-1.5 text-xs">
-                  {t('clear')}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handlePickReminderSound}
+                className="icon-btn shrink-0"
+                aria-label={t('browse')}
+                title={t('browse')}
+              >
+                <FolderOpen className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => updateSettings({ reminderSoundPath: null })}
+                className="icon-btn shrink-0"
+                aria-label={t('clear')}
+                title={t('clear')}
+              >
+                <XCircle className="h-4 w-4" />
+              </button>
             </div>
           </SettingRow>
           <SettingRow label={t('reminderVolume')}>
             <VolumeSlider value={settings.reminderVolume} onCommit={(next) => updateSettings({ reminderVolume: next })} />
           </SettingRow>
-          <div className="flex justify-end">
+          <ActionBar>
             <ActionButton icon={Volume2} loading={testingSound} label={t('testSound')} loadingLabel={t('testing')} onClick={handleTestSound} />
-          </div>
-        </SettingsSection>
+          </ActionBar>
+        </Section>
 
-        <SettingsSection icon={HardDrive} title={t('data')}>
-          <div className="flex flex-wrap gap-2">
+        <Section title={t('data')}>
+          <ActionBar>
             <ActionButton icon={Download} loading={exporting} label={t('exportBackup')} loadingLabel={t('exporting')} onClick={handleExportBackup} />
             <ActionButton icon={Upload} loading={importing} label={t('importBackup')} loadingLabel={t('importing')} onClick={handleImportBackup} />
             <ActionButton icon={ExternalLink} loading={openingFolder} label={t('openAppDataFolder')} loadingLabel={t('opening')} onClick={handleOpenAppDataFolder} />
-          </div>
-        </SettingsSection>
+          </ActionBar>
+        </Section>
 
-        <SettingsSection icon={RefreshCw} title={t('updates')}>
+        <Section title={t('updates')}>
           <SettingRow label={t('appVersion')}>
-            <span className="text-sm font-medium tabular-nums text-text-primary">{appVersion || '—'}</span>
+            <span className="text-sm tabular-nums text-text-primary">
+              <bdi>{appVersion || '—'}</bdi>
+            </span>
           </SettingRow>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className={`text-xs ${updatePhase === 'error' ? 'text-warning-orange' : 'text-muted-text'}`}>
+          {updateStatusText && (
+            <p
+              dir="auto"
+              className={`mt-2 text-xs ${updatePhase === 'error' ? 'text-warning-orange' : 'text-muted-text'}`}
+            >
               {updateStatusText}
             </p>
+          )}
+          <ActionBar>
             <ActionButton
               icon={RefreshCw}
               loading={updatePhase === 'checking'}
@@ -646,21 +678,12 @@ export const Settings: React.FC = () => {
               loadingLabel={t('checkingForUpdates')}
               onClick={() => checkForUpdates({ manual: true })}
             />
-          </div>
-        </SettingsSection>
+          </ActionBar>
+        </Section>
 
-        <SettingsSection icon={Activity} title={t('diagnostics')}>
-          <div className="mb-3 flex justify-end">
-            <ActionButton
-              icon={Activity}
-              loading={runningDiagnostics}
-              label={t('runDiagnostics')}
-              loadingLabel={t('runningDiagnostics')}
-              onClick={handleRunDiagnostics}
-            />
-          </div>
+        <Section title={t('diagnostics')}>
           {diagnostics && (
-            <div className="grid gap-1.5 rounded-lg border border-border bg-background/60 p-4 text-sm sm:grid-cols-2">
+            <div className="grid gap-x-10 sm:grid-cols-2">
               <DiagRow label={t('appVersion')} value={diagnostics.appVersion} />
               <DiagRow label={t('diagDatabaseSize')} value={formatBytes(diagnostics.dbSizeBytes)} />
               <DiagRow
@@ -687,25 +710,30 @@ export const Settings: React.FC = () => {
                 value={diagnostics.updateEndpointOk ? t('diagConnected') : t('diagNotConnected')}
                 ok={diagnostics.updateEndpointOk}
               />
-              <div className="sm:col-span-2">
-                <span className="text-xs text-muted-text">{t('openAppDataFolder')}: </span>
-                <span dir="ltr" className="break-all text-xs text-text-primary">{diagnostics.appDataPath}</span>
-              </div>
+              <DiagRow label={t('openAppDataFolder')} value={diagnostics.appDataPath} />
             </div>
           )}
-        </SettingsSection>
+          <ActionBar>
+            <ActionButton
+              icon={Activity}
+              loading={runningDiagnostics}
+              label={t('runDiagnostics')}
+              loadingLabel={t('runningDiagnostics')}
+              onClick={handleRunDiagnostics}
+            />
+          </ActionBar>
+        </Section>
       </div>
     </div>
   );
 };
 
 const DiagRow: React.FC<{ label: string; value: string; ok?: boolean }> = ({ label, value, ok }) => (
-  <div className="flex items-center justify-between gap-3 rounded-md bg-panel/60 px-3 py-2">
-    <span className="text-xs text-muted-text">{label}</span>
+  <div className="rule-row justify-between gap-4 py-2.5">
+    <span className="shrink-0 text-xs text-muted-text">{label}</span>
     <span
-      className={`truncate text-xs font-medium ${
-        ok === undefined ? 'text-text-primary' : ok ? 'text-success-green' : 'text-danger-red'
-      }`}
+      dir="auto"
+      className={`min-w-0 truncate text-end text-xs ${ok === false ? 'text-danger-red' : 'text-text-primary'}`}
       title={value}
     >
       {value}
@@ -713,14 +741,15 @@ const DiagRow: React.FC<{ label: string; value: string; ok?: boolean }> = ({ lab
   </div>
 );
 
-const SettingsSection: React.FC<{
-  icon: React.ComponentType<{ className?: string }>;
+/** A section is a heading over a hairline. Never a panel inside a panel. */
+const Section: React.FC<{
   title: string;
   children: React.ReactNode;
-}> = ({ icon: Icon, title, children }) => (
-  <section className="premium-surface ornate-corner relative mb-4 rounded-lg p-5">
-    <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-text-primary">
-      <Icon className="h-4 w-4 text-primary-blue" />
+}> = ({ title, children }) => (
+  <section className="mb-9">
+    {/* No letter-spacing: index.css pins Arabic to `letter-spacing: 0` because
+        tracking breaks the joins between Arabic letters. */}
+    <h2 className="mb-3 border-b border-border pb-2 text-xs font-semibold uppercase text-muted-text">
       {title}
     </h2>
     {children}
@@ -730,15 +759,24 @@ const SettingsSection: React.FC<{
 const SettingRow: React.FC<{
   label: string;
   description?: string;
+  /** Drop the row's own rule when the control already carries one (a
+      `.field-quiet` baseline), so the row never shows two hairlines. */
+  flush?: boolean;
   children: React.ReactNode;
-}> = ({ label, description, children }) => (
-  <div className="flex items-center justify-between gap-4 py-2">
-    <div>
-      <label className="text-sm text-text-primary">{label}</label>
+}> = ({ label, description, flush = false, children }) => (
+  <div className={`rule-row justify-between gap-6 ${flush ? 'border-b-0' : ''}`}>
+    <div className="min-w-0">
+      <label className="block text-sm text-text-primary">{label}</label>
       {description && <p className="mt-0.5 text-xs text-muted-text">{description}</p>}
     </div>
-    <div className="flex min-w-0 flex-1 justify-end">{children}</div>
+    <div className="flex min-w-0 max-w-[60%] flex-1 justify-end">{children}</div>
   </div>
+);
+
+/** Actions sit under their section's rows as quiet text, never as a row of
+    filled chips — the label already says what the button does. */
+const ActionBar: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">{children}</div>
 );
 
 const TextSetting: React.FC<{
@@ -746,7 +784,7 @@ const TextSetting: React.FC<{
   value: string;
   placeholder?: string;
   onChange: (value: string) => void;
-}> = ({ label, value, placeholder = 'Auto-detect', onChange }) => {
+}> = ({ label, value, placeholder, onChange }) => {
   // Edit locally and commit on blur/Enter so typing never triggers a database
   // write per keystroke (which made these inputs feel laggy).
   const [draft, setDraft] = useState(value);
@@ -760,9 +798,10 @@ const TextSetting: React.FC<{
   };
 
   return (
-    <SettingRow label={label}>
+    <SettingRow label={label} flush>
       <input
         type="text"
+        dir="auto"
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
         onBlur={commit}
@@ -773,7 +812,7 @@ const TextSetting: React.FC<{
           }
         }}
         placeholder={placeholder}
-        className="surface-input w-full max-w-md py-1.5"
+        className="field-quiet max-w-md text-end text-sm"
       />
     </SettingRow>
   );
@@ -799,6 +838,7 @@ const DraftInput: React.FC<{
   return (
     <input
       type="text"
+      dir="auto"
       value={draft}
       onChange={(event) => setDraft(event.target.value)}
       onBlur={commit}
@@ -831,7 +871,7 @@ const VolumeSlider: React.FC<{
 
   return (
     <div className="flex w-full max-w-xs items-center gap-3">
-      <Volume2 className="h-4 w-4 text-muted-text" />
+      <Volume2 className="h-4 w-4 shrink-0 text-muted-text" />
       <input
         type="range"
         min={0}
@@ -841,9 +881,18 @@ const VolumeSlider: React.FC<{
         onPointerUp={commit}
         onKeyUp={commit}
         onBlur={commit}
-        className="h-1.5 flex-1 cursor-pointer appearance-none rounded-lg bg-border accent-primary-blue"
+        className="h-1 flex-1 cursor-pointer rounded-full"
+        // `accent-color` rather than a hand-painted gradient: the browser fills
+        // the track from the reading side, so this is correct in RTL too, and
+        // both colours still come from the theme token.
+        style={{
+          background: 'rgb(var(--accent-gold-rgb) / 0.14)',
+          accentColor: 'rgb(var(--accent-gold-rgb))',
+        }}
       />
-      <span className="w-10 text-end text-sm tabular-nums text-text-primary">{draft}%</span>
+      <span className="w-10 shrink-0 text-end text-sm tabular-nums text-text-primary">
+        <bdi>{draft}%</bdi>
+      </span>
     </div>
   );
 };
@@ -858,15 +907,14 @@ const ActionButton: React.FC<{
   disabled?: boolean;
 }> = ({ icon: Icon, loading, label, loadingLabel, onClick, danger = false, disabled = false }) => (
   <button
+    type="button"
     onClick={onClick}
     disabled={loading || disabled}
-    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-      danger
-        ? 'border-danger-red/20 bg-danger-red/5 text-danger-red hover:bg-danger-red/10'
-        : 'border-border bg-elevated-panel text-text-primary hover:border-primary-blue/30 hover:bg-panel-hover'
+    className={`inline-flex items-center gap-1.5 py-1 text-xs font-medium text-muted-text transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+      danger ? 'hover:text-danger-red' : 'hover:text-text-primary'
     }`}
   >
-    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+    {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Icon className="h-3.5 w-3.5" />}
     {loading ? loadingLabel : label}
   </button>
 );

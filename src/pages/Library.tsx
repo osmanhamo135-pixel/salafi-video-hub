@@ -4,7 +4,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   FileVideo,
-  Filter,
   FolderPlus,
   LayoutGrid,
   List,
@@ -70,7 +69,7 @@ export const Library: React.FC = () => {
   const [playlistSort, setPlaylistSort] = useState<PlaylistSortKey>('recent');
   const [playlistFilter, setPlaylistFilter] = useState<PlaylistFilterKey>('all');
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [viewMode, setViewMode] = useState<PlaylistViewMode>('grid');
+  const [viewMode, setViewMode] = useState<PlaylistViewMode>('list');
 
   useEffect(() => {
     loadPlaylists();
@@ -322,7 +321,7 @@ export const Library: React.FC = () => {
               </div>
               <h1 className="text-3xl font-semibold tracking-normal text-text-primary">{t('library')}</h1>
               <p className="mt-1 text-sm text-muted-text">
-                {playlists.length} {t('playlistsLower')} | {librarySummary.videos.toLocaleString()} {t('videosLower')} | {Math.round(librarySummary.hours).toLocaleString()}h
+                <bdi>{playlists.length}</bdi> {t('playlistsLower')} &middot; <bdi>{librarySummary.videos.toLocaleString()}</bdi> {t('videosLower')} &middot; <bdi>{Math.round(librarySummary.hours).toLocaleString()}h</bdi>
               </p>
             </div>
 
@@ -333,7 +332,7 @@ export const Library: React.FC = () => {
                   disabled={importing}
                   className="btn-primary"
                 >
-                  {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FolderPlus className="h-4 w-4" />}
+                  {importing ? <Loader2 className="h-4 w-4 motion-safe:animate-spin" /> : <FolderPlus className="h-4 w-4" />}
                   {t('importFolder')}
                 </button>
                 <button
@@ -350,16 +349,18 @@ export const Library: React.FC = () => {
                   type="checkbox"
                   checked={includeSubfolders}
                   onChange={(event) => setIncludeSubfolders(event.target.checked)}
-                  className="h-4 w-4 rounded border-border bg-panel text-primary-blue accent-primary-blue"
+                  className="h-4 w-4 rounded border-border bg-panel accent-accent-gold"
                 />
                 {t('scanSubfoldersRecursively')}
               </label>
             </div>
           </div>
 
-          <div className="premium-surface flex flex-col gap-3 rounded-lg p-3 lg:flex-row lg:items-center lg:justify-between">
+          {/* Toolbar: a quiet field and two segmented controls sharing a
+              baseline rule. No panel, no boxed inputs, no filled toggles. */}
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative max-w-xl flex-1">
-              <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
+              <Search className="pointer-events-none absolute start-0 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
               <input
                 type="text"
                 placeholder={t('searchLibrary')}
@@ -368,37 +369,43 @@ export const Library: React.FC = () => {
                   setSearchInput(event.target.value);
                   setSelectedPlaylist(null);
                 }}
-                className="surface-input w-full py-2.5 ps-10 pe-9"
+                className="field-quiet ps-7 pe-8 text-sm"
               />
               {searchInput && (
                 <button
                   onClick={handleClearSearch}
-                  className="absolute end-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-text hover:text-text-primary"
+                  title={t('clearSearch')}
+                  aria-label={t('clearSearch')}
+                  className="icon-btn absolute end-0 top-1/2 h-6 w-6 -translate-y-1/2"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1 rounded-md border border-border bg-background p-1">
-                <ViewButton
-                  label={t('gridView')}
-                  active={viewMode === 'grid'}
-                  onClick={() => setViewMode('grid')}
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </ViewButton>
-                <ViewButton
-                  label={t('listView')}
-                  active={viewMode === 'list'}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+              <div className="segmented" role="group" aria-label={t('view')}>
+                <button
+                  type="button"
+                  title={t('listView')}
+                  aria-label={t('listView')}
+                  aria-pressed={viewMode === 'list'}
                   onClick={() => setViewMode('list')}
                 >
                   <List className="h-4 w-4" />
-                </ViewButton>
+                </button>
+                <button
+                  type="button"
+                  title={t('gridView')}
+                  aria-label={t('gridView')}
+                  aria-pressed={viewMode === 'grid'}
+                  onClick={() => setViewMode('grid')}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </button>
               </div>
 
-              <label className="flex items-center gap-2 rounded-md border border-border bg-background px-2.5 py-2 text-xs text-muted-text">
+              <label className="flex items-center gap-2 text-xs text-muted-text">
                 <SortAsc className="h-3.5 w-3.5" />
                 <select
                   value={playlistSort}
@@ -415,32 +422,22 @@ export const Library: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-text">
-              <Filter className="h-3.5 w-3.5" />
-              {t('filter')}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+            <div className="segmented" role="group" aria-label={t('filter')}>
+              <button type="button" aria-pressed={playlistFilter === 'all'} onClick={() => setPlaylistFilter('all')}>
+                {t('all')} <bdi>{playlists.length}</bdi>
+              </button>
+              <button type="button" aria-pressed={playlistFilter === 'in-progress'} onClick={() => setPlaylistFilter('in-progress')}>
+                {t('inProgress')} <bdi>{librarySummary.inProgress}</bdi>
+              </button>
+              <button type="button" aria-pressed={playlistFilter === 'completed'} onClick={() => setPlaylistFilter('completed')}>
+                {t('completed')} <bdi>{librarySummary.completed}</bdi>
+              </button>
+              <button type="button" aria-pressed={playlistFilter === 'empty'} onClick={() => setPlaylistFilter('empty')}>
+                {t('empty')} <bdi>{librarySummary.empty}</bdi>
+              </button>
             </div>
-            <FilterChip
-              label={`${t('all')} ${playlists.length}`}
-              active={playlistFilter === 'all'}
-              onClick={() => setPlaylistFilter('all')}
-            />
-            <FilterChip
-              label={`${t('inProgress')} ${librarySummary.inProgress}`}
-              active={playlistFilter === 'in-progress'}
-              onClick={() => setPlaylistFilter('in-progress')}
-            />
-            <FilterChip
-              label={`${t('completed')} ${librarySummary.completed}`}
-              active={playlistFilter === 'completed'}
-              onClick={() => setPlaylistFilter('completed')}
-            />
-            <FilterChip
-              label={`${t('empty')} ${librarySummary.empty}`}
-              active={playlistFilter === 'empty'}
-              onClick={() => setPlaylistFilter('empty')}
-            />
-            <label className="ms-auto flex items-center gap-2 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs text-muted-text">
+            <label className="ms-auto flex items-center gap-2 text-xs text-muted-text">
               <SlidersHorizontal className="h-3.5 w-3.5" />
               <select
                 value={categoryFilter}
@@ -458,16 +455,16 @@ export const Library: React.FC = () => {
           </div>
 
           {importError && (
-            <div className="flex items-start gap-2 rounded-md border border-danger-red/25 bg-danger-red/10 px-4 py-3 text-sm text-danger-red">
+            <div className="flex items-start gap-2 border-s-2 border-danger-red/70 ps-3 text-sm text-danger-red">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{importError}</span>
+              <span dir="auto">{importError}</span>
             </div>
           )}
 
           {playlistsError && (
-            <div className="flex items-start gap-2 rounded-md border border-warning-orange/25 bg-warning-orange/10 px-4 py-3 text-sm text-warning-orange">
+            <div className="flex items-start gap-2 border-s-2 border-warning-orange/70 ps-3 text-sm text-warning-orange">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{playlistsError}</span>
+              <span dir="auto">{playlistsError}</span>
             </div>
           )}
 
@@ -487,15 +484,15 @@ export const Library: React.FC = () => {
           />
         ) : showInitialLibraryLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="mb-3 h-8 w-8 animate-spin text-primary-blue" />
+            <Loader2 className="mb-3 h-6 w-6 text-muted-text motion-safe:animate-spin" />
             <p className="text-sm text-muted-text">{t('loadingLibrary')}</p>
           </div>
         ) : showSearchResults ? (
           <>
             {searchError && (
-              <div className="mb-4 flex items-start gap-2 rounded-lg border border-danger-red/25 bg-danger-red/10 p-3 text-xs text-danger-red">
+              <div className="mb-4 flex items-start gap-2 border-s-2 border-danger-red/70 ps-3 text-xs text-danger-red">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span className="whitespace-pre-wrap">{searchError}</span>
+                <span dir="auto" className="whitespace-pre-wrap">{searchError}</span>
               </div>
             )}
             <SearchResults
@@ -507,16 +504,13 @@ export const Library: React.FC = () => {
           </>
         ) : isSearching ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="mb-3 h-8 w-8 animate-spin text-primary-blue" />
+            <Loader2 className="mb-3 h-6 w-6 text-muted-text motion-safe:animate-spin" />
             <p className="text-sm text-muted-text">{t('searching')}</p>
           </div>
         ) : playlists.length > 0 && filteredPlaylists.length === 0 ? (
-          <div className="premium-card ornate-corner relative flex flex-col items-center justify-center rounded-lg border-dashed px-6 py-20 text-center">
-            <div className="icon-medallion mb-4 h-14 w-14">
-              <SlidersHorizontal className="h-7 w-7 text-primary-blue/75" />
-            </div>
-            <h3 className="mb-1 text-base font-semibold text-text-primary">{t('noPlaylistsMatch')}</h3>
-            <p className="max-w-sm text-sm text-muted-text">{t('switchFilters')}</p>
+          <div className="py-20 text-center">
+            <p className="text-sm text-text-primary">{t('noPlaylistsMatch')}</p>
+            <p className="mx-auto mt-1 max-w-sm text-xs text-muted-text">{t('switchFilters')}</p>
           </div>
         ) : (
           <PlaylistGrid
@@ -534,68 +528,26 @@ export const Library: React.FC = () => {
   );
 };
 
-const ViewButton: React.FC<{
-  label: string;
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}> = ({ label, active, onClick, children }) => (
-  <button
-    type="button"
-    title={label}
-    onClick={onClick}
-    className={`flex h-8 w-8 items-center justify-center rounded transition-colors ${
-      active
-        ? 'bg-primary-blue text-background'
-        : 'text-muted-text hover:bg-panel-hover hover:text-text-primary'
-    }`}
-  >
-    {children}
-  </button>
-);
-
-const FilterChip: React.FC<{
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}> = ({ label, active, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-      active
-        ? 'border-primary-blue/35 bg-primary-blue/15 text-primary-blue'
-        : 'border-border bg-panel text-muted-text hover:border-border-strong hover:text-text-primary'
-    }`}
-  >
-    {label}
-  </button>
-);
-
 const ImportSummary: React.FC<{ result: ImportResult }> = ({ result }) => {
   const { t } = useI18n();
   const hasErrors = result.failed_count > 0 || result.errors.length > 0;
 
   return (
-    <div className={`rounded-md border px-4 py-3 text-sm ${
-      hasErrors
-        ? 'border-warning-orange/30 bg-warning-orange/10 text-warning-orange'
-        : 'border-success-green/25 bg-success-green/10 text-success-green'
+    <div className={`flex items-start gap-2 border-s-2 ps-3 text-sm ${
+      hasErrors ? 'border-warning-orange/70 text-warning-orange' : 'border-success-green/70 text-success-green'
     }`}>
-      <div className="flex items-start gap-2">
-        {hasErrors ? <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /> : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />}
-        <div className="min-w-0">
-          <p className="font-medium">
-            {t('importFolder')}: {result.imported_count} / {t('skipped')}: {result.skipped_count} / {t('failed')}: {result.failed_count}
-          </p>
-          {result.errors.length > 0 && (
-            <ul className="mt-1 space-y-1 text-xs opacity-90">
-              {result.errors.slice(0, 4).map((error) => (
-                <li key={error} className="truncate" title={error}>{error}</li>
-              ))}
-            </ul>
-          )}
-        </div>
+      {hasErrors ? <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /> : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />}
+      <div className="min-w-0">
+        <p>
+          {t('importFolder')}: <bdi>{result.imported_count}</bdi> / {t('skipped')}: <bdi>{result.skipped_count}</bdi> / {t('failed')}: <bdi>{result.failed_count}</bdi>
+        </p>
+        {result.errors.length > 0 && (
+          <ul className="mt-1 space-y-1 text-xs opacity-90">
+            {result.errors.slice(0, 4).map((error) => (
+              <li key={error} dir="auto" className="truncate" title={error}>{error}</li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

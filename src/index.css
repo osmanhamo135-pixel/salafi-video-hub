@@ -1219,13 +1219,16 @@
 
   .page-container {
     @apply relative h-full min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-6;
+    /* One directional falloff, no lattice. A 42px ruled grid used to sit behind
+       every page: that is analytics-dashboard furniture, it is the opposite of
+       a photographed room, and on a near-black ground it fought the vignette by
+       giving the eye a repeating structure where the references have fall-off.
+       The two opposing glows were also cancelling into a flat wash, so the warm
+       one now leads and the cool one only cools the far corner. */
     background:
-      radial-gradient(circle at 88% 0%, rgb(var(--accent-gold-rgb) / 0.09), transparent 28rem),
-      radial-gradient(circle at 12% 18%, rgb(var(--accent-emerald-rgb) / 0.055), transparent 22rem),
-      linear-gradient(90deg, rgb(var(--border-subtle-rgb) / 0.022) 1px, transparent 1px),
-      linear-gradient(180deg, rgb(var(--border-subtle-rgb) / 0.016) 1px, transparent 1px),
+      radial-gradient(120% 80% at 86% -6%, rgb(var(--accent-gold-rgb) / 0.10), transparent 62%),
+      radial-gradient(90% 70% at 6% 104%, rgb(var(--accent-emerald-rgb) / 0.035), transparent 68%),
       var(--bg-main);
-    background-size: auto, auto, 42px 42px, 42px 42px, auto;
   }
   
   .content-max-width {
@@ -1294,64 +1297,30 @@
   }
 
 
-  .islamic-pattern {
-    background-image:
-      linear-gradient(45deg, rgb(var(--accent-teal-rgb) / 0.07) 25%, transparent 25%, transparent 75%, rgb(var(--accent-teal-rgb) / 0.07) 75%),
-      linear-gradient(-45deg, rgb(var(--accent-gold-rgb) / 0.055) 25%, transparent 25%, transparent 75%, rgb(var(--accent-gold-rgb) / 0.055) 75%);
-    background-position: 0 0, 12px 12px;
-    background-size: 24px 24px;
-  }
+  /* `.islamic-pattern` and the two other diagonal-checkerboard textures were
+     deleted. They were argyle at 22-34px, which is below the scale at which any
+     geometric construction is legible, so on a near-black ground they read as
+     JPEG blocking rather than ornament — and there is no construction path from
+     the girih tile set to a crossed-45-degree checkerboard anyway. The one
+     legitimate geometry in the app is `.hero-girih`, an 8-point khatam star,
+     which stays. */
 
-  .ornate-corner::before,
-  .ornate-corner::after {
-    content: '';
-    position: absolute;
-    width: 24px;
-    height: 24px;
-    pointer-events: none;
-  }
+  /* `.ornate-corner` was deleted. It drew a 24px bracket top-left in the gold
+     accent and another bottom-right in the *teal* accent — two colours, two
+     opposite corners, over the card's own border. On the red theme that meant a
+     gold bracket and a red one on every card. It is the signature of a free
+     dashboard template, and it is not an Islamic device: a cartouche or a jadwal
+     is a complete frame, not two opposed corners. It was on eleven surfaces.
+     The one framing device the app keeps is the surah header band. */
 
-  .ornate-corner::before {
-    top: 0.65rem;
-    left: 0.65rem;
-    border-top: 1px solid rgb(var(--accent-gold-rgb) / 0.45);
-    border-left: 1px solid rgb(var(--accent-gold-rgb) / 0.45);
-  }
-
-  .ornate-corner::after {
-    right: 0.65rem;
-    bottom: 0.65rem;
-    border-right: 1px solid rgb(var(--accent-teal-rgb) / 0.35);
-    border-bottom: 1px solid rgb(var(--accent-teal-rgb) / 0.35);
-  }
-
+  /* A video with no thumbnail yet. Flat, quiet, and unmistakably a placeholder.
+     It used to carry the same 22px argyle plus a bright teal underline bar; in
+     a grid that is dozens of them at once, and at that scale the texture read
+     as broken image placeholders rather than ornament. */
   .thumbnail-fallback {
-    @apply relative flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br from-background via-panel to-elevated-panel;
-    box-shadow: inset 0 0 0 1px rgb(var(--accent-teal-rgb) / 0.08);
-  }
-
-  .thumbnail-fallback::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: 0.45;
-    background-image:
-      radial-gradient(circle at center, rgb(var(--accent-gold-rgb) / 0.12) 0 1px, transparent 1px 100%),
-      linear-gradient(45deg, rgb(var(--accent-teal-rgb) / 0.075) 25%, transparent 25%, transparent 75%, rgb(var(--accent-teal-rgb) / 0.075) 75%),
-      linear-gradient(-45deg, rgb(var(--accent-teal-rgb) / 0.055) 25%, transparent 25%, transparent 75%, rgb(var(--accent-teal-rgb) / 0.055) 75%);
-    background-position: 0 0, 0 0, 11px 11px;
-    background-size: 22px 22px;
-  }
-
-  .thumbnail-fallback::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--accent-teal), transparent);
-    opacity: 0.75;
+    @apply relative flex h-full w-full items-center justify-center overflow-hidden;
+    background: rgb(var(--bg-card-rgb));
+    color: rgb(var(--text-faint-rgb));
   }
 
   .icon-medallion {
@@ -1387,26 +1356,13 @@
     background: linear-gradient(90deg, transparent, rgb(var(--accent-gold-rgb) / 0.5), rgb(var(--accent-emerald-rgb) / 0.24), transparent);
   }
 
+  /* The Dashboard's second hero. Reduced to a value step: it used to carry its
+     own gold border, two radial glows, an inset highlight and a 34px argyle
+     texture, competing with the real hero directly above it — and two heroes
+     means neither is one. The real hero has a key light with a direction; this
+     panel does not need to invent another. */
   .salafi-dashboard-hero {
-    border: 1px solid rgb(var(--accent-gold-rgb) / 0.2);
-    background:
-      radial-gradient(circle at 12% 12%, rgb(var(--accent-gold-rgb) / 0.15), transparent 18rem),
-      radial-gradient(circle at 88% 0%, rgb(var(--accent-emerald-rgb) / 0.11), transparent 22rem),
-      linear-gradient(135deg, rgb(var(--bg-card-rgb) / 0.98), rgb(var(--bg-main-rgb) / 0.98));
-    box-shadow: inset 0 1px 0 rgb(var(--accent-gold-rgb) / 0.07);
-  }
-
-  .salafi-dashboard-hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: 0.18;
-    pointer-events: none;
-    background-image:
-      linear-gradient(45deg, rgb(var(--accent-gold-rgb) / 0.12) 25%, transparent 25%, transparent 75%, rgb(var(--accent-gold-rgb) / 0.12) 75%),
-      linear-gradient(-45deg, rgb(var(--accent-emerald-rgb) / 0.08) 25%, transparent 25%, transparent 75%, rgb(var(--accent-emerald-rgb) / 0.08) 75%);
-    background-size: 34px 34px;
-    background-position: 0 0, 17px 17px;
+    background: rgb(var(--bg-card-rgb) / 0.55);
   }
 
   .download-batch-card {
