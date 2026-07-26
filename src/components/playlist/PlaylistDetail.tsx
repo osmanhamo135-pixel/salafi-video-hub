@@ -13,6 +13,12 @@ import { formatDuration, formatTime } from '@/utils/formatTime';
 import { LocalThumbnail } from '@/components/ui/LocalThumbnail';
 import { useI18n } from '@/i18n';
 
+/* .thumbnail-fallback bakes in an .icon-medallion (primary-blue border + fill)
+   and a teal underline, which puts a second accent in every un-thumbnailed row.
+   Neutralise both from the call site; the primitive itself is not ours to edit. */
+const QUIET_FALLBACK =
+  'thumbnail-fallback after:hidden [&_.icon-medallion]:border-border [&_.icon-medallion]:bg-transparent [&_.icon-medallion]:shadow-none [&_.icon-medallion]:after:hidden';
+
 interface PlaylistDetailProps {
   playlist: Playlist;
   videos: Video[];
@@ -124,7 +130,7 @@ export const PlaylistDetail: React.FC<PlaylistDetailProps> = ({
               label={playlist.name}
               className="h-full w-full object-cover"
               iconClassName="h-10 w-10 text-muted-text/45"
-              fallbackClassName="thumbnail-fallback"
+              fallbackClassName={QUIET_FALLBACK}
             />
             {progressPercent > 0 && (
               <div className="absolute inset-x-0 bottom-0 h-0.5 bg-background/70">
@@ -135,11 +141,11 @@ export const PlaylistDetail: React.FC<PlaylistDetailProps> = ({
 
           <div className="flex min-w-0 flex-1 flex-col gap-4">
             <div className="min-w-0">
-              <h2 dir="auto" className="text-2xl font-semibold leading-tight text-text-primary" title={playlist.name}>
-                {playlist.name}
+              <h2 className="text-2xl font-semibold leading-tight text-text-primary" title={playlist.name}>
+                <bdi>{playlist.name}</bdi>
               </h2>
-              <p dir="auto" className="mt-1.5 truncate text-sm text-muted-text" title={playlist.folderPath}>
-                {playlist.folderPath}
+              <p className="mt-1.5 truncate text-sm text-muted-text" title={playlist.folderPath}>
+                <bdi>{playlist.folderPath}</bdi>
               </p>
             </div>
 
@@ -304,7 +310,7 @@ const PlaylistVideoRow: React.FC<{
           label={video.title}
           className="h-full w-full object-cover"
           iconClassName="h-4 w-4 text-muted-text"
-          fallbackClassName="thumbnail-fallback"
+          fallbackClassName={QUIET_FALLBACK}
         />
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/60 opacity-0 transition-opacity group-hover:opacity-100">
           <Play className="h-5 w-5 fill-current text-text-primary" />
@@ -317,11 +323,11 @@ const PlaylistVideoRow: React.FC<{
       </div>
 
       <div className="min-w-0 flex-1">
-        <p dir="auto" className="truncate text-sm text-text-primary" title={video.title}>
-          {video.title}
+        <p className="truncate text-sm text-text-primary" title={video.title}>
+          <bdi>{video.title}</bdi>
         </p>
         <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-text">
-          <span dir="auto" className="truncate" title={video.fileName}>{video.fileName}</span>
+          <span className="truncate" title={video.fileName}><bdi>{video.fileName}</bdi></span>
           {video.completed && <span>{t('completed')}</span>}
           {video.favorite && (
             <span className="inline-flex items-center gap-1">

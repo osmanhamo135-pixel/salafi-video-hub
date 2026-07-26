@@ -221,7 +221,7 @@ const InsightRow: React.FC<{
     <Icon className="h-4 w-4 shrink-0 text-muted-text" />
     <div className="min-w-0 flex-1">
       <p className="truncate text-sm text-text-primary">{label}</p>
-      <p dir="auto" className="mt-0.5 truncate text-xs text-muted-text" title={detail}>{detail}</p>
+      <p className="mt-0.5 truncate text-xs text-muted-text" title={detail}><bdi>{detail}</bdi></p>
       {typeof progress === 'number' && (
         <div className="mt-2 h-px w-full bg-border">
           <div
@@ -268,8 +268,8 @@ const TodaysRemindersPanel: React.FC<{
         {reminders.slice(0, 6).map((reminder) => (
           <div key={reminder.id} className="rule-row">
             <Bell className="h-4 w-4 shrink-0 text-muted-text" />
-            <p dir="auto" className="min-w-0 flex-1 truncate text-sm text-text-primary" title={reminder.title}>
-              {reminder.title}
+            <p className="min-w-0 flex-1 truncate text-sm text-text-primary" title={reminder.title}>
+              <bdi>{reminder.title}</bdi>
             </p>
             <span className="shrink-0 text-xs tabular-nums text-muted-text">
               <bdi>{reminder.time}</bdi>

@@ -105,14 +105,14 @@ export const QuickActions: React.FC = () => {
       {importError && (
         <div className="flex items-start gap-2 border-s-2 border-danger-red/70 ps-3 text-sm text-danger-red">
           <AlertCircle size={16} className="mt-0.5 shrink-0" />
-          <span dir="auto">{importError}</span>
+          <bdi>{importError}</bdi>
         </div>
       )}
 
       {importSummary && (
         <div className="flex items-start gap-2 border-s-2 border-success-green/70 ps-3 text-sm text-success-green">
           <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
-          <span dir="auto">{importSummary}</span>
+          <bdi>{importSummary}</bdi>
         </div>
       )}
     </div>

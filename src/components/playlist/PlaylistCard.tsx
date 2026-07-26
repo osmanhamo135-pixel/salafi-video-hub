@@ -6,6 +6,12 @@ import { LocalThumbnail } from '@/components/ui/LocalThumbnail';
 import { PlaylistMenu } from './PlaylistMenu';
 import { useI18n } from '@/i18n';
 
+/* .thumbnail-fallback bakes in an .icon-medallion (primary-blue border + fill)
+   and a teal underline, which puts a second accent in every un-thumbnailed row.
+   Neutralise both from the call site; the primitive itself is not ours to edit. */
+const QUIET_FALLBACK =
+  'thumbnail-fallback after:hidden [&_.icon-medallion]:border-border [&_.icon-medallion]:bg-transparent [&_.icon-medallion]:shadow-none [&_.icon-medallion]:after:hidden';
+
 interface PlaylistCardProps {
   playlist: Playlist;
   variant?: 'grid' | 'list';
@@ -54,7 +60,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
             label={playlist.name}
             className="h-full w-full object-cover"
             iconClassName="h-4 w-4 text-muted-text"
-            fallbackClassName="thumbnail-fallback"
+            fallbackClassName={QUIET_FALLBACK}
           />
           <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/60 opacity-0 transition-opacity group-hover:opacity-100">
             <Play className="h-5 w-5 fill-current text-text-primary" />
@@ -71,12 +77,12 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
           onClick={() => onOpen(playlist)}
           className="min-w-0 flex-1 text-start"
         >
-          <p dir="auto" className="truncate text-sm text-text-primary" title={playlist.name}>
-            {playlist.name}
+          <p className="truncate text-sm text-text-primary" title={playlist.name}>
+            <bdi>{playlist.name}</bdi>
           </p>
           <div className="mt-0.5 flex min-w-0 items-center gap-2 text-xs text-muted-text">
-            <span dir="auto" className="truncate" title={playlist.folderPath}>
-              {playlist.folderPath}
+            <span className="truncate" title={playlist.folderPath}>
+              <bdi>{playlist.folderPath}</bdi>
             </span>
           </div>
         </button>
@@ -118,7 +124,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
           label={playlist.name}
           className="h-full w-full object-cover"
           iconClassName="h-8 w-8 text-muted-text/45"
-          fallbackClassName="thumbnail-fallback"
+          fallbackClassName={QUIET_FALLBACK}
         />
 
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/60 opacity-0 transition-opacity group-hover:opacity-100">
@@ -135,14 +141,13 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
       <div className="flex flex-1 flex-col gap-1 p-3">
         <button type="button" onClick={() => onOpen(playlist)} className="min-w-0 text-start">
           <h3
-            dir="auto"
             className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-snug text-text-primary"
             title={playlist.name}
           >
-            {playlist.name}
+            <bdi>{playlist.name}</bdi>
           </h3>
-          <p dir="auto" className="truncate text-xs text-muted-text" title={playlist.folderPath}>
-            {playlist.folderPath}
+          <p className="truncate text-xs text-muted-text" title={playlist.folderPath}>
+            <bdi>{playlist.folderPath}</bdi>
           </p>
         </button>
 

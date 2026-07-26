@@ -457,14 +457,14 @@ export const Library: React.FC = () => {
           {importError && (
             <div className="flex items-start gap-2 border-s-2 border-danger-red/70 ps-3 text-sm text-danger-red">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span dir="auto">{importError}</span>
+              <bdi>{importError}</bdi>
             </div>
           )}
 
           {playlistsError && (
             <div className="flex items-start gap-2 border-s-2 border-warning-orange/70 ps-3 text-sm text-warning-orange">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span dir="auto">{playlistsError}</span>
+              <bdi>{playlistsError}</bdi>
             </div>
           )}
 
@@ -492,7 +492,7 @@ export const Library: React.FC = () => {
             {searchError && (
               <div className="mb-4 flex items-start gap-2 border-s-2 border-danger-red/70 ps-3 text-xs text-danger-red">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span dir="auto" className="whitespace-pre-wrap">{searchError}</span>
+                <span className="whitespace-pre-wrap"><bdi>{searchError}</bdi></span>
               </div>
             )}
             <SearchResults
@@ -544,7 +544,7 @@ const ImportSummary: React.FC<{ result: ImportResult }> = ({ result }) => {
         {result.errors.length > 0 && (
           <ul className="mt-1 space-y-1 text-xs opacity-90">
             {result.errors.slice(0, 4).map((error) => (
-              <li key={error} dir="auto" className="truncate" title={error}>{error}</li>
+              <li key={error} className="truncate" title={error}><bdi>{error}</bdi></li>
             ))}
           </ul>
         )}

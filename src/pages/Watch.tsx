@@ -49,18 +49,19 @@ export const Watch: React.FC = () => {
           <p className="mt-1 max-w-2xl text-sm text-muted-text">{t('watchSubtitle')}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="premium-surface mb-5 flex flex-col gap-2 rounded-lg p-3 sm:flex-row">
+        <form onSubmit={handleSubmit} className="mb-6 flex items-end gap-3">
           <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
+            <Search className="pointer-events-none absolute start-0 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" />
             <input
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t('watchSearchPlaceholder')}
-              className="surface-input w-full py-2.5 ps-10"
+              className="field-quiet ps-6 text-sm"
+              dir="auto"
             />
           </div>
-          <button type="submit" disabled={searching || !query.trim()} className="btn-primary justify-center px-5 py-2.5">
+          <button type="submit" disabled={searching || !query.trim()} className="btn-primary shrink-0 justify-center px-5 py-2">
             {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
             {searching ? t('searching') : t('watchSearchButton')}
           </button>
@@ -69,26 +70,26 @@ export const Watch: React.FC = () => {
         <WatchPlayer />
 
         {resolving && (
-          <div className="premium-surface mb-5 flex items-center gap-3 rounded-lg p-4">
-            <Loader2 className="h-5 w-5 animate-spin text-primary-blue" />
+          <div className="mb-5 flex items-center gap-3 border-b border-border pb-4">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-text" />
             <div className="min-w-0">
-              <p className="text-sm font-medium text-text-primary">{t('watchLoadingStream')}</p>
-              {resolvingTitle && <p className="truncate text-xs text-muted-text">{resolvingTitle}</p>}
+              <p className="text-sm text-text-primary">{t('watchLoadingStream')}</p>
+              {resolvingTitle && <p className="truncate text-xs text-muted-text" dir="auto">{resolvingTitle}</p>}
             </div>
           </div>
         )}
 
         {resolveError && !resolving && (
-          <div className="mb-5 flex items-start gap-2 rounded-lg border border-danger-red/25 bg-danger-red/10 p-3 text-xs text-danger-red">
+          <div className="mb-5 flex items-start gap-2 border-b border-danger-red/30 pb-3 text-xs text-danger-red">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span className="whitespace-pre-wrap">{resolveError}</span>
+            <span className="whitespace-pre-wrap" dir="auto">{resolveError}</span>
           </div>
         )}
 
         {searchError && (
-          <div className="mb-5 flex items-start gap-2 rounded-lg border border-danger-red/25 bg-danger-red/10 p-3 text-xs text-danger-red">
+          <div className="mb-5 flex items-start gap-2 border-b border-danger-red/30 pb-3 text-xs text-danger-red">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span className="whitespace-pre-wrap">{searchError}</span>
+            <span className="whitespace-pre-wrap" dir="auto">{searchError}</span>
           </div>
         )}
 
@@ -103,19 +104,19 @@ export const Watch: React.FC = () => {
         )}
 
         {!searching && hasSearched && results.length === 0 && !searchError && (
-          <div className="premium-surface rounded-lg p-10 text-center">
-            <Youtube className="mx-auto mb-3 h-9 w-9 text-muted-text" />
-            <p className="text-sm font-medium text-text-primary">{t('watchNoResults')}</p>
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <Youtube className="mb-3 h-8 w-8 text-text-faint" />
+            <p className="text-sm text-muted-text">{t('watchNoResults')}</p>
           </div>
         )}
 
         {!hasSearched && !searching && results.length === 0 && history.length === 0 && (
-          <div className="premium-surface ornate-corner relative rounded-lg p-10 text-center">
-            <MonitorPlay className="mx-auto mb-3 h-10 w-10 text-primary-blue" />
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <MonitorPlay className="mb-3 h-9 w-9 text-text-faint" />
             <p className="text-base font-semibold text-text-primary">{t('watchEmptyTitle')}</p>
-            <p className="mx-auto mt-1 max-w-md text-sm text-muted-text">{t('watchEmptyHint')}</p>
-            <p className="mx-auto mt-4 flex max-w-md items-center justify-center gap-1.5 text-xs text-accent-gold">
-              <ShieldCheck className="h-3.5 w-3.5" />
+            <p className="mt-1 max-w-md text-sm text-muted-text">{t('watchEmptyHint')}</p>
+            <p className="mt-4 flex max-w-md items-center justify-center gap-1.5 text-xs text-muted-text">
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
               {t('watchAdFreeNote')}
             </p>
           </div>
@@ -126,6 +127,11 @@ export const Watch: React.FC = () => {
 };
 
 const PROGRESS_SAVE_MS = 5000;
+
+// A quiet text action: no chip, no border, no fill. Repeated as a constant
+// rather than a class because src/index.css is owned elsewhere — see report.
+const QUIET_ACTION =
+  'inline-flex items-center gap-1.5 py-1 text-xs font-medium text-muted-text transition-colors hover:text-text-primary motion-reduce:transition-none';
 
 const WatchPlayer: React.FC = () => {
   const { t } = useI18n();
@@ -193,8 +199,9 @@ const WatchPlayer: React.FC = () => {
   };
 
   return (
-    <section className="premium-surface ornate-corner relative mb-5 overflow-hidden rounded-lg">
-      <div className="gold-thread absolute inset-x-5 top-0" />
+    <section className="premium-surface mb-5 overflow-hidden rounded-lg">
+      {/* A player letterbox is black on every theme — that is what a video
+          frame is, not a themed surface. */}
       <div className="aspect-video w-full bg-black">
         {useEmbed ? (
           <iframe
@@ -226,34 +233,36 @@ const WatchPlayer: React.FC = () => {
 
       <div className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-text-primary" title={current.title}>
+          <p className="truncate text-sm font-medium text-text-primary" title={current.title} dir="auto">
             {current.title}
           </p>
-          <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-text">
-            {current.channel && <span>{current.channel}</span>}
-            {current.durationSeconds > 0 && <span>{formatTime(current.durationSeconds)}</span>}
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-text">
+            {current.channel && <bdi>{current.channel}</bdi>}
+            {current.durationSeconds > 0 && <bdi>{formatTime(current.durationSeconds)}</bdi>}
             {!useEmbed && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-success-green/15 px-2 py-0.5 font-medium text-success-green">
-                <ShieldCheck className="h-3 w-3" />
-                {t('watchAdFreeBadge')}
-                {current.height > 0 && ` · ${current.height}p`}
+              <span className="inline-flex items-center gap-1">
+                <ShieldCheck className="h-3 w-3 shrink-0" />
+                <bdi>
+                  {t('watchAdFreeBadge')}
+                  {current.height > 0 && ` · ${current.height}p`}
+                </bdi>
               </span>
             )}
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           {!useEmbed && (
-            <button type="button" onClick={enableEmbedFallback} className="btn-secondary px-3 py-2 text-xs">
+            <button type="button" onClick={enableEmbedFallback} className={QUIET_ACTION}>
               <Youtube className="h-3.5 w-3.5" />
               {t('watchUseEmbed')}
             </button>
           )}
-          <button type="button" onClick={handleDownload} className="btn-secondary px-3 py-2 text-xs">
+          <button type="button" onClick={handleDownload} className={QUIET_ACTION}>
             <Download className="h-3.5 w-3.5" />
             {t('watchSaveToLibrary')}
           </button>
-          <button type="button" onClick={closePlayer} className="btn-ghost border border-border px-3 py-2 text-xs">
+          <button type="button" onClick={closePlayer} className={QUIET_ACTION}>
             <X className="h-3.5 w-3.5" />
             {t('close')}
           </button>
@@ -277,21 +286,21 @@ const WatchHistoryRow: React.FC = () => {
 
   return (
     <section className="mb-5">
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-text-primary">
-          <History className="h-4 w-4 text-primary-blue" />
+      <div className="rule-head">
+        <h2 className="flex items-center gap-2 text-xs font-semibold text-text-primary">
+          <History className="h-3.5 w-3.5 text-muted-text" />
           {t('continueWatching')}
         </h2>
         <button
           type="button"
           onClick={clearHistory}
-          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-text transition-colors hover:bg-danger-red/10 hover:text-danger-red"
+          className="inline-flex items-center gap-1.5 py-1 text-xs font-medium text-muted-text transition-colors hover:text-danger-red motion-reduce:transition-none"
         >
           <Trash2 className="h-3.5 w-3.5" />
           {t('watchClearHistory')}
         </button>
       </div>
-      <div className="flex gap-3 overflow-x-auto pb-2">
+      <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
         {visible.map((item) => (
           <HistoryCard key={item.id} item={item} />
         ))}
@@ -326,9 +335,13 @@ const HistoryCard: React.FC<{ item: WatchHistoryItem }> = React.memo(({ item }) 
             className="h-full w-full object-cover"
             draggable={false}
           />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/35">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-blue/90 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-              <Play className="h-4 w-4 text-white" fill="currentColor" />
+          {/* Scrim over a thumbnail: theme-independent by nature. The play
+              medallion is not — it takes the theme accent, and its glyph the
+              page ground, so it stays legible on the pale-accent themes where
+              a white glyph washed out. */}
+          <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/35 motion-reduce:transition-none">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent-gold opacity-0 transition-opacity group-hover:opacity-100 motion-reduce:transition-none">
+              <Play className="h-4 w-4 text-background" fill="currentColor" />
             </span>
           </div>
           {item.positionSeconds > 0 && (
@@ -338,22 +351,22 @@ const HistoryCard: React.FC<{ item: WatchHistoryItem }> = React.memo(({ item }) 
           )}
           {progressPercent > 0 && (
             <div className="absolute inset-x-0 bottom-0 h-1 bg-black/50">
-              <div className="h-full bg-primary-blue" style={{ width: `${progressPercent}%` }} />
+              <div className="h-full bg-accent-gold" style={{ width: `${progressPercent}%` }} />
             </div>
           )}
         </div>
         <div className="p-2.5">
-          <p className="line-clamp-2 text-xs font-medium leading-snug text-text-primary" title={item.title}>
+          <p className="line-clamp-2 text-xs font-medium leading-snug text-text-primary" title={item.title} dir="auto">
             {item.title}
           </p>
-          {item.channel && <p className="mt-0.5 truncate text-[11px] text-muted-text">{item.channel}</p>}
+          {item.channel && <p className="mt-0.5 truncate text-[11px] text-muted-text" dir="auto">{item.channel}</p>}
         </div>
       </button>
       <button
         type="button"
         onClick={() => removeFromHistory(item.id)}
         title={t('remove')}
-        className="absolute end-1.5 top-1.5 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity hover:bg-danger-red group-hover:opacity-100 focus:opacity-100"
+        className="absolute end-1.5 top-1.5 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity hover:bg-danger-red group-hover:opacity-100 focus:opacity-100 motion-reduce:transition-none"
       >
         <X className="h-3.5 w-3.5" />
       </button>

@@ -441,17 +441,19 @@ const ToggleRow: React.FC<{
   disabled?: boolean;
   onChange: (checked: boolean) => void;
 }> = ({ icon: Icon, label, checked, disabled, onChange }) => (
-  <label className={`flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2.5 text-sm ${disabled ? 'opacity-55' : ''}`}>
-    <span className="flex min-w-0 items-center gap-2 text-text-primary">
-      <Icon className="h-4 w-4 shrink-0 text-primary-blue" />
-      <span className="truncate">{label}</span>
+  <label className={`rule-row justify-between text-sm ${disabled ? 'opacity-55' : 'cursor-pointer'}`}>
+    <span className="flex min-w-0 items-center gap-2.5 text-text-primary">
+      <Icon className="h-4 w-4 shrink-0 text-muted-text" />
+      <span className="truncate" dir="auto">{label}</span>
     </span>
     <input
       type="checkbox"
       checked={checked}
       disabled={disabled}
       onChange={(event) => onChange(event.target.checked)}
-      className="h-4 w-4 accent-primary-blue"
+      className="h-4 w-4 shrink-0"
+      // Token-derived so the tick recolours with every theme.
+      style={{ accentColor: 'rgb(var(--accent-gold-rgb))' }}
     />
   </label>
 );

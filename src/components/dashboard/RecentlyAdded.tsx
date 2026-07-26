@@ -8,6 +8,12 @@ import { formatDuration } from '@/utils/formatTime';
 import { LocalThumbnail } from '@/components/ui/LocalThumbnail';
 import { useI18n } from '@/i18n';
 
+/* .thumbnail-fallback bakes in an .icon-medallion (primary-blue border + fill)
+   and a teal underline, which puts a second accent in every un-thumbnailed row.
+   Neutralise both from the call site; the primitive itself is not ours to edit. */
+const QUIET_FALLBACK =
+  'thumbnail-fallback after:hidden [&_.icon-medallion]:border-border [&_.icon-medallion]:bg-transparent [&_.icon-medallion]:shadow-none [&_.icon-medallion]:after:hidden';
+
 export const RecentlyAdded: React.FC = () => {
   const { t } = useI18n();
   const [videos, setVideos] = useState<Video[]>([]);
@@ -147,7 +153,7 @@ const RecentRow: React.FC<{
           label={video.title}
           className="h-full w-full object-cover"
           iconClassName="h-4 w-4 text-muted-text"
-          fallbackClassName="thumbnail-fallback"
+          fallbackClassName={QUIET_FALLBACK}
         />
         {canPlay && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/60 opacity-0 transition-opacity group-hover:opacity-100">
@@ -157,13 +163,13 @@ const RecentRow: React.FC<{
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <p dir="auto" className="truncate text-sm text-text-primary" title={video.title}>
-          {video.title}
+        <p className="truncate text-sm text-text-primary" title={video.title}>
+          <bdi>{video.title}</bdi>
         </p>
         <div className="flex min-w-0 items-center gap-2 text-xs text-muted-text">
-          <span dir="auto" className="truncate" title={title}>{title}</span>
-          <span dir="auto" className="truncate">
-            {video.speaker || video.category || uncategorizedLabel}
+          <span className="truncate" title={title}><bdi>{title}</bdi></span>
+          <span className="truncate">
+            <bdi>{video.speaker || video.category || uncategorizedLabel}</bdi>
           </span>
           {count > 1 && <span className="shrink-0 tabular-nums">+<bdi>{count - 1}</bdi></span>}
         </div>
