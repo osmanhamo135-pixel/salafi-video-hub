@@ -883,17 +883,10 @@ const VolumeSlider: React.FC<{
         onPointerUp={commit}
         onKeyUp={commit}
         onBlur={commit}
-        // Pinned LTR: Chromium mirrors a range in RTL but still paints its
-        // accent fill on the left, so the filled part and the thumb disagreed.
-        // Volume reads low-to-high left-to-right in both languages instead.
-        dir="ltr"
-        className="h-1 flex-1 cursor-pointer rounded-full"
-        // `accent-color` rather than a hand-painted gradient: one theme token
-        // colours the thumb and the filled track together.
-        style={{
-          background: 'rgb(var(--accent-gold-rgb) / 0.14)',
-          accentColor: 'rgb(var(--accent-gold-rgb))',
-        }}
+        className="range-quiet flex-1"
+        // The fill is painted from --fill so it runs the correct way under RTL;
+        // `accent-color` always fills from the physical left.
+        style={{ '--fill': draft } as React.CSSProperties}
       />
       <span className="w-10 shrink-0 text-end text-sm tabular-nums text-text-primary">
         <bdi>{draft}%</bdi>
@@ -915,9 +908,7 @@ const ActionButton: React.FC<{
     type="button"
     onClick={onClick}
     disabled={loading || disabled}
-    className={`inline-flex items-center gap-1.5 py-1 text-xs font-medium text-muted-text transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-      danger ? 'hover:text-danger-red' : 'hover:text-text-primary'
-    }`}
+    className={`quiet-action ${danger ? 'quiet-action-danger' : ''}`}
   >
     {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Icon className="h-3.5 w-3.5" />}
     {loading ? loadingLabel : label}

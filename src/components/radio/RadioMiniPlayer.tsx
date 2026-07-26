@@ -243,7 +243,8 @@ export const RadioMiniPlayer: React.FC = () => {
               max={100}
               value={volume}
               onChange={(event) => setVolume(Number(event.target.value))}
-              className="h-1 w-14 cursor-pointer appearance-none rounded-lg bg-border accent-primary-blue"
+              className="range-quiet w-14"
+              style={{ '--fill': volume } as React.CSSProperties}
               title={t('volume')}
             />
           </div>
@@ -313,7 +314,8 @@ export const RadioMiniPlayer: React.FC = () => {
               const audio = audioRef.current;
               if (audio) audio.currentTime = Number(event.target.value);
             }}
-            className="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-lg bg-border accent-primary-blue"
+            className="range-quiet min-w-0 flex-1"
+            style={{ '--fill': duration ? (Math.min(position, duration) / duration) * 100 : 0 } as React.CSSProperties}
           />
           <span className="w-10 text-[10px] tabular-nums text-muted-text" dir="ltr">
             {formatTime(duration)}

@@ -879,6 +879,92 @@
     color: rgb(var(--text-faint-rgb));
   }
 
+  /* Range input, direction-correct.
+     Chromium mirrors a range under RTL — the thumb travels right to left — but
+     it still paints `accent-color`'s fill from the physical left, so the filled
+     part and the thumb pointed opposite ways. The call sites worked around it
+     by pinning dir="ltr", which made volume read low-to-high left-to-right in
+     Arabic. Painting the fill ourselves from a --fill percentage fixes it
+     properly: the gradient simply runs the other way under [dir='rtl']. */
+  .range-quiet {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 999px;
+    cursor: pointer;
+    background: linear-gradient(
+      to right,
+      rgb(var(--accent-gold-rgb)) 0 calc(var(--fill, 0) * 1%),
+      rgb(var(--accent-gold-rgb) / 0.14) calc(var(--fill, 0) * 1%) 100%
+    );
+  }
+
+  [dir='rtl'] .range-quiet {
+    background: linear-gradient(
+      to left,
+      rgb(var(--accent-gold-rgb)) 0 calc(var(--fill, 0) * 1%),
+      rgb(var(--accent-gold-rgb) / 0.14) calc(var(--fill, 0) * 1%) 100%
+    );
+  }
+
+  .range-quiet::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 13px;
+    height: 13px;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(var(--accent-gold-rgb));
+  }
+
+  .range-quiet::-moz-range-thumb {
+    width: 13px;
+    height: 13px;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(var(--accent-gold-rgb));
+  }
+
+  .range-quiet:focus-visible {
+    outline: 2px solid rgb(var(--accent-gold-rgb));
+    outline-offset: 3px;
+  }
+
+  /* Text-only action. Was duplicated as the same long utility string across
+     Settings, Downloads, Watch and the reminder form. */
+  .quiet-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 2px;
+    font-size: var(--fs-cap);
+    font-weight: 500;
+    color: rgb(var(--text-muted-rgb));
+    background: none;
+    border: 0;
+    cursor: pointer;
+    transition: color var(--dur) var(--ease);
+  }
+
+  .quiet-action:hover:not(:disabled) {
+    color: rgb(var(--text-main-rgb));
+  }
+
+  .quiet-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .quiet-action-danger:hover:not(:disabled) {
+    color: rgb(var(--danger-rgb));
+  }
+
+  /* A .rule-row whose control carries its own .field-quiet baseline, so the row
+     must not draw a second parallel hairline under it. */
+  .rule-row-flush {
+    border-bottom: 0;
+  }
+
   /* Every interactive element gets the same focus ring. */
   .rule-row:focus-visible,
   .segmented button:focus-visible,

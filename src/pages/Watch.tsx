@@ -127,8 +127,7 @@ const PROGRESS_SAVE_MS = 5000;
 
 // A quiet text action: no chip, no border, no fill. Repeated as a constant
 // rather than a class because src/index.css is owned elsewhere — see report.
-const QUIET_ACTION =
-  'inline-flex items-center gap-1.5 py-1 text-xs font-medium text-muted-text transition-colors hover:text-text-primary motion-reduce:transition-none';
+const QUIET_ACTION = 'quiet-action';
 
 const WatchPlayer: React.FC = () => {
   const { t } = useI18n();

@@ -69,7 +69,10 @@ export const Library: React.FC = () => {
   const [playlistSort, setPlaylistSort] = useState<PlaylistSortKey>('recent');
   const [playlistFilter, setPlaylistFilter] = useState<PlaylistFilterKey>('all');
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [viewMode, setViewMode] = useState<PlaylistViewMode>('list');
+  // Grid stays the default: it is what the library has always opened on, and
+  // the restyle was meant to change how things look, not what they do. The
+  // ruled list is one click away and both variants carry the house style.
+  const [viewMode, setViewMode] = useState<PlaylistViewMode>('grid');
 
   useEffect(() => {
     loadPlaylists();
