@@ -1322,9 +1322,13 @@
     position: relative;
     display: grid;
     place-items: center;
-    min-height: 26rem;
-    height: 62vh;
-    max-height: 40rem;
+    /* Sized to its content plus breathing room, not to a share of the window.
+       At 62vh the hero was 620px tall around 332px of content — 144px of dead
+       ground above and below — which pushed the resume card, the most useful
+       thing on the page, just under the fold at 1000px. */
+    min-height: 23rem;
+    height: 52vh;
+    max-height: 34rem;
     overflow: hidden;
     isolation: isolate;
     border-radius: var(--r-lg);
