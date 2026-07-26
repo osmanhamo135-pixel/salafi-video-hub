@@ -265,11 +265,16 @@
 
   html[data-theme='onyx'] {
     --quran-green-rgb: 82 196 130;
+    /* The ground stays pure black — that is the theme. The three surface
+       steps above it were the tightest ladder of any theme (10/15/22 over a
+       ground of 2), which left every card a hair off the page and was most of
+       why this theme read as flat. Opened up so a level is actually a level;
+       the ground, and so the theme's identity, is unchanged. */
     --bg-main-rgb: 2 2 3;
-    --bg-sidebar-rgb: 6 6 8;
-    --bg-panel-rgb: 10 10 12;
-    --bg-card-rgb: 15 15 18;
-    --bg-card-hover-rgb: 22 22 26;
+    --bg-sidebar-rgb: 7 7 9;
+    --bg-panel-rgb: 14 14 17;
+    --bg-card-rgb: 21 21 25;
+    --bg-card-hover-rgb: 30 30 35;
     --border-subtle-rgb: 212 178 90;
     --accent-teal-rgb: 209 170 84;
     --accent-turquoise-rgb: 240 214 150;

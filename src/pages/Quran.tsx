@@ -214,6 +214,32 @@ const ReadTab: React.FC = () => {
     scrollToVerse(currentSurah.id, verse);
   }, [currentSurah]);
 
+  /**
+   * Keep the open surah visible in the index.
+   *
+   * Resuming at Al-Kahf left the list showing surahs 1–10 with the marked row
+   * eighteen rows below the fold, so the one row the reader most needs to see
+   * was the one row they could not.
+   *
+   * Scrolls `list.scrollTop` directly rather than calling scrollIntoView: that
+   * walks up and scrolls EVERY ancestor scroller, which here includes the page
+   * container — and dragging the whole page because a sidebar row moved is
+   * exactly the kind of thing that fights the reader.
+   */
+  const listRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list || !currentSurah) return;
+    const row = list.querySelector<HTMLElement>('[aria-current="true"]');
+    if (!row) return;
+    const listRect = list.getBoundingClientRect();
+    const rowRect = row.getBoundingClientRect();
+    // Already fully in view: leave it alone. Re-centring a row the reader can
+    // see reads as the list twitching under their hand.
+    if (rowRect.top >= listRect.top && rowRect.bottom <= listRect.bottom) return;
+    list.scrollTop += rowRect.top - listRect.top - (listRect.height - rowRect.height) / 2;
+  }, [currentSurah?.id, filtered.length]);
+
   return (
     <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
       <aside className="flex max-h-[70vh] flex-col overflow-hidden border-border pb-1 xl:border-e xl:pe-5">
@@ -270,7 +296,7 @@ const ReadTab: React.FC = () => {
             </button>
           )}
         </div>
-        <div className="rule-list min-h-0 flex-1 overflow-y-auto">
+        <div ref={listRef} className="rule-list min-h-0 flex-1 overflow-y-auto">
           {filtered.map((surah) => (
             <SurahRow
               key={surah.id}
