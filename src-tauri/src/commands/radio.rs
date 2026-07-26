@@ -104,7 +104,26 @@ fn catalog_cache_path(app_handle: &AppHandle, language: &str) -> Result<PathBuf,
 
 fn read_cache(path: &PathBuf) -> Option<CachedCatalog> {
     let raw = fs::read_to_string(path).ok()?;
-    serde_json::from_str(&raw).ok()
+    let mut cache: CachedCatalog = serde_json::from_str(&raw).ok()?;
+    // A cache file outlives the build that wrote it, so it cannot be trusted to
+    // have been filtered. The station url goes straight into the player's
+    // <audio src>, where a blank or host-less value makes the element fire
+    // `error` the moment it is rendered — before any play attempt — so the
+    // mini-player would show "stream problem" for a station never started.
+    cache.stations.retain(is_playable_station);
+    Some(cache)
+}
+
+/// A station is only usable if the webview can actually load it.
+fn is_playable_station(station: &RadioStation) -> bool {
+    if station.name.trim().is_empty() || station.url.contains(char::is_whitespace) {
+        return false;
+    }
+    station
+        .url
+        .strip_prefix("http://")
+        .or_else(|| station.url.strip_prefix("https://"))
+        .is_some_and(|rest| !rest.is_empty())
 }
 
 fn write_cache(path: &PathBuf, cache: &CachedCatalog) -> Result<(), String> {
@@ -187,15 +206,16 @@ fn parse_stations(body: &str) -> Result<Vec<RadioStation>, String> {
                 .as_str()?
                 .trim()
                 .to_string();
-            if name.is_empty() || !(url.starts_with("http://") || url.starts_with("https://")) {
-                return None;
-            }
             let id = entry
                 .get("id")
                 .map(|value| value.to_string().trim_matches('"').to_string())
                 .filter(|value| !value.is_empty())
                 .unwrap_or_else(|| url.clone());
-            Some(RadioStation { id, name, url })
+            let station = RadioStation { id, name, url };
+            // Scheme-only ("http://") and whitespace-bearing urls used to pass
+            // the prefix check and reach <audio src>, which rejects them as
+            // unresolvable and fires `error` immediately.
+            is_playable_station(&station).then_some(station)
         })
         .collect::<Vec<_>>();
 
