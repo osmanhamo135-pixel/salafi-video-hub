@@ -141,6 +141,7 @@ const RecentGroupCard: React.FC<{
   uncategorizedLabel: string;
   addedLabel: string;
 }> = ({ title, count, item, onPlay, uncategorizedLabel, addedLabel }) => {
+  const { language } = useI18n();
   const { video, playlist } = item;
   const canPlay = !!playlist;
 
@@ -168,7 +169,7 @@ const RecentGroupCard: React.FC<{
           </div>
         )}
         <div className="media-badge absolute bottom-2 right-2">
-          {formatDuration(video.durationSeconds)}
+          {formatDuration(video.durationSeconds, language)}
         </div>
       </div>
       <div className="p-3">

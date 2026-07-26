@@ -25,7 +25,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
   onRegenerateThumbnails,
   onRemove,
 }) => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const progressPercent = useMemo(() => {
     if (!playlist.totalDurationSeconds || playlist.totalDurationSeconds <= 0) return 0;
     const pct = (playlist.progressSeconds / playlist.totalDurationSeconds) * 100;
@@ -77,7 +77,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
             </span>
             <span className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
-              {formatDuration(playlist.totalDurationSeconds)}
+              {formatDuration(playlist.totalDurationSeconds, language)}
             </span>
             <span className="flex items-center gap-1">
               <CalendarClock className="h-3.5 w-3.5" />
@@ -166,7 +166,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
         <div className="grid grid-cols-2 gap-2 text-xs text-muted-text mt-auto pt-1">
           <span className="flex items-center gap-1">
             <Clock className="w-3 h-3" />
-            {formatDuration(playlist.totalDurationSeconds)}
+            {formatDuration(playlist.totalDurationSeconds, language)}
           </span>
           <span className="flex items-center gap-1 min-w-0" title={`${t('lastUpdated')} ${lastUpdated}`}>
             <CalendarClock className="w-3 h-3 shrink-0" />

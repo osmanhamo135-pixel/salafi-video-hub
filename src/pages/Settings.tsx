@@ -69,7 +69,9 @@ const Toggle: React.FC<{
     } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
   >
     <span
-      className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition ${
+      // bg-background, not bg-white: on the light themes a white knob on a
+      // light track is invisible.
+      className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow transition ${
         checked ? 'translate-x-5' : 'translate-x-0'
       }`}
     />

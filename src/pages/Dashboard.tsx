@@ -205,7 +205,7 @@ const ProgressRing: React.FC<{
   const safeValue = Math.min(Math.max(value, 0), 100);
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-accent-gold/20 bg-black/20 p-5 text-center">
+    <div className="flex flex-col items-center justify-center rounded-lg border border-accent-gold/20 bg-background/50 p-5 text-center">
       <div
         className="relative flex h-36 w-36 items-center justify-center rounded-full"
         style={{
