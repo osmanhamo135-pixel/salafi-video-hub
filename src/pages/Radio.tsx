@@ -110,12 +110,15 @@ export const Radio: React.FC = () => {
               {playing ? <SignalBars className="h-4" /> : <RadioTower className="h-5 w-5" />}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 text-[11px] font-medium text-accent-gold">
-                {playing && (
+              {/* "Live" only while the stream is actually running. A paused or
+                  failed stream announcing itself as live is a lie the rest of
+                  the page then has to argue with. */}
+              {playing && (
+                <p className="flex items-center gap-1.5 text-[11px] font-medium text-accent-gold">
                   <span aria-hidden="true" className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
-                )}
-                {t('radioLive')}
-              </p>
+                  {t('radioLive')}
+                </p>
+              )}
               <p className="mt-0.5 truncate text-xl font-medium text-text-primary" title={onAir.name}>
                 <bdi>{onAir.name}</bdi>
               </p>

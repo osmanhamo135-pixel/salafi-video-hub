@@ -26,28 +26,18 @@ import {
   useQuranStore,
 } from '@/store/quranStore';
 import { audioElementHolder, useRadioStore } from '@/store/radioStore';
-import { useI18n } from '@/i18n';
+import { TranslationKey, useI18n } from '@/i18n';
 
 const BASMALA_TEXT = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
 const BASMALA_LIGATURE = '﷽';
 
 /**
  * Makki / Madani — the one fact a mushaf prints in every surah header and the
- * list did not carry at all.
- *
- * The pair is defined here rather than in i18n.ts because that file is owned by
- * another agent this pass; it belongs in the dictionary (see report). The store
- * publishes `revelationType` as the API's own 'meccan' / 'medinan'.
+ * list did not carry at all. The store publishes `revelationType` as the API's
+ * own 'meccan' / 'medinan'.
  */
-const REVELATION_LABELS = {
-  en: { makki: 'Makki', madani: 'Madani' },
-  ar: { makki: 'مكية', madani: 'مدنية' },
-} as const;
-
-const revelationLabel = (revelationType: string, language: string) => {
-  const table = language === 'ar' ? REVELATION_LABELS.ar : REVELATION_LABELS.en;
-  return revelationType?.toLowerCase().startsWith('med') ? table.madani : table.makki;
-};
+const revelationKey = (revelationType: string): TranslationKey =>
+  revelationType?.toLowerCase().startsWith('med') ? 'quranMadani' : 'quranMakki';
 
 /** Al-Baqarah, the longest surah — the scale every length mark is read against. */
 const LONGEST_SURAH_VERSES = 286;
@@ -372,8 +362,8 @@ const SurahRow: React.FC<{
   const primary = arabicLeads ? surah.name : surah.transliteration;
   const secondary = arabicLeads ? surah.transliteration : surah.name;
   const caption = arabicLeads
-    ? revelationLabel(surah.revelationType, language)
-    : [revelationLabel(surah.revelationType, language), surah.translation].filter(Boolean).join(' · ');
+    ? t(revelationKey(surah.revelationType))
+    : [t(revelationKey(surah.revelationType)), surah.translation].filter(Boolean).join(' · ');
 
   return (
     <button
@@ -908,7 +898,7 @@ const SurahReader: React.FC = () => {
   const meta = surahIndex.find((entry) => entry.id === surah.id) ?? null;
   const surahCaption = [
     `${surah.total_verses} ${t('quranVerses')}`,
-    meta ? revelationLabel(meta.revelationType, language) : null,
+    meta ? t(revelationKey(meta.revelationType)) : null,
   ]
     .filter(Boolean)
     .join(' · ');
