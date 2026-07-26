@@ -6,7 +6,7 @@
    the printed Madinah mushaf (bundled unmodified; see KFGQPC-NOTICE.txt). */
 @font-face {
   font-family: 'KFGQPC Uthmanic Script HAFS';
-  src: url('./assets/fonts/UthmanicHafs1-Ver09.woff2') format('woff2');
+  src: url('./assets/fonts/KFGQPC-Hafs-v18.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -506,6 +506,17 @@
   .quran-script {
     font-family: 'KFGQPC Uthmanic Script HAFS', 'Amiri Quran', 'Noto Naskh Arabic', 'Scheherazade New', 'Segoe UI', Tahoma, system-ui, sans-serif;
     text-rendering: geometricPrecision;
+    /* The mushaf faces carry their own required ligatures and mark
+       positioning. Nothing here may add spacing, synthesise a weight or
+       reshape a cluster — the letterforms are the Complex's, unaltered. */
+    font-feature-settings: normal;
+    font-variant-ligatures: normal;
+    font-synthesis: none;
+    letter-spacing: 0;
+    /* A Qur'anic word is never broken across lines, at any viewport. */
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
   }
 
   /* Warsh mode renders with the official Warsh mushaf typeface — its
@@ -515,34 +526,78 @@
     font-family: 'KFGQPC Warsh', 'KFGQPC Uthmanic Script HAFS', 'Amiri Quran', 'Noto Naskh Arabic', serif;
   }
 
-  /* The mushaf page melts into the active theme — no separate slab colour,
-     exactly like the app's original look. The section around it carries the
-     single frame. */
+  /* The mushaf page. It still takes its darkness from the active theme — no
+     separate slab colour — but it now reads as a leaf of a printed mushaf
+     rather than a panel in a web view: a barely-there warm lift under the
+     opening, and the ruled frame (jadwal) a printed page carries. */
   .quran-reading-surface {
     position: relative;
     isolation: isolate;
     overflow: hidden;
     min-height: 19rem;
+    /* MUST stay 0. The recitation cue is absolutely positioned against this
+       element's padding box while its coordinates are measured from the
+       border box; any border here would shift the cue off the spoken word. */
     border: none;
-    border-radius: 6px;
-    padding: clamp(1.4rem, 2.4vw, 2rem) clamp(2rem, 4vw, 3rem);
+    border-radius: 10px;
+    padding: clamp(2.1rem, 3.4vw, 3.4rem) clamp(1.75rem, 4vw, 3.25rem);
     color: rgb(var(--text-main-rgb));
-    background: transparent;
+    background: radial-gradient(
+      118% 74% at 50% 0%,
+      rgb(var(--mushaf-gold-rgb) / 0.035),
+      transparent 64%
+    );
   }
 
+  /* The jadwal: the double rule that frames a printed mushaf page. Drawn on
+     pseudo-elements so the surface itself keeps `border: none` (see above). */
+  .quran-reading-surface::before,
+  .quran-reading-surface::after {
+    content: '';
+    position: absolute;
+    z-index: -2;
+    pointer-events: none;
+    border: 1px solid rgb(var(--mushaf-gold-rgb) / 0.26);
+    border-radius: 6px;
+  }
+
+  .quran-reading-surface::before {
+    inset: clamp(0.5rem, 1vw, 0.85rem);
+  }
+
+  .quran-reading-surface::after {
+    inset: clamp(0.85rem, 1.5vw, 1.3rem);
+    border-color: rgb(var(--mushaf-gold-rgb) / 0.12);
+    border-radius: 4px;
+  }
+
+  /* The surah header band. The old ۞ ornaments sat at 0.42em and rendered as
+     illegible specks; the name now sits in a quiet cartouche between two
+     hairlines, which is what a printed surah header actually is. */
   .quran-surah-heading {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: clamp(1.5rem, 5vw, 4rem);
-    color: rgb(var(--accent-gold-rgb));
+    gap: clamp(0.7rem, 2.4vw, 1.6rem);
+    color: rgb(var(--mushaf-gold-rgb));
   }
 
   .quran-surah-heading::before,
   .quran-surah-heading::after {
-    content: '۞';
-    font-size: 0.42em;
-    color: rgb(var(--accent-gold-rgb) / 0.75);
+    content: '';
+    flex: 1 1 0;
+    max-width: 7.5rem;
+    height: 1px;
+    background: rgb(var(--mushaf-gold-rgb) / 0.32);
+  }
+
+  .quran-surah-title {
+    display: inline-block;
+    flex: 0 0 auto;
+    padding: 0.12em 1.05em 0.24em;
+    border: 1px solid rgb(var(--mushaf-gold-rgb) / 0.38);
+    border-radius: 999px;
+    white-space: nowrap;
   }
 
   .quran-basmala {
@@ -561,21 +616,30 @@
     color: rgb(var(--text-main-rgb));
   }
 
+  /* The measure is set in em, so it stays a constant number of words per line
+     at every reader font size — a printed page's measure, not a browser's.
+     Line breaking changes with it; word order, count and splitting do not, so
+     the recitation index is untouched. */
   .quran-flow {
+    max-width: 33em;
+    margin-inline: auto;
     text-align: justify;
     text-align-last: center;
     color: rgb(var(--text-main-rgb));
-    word-spacing: 0.08em;
+    word-spacing: 0.05em;
   }
 
-  .quran-passage-bracket {
-    display: inline-block;
-    color: rgb(var(--accent-gold-rgb));
-    font-size: 0.92em;
-    line-height: 1;
-    margin-inline: 0.05em;
-    vertical-align: 0.02em;
-    white-space: nowrap;
+  /* Ayah-list mode gets the same measure and the same set body as the mushaf
+     flow, so both modes read as one page rather than two designs. */
+  .quran-ayah-line {
+    max-width: 33em;
+    margin-inline: auto;
+    text-align: justify;
+    /* `start`, never `end`: in RTL the last line of an ayah must sit against
+       the right margin where the reading begins, not the left. */
+    text-align-last: start;
+    color: rgb(var(--text-main-rgb));
+    word-spacing: 0.05em;
   }
 
   /* Inline ayah: clickable and highlightable without ever moving the layout.
@@ -598,10 +662,18 @@
      like the medallion of a printed page — in the theme's gold. */
   .quran-ayah-marker {
     /* Amiri Quran composes ۝ + digits into one medallion (KFGQPC draws them
-       as two separate marks), so the marker keeps the Amiri glyph. */
+       as two separate marks), so the marker keeps the Amiri glyph. It is an
+       ornament, never Qur'anic text — the ayah text itself stays in the
+       official face for its riwayah.
+       Raised from 0.95em: Amiri's medallion sets the digits well inside the
+       ring, so at the old size the number was unreadable at reading sizes. */
     font-family: 'Amiri Quran', 'Noto Naskh Arabic', serif;
     color: rgb(var(--mushaf-gold-rgb));
-    font-size: 0.95em;
+    font-size: 1.06em;
+    line-height: 1;
+    vertical-align: -0.05em;
+    /* The ring and its digits are one mark and never split across lines. */
+    white-space: nowrap;
   }
 
   .quran-bookmarked {
@@ -646,10 +718,13 @@
     height: 0;
     opacity: 0;
     pointer-events: none;
-    border-radius: 0.5em;
-    background: rgb(var(--quran-green-rgb) / 0.16);
-    border: 1px solid rgb(var(--quran-green-rgb) / 0.42);
-    box-shadow: 0 0 0.55em rgb(var(--quran-green-rgb) / 0.22);
+    border-radius: 0.42em;
+    /* Quieter than the old bordered-and-glowing pill: a low plate with a
+       single seated line under it. It still marks the spoken word
+       unmistakably, but it no longer competes with the letterforms. */
+    background: rgb(var(--quran-green-rgb) / 0.13);
+    border: 0;
+    box-shadow: inset 0 -1px 0 rgb(var(--quran-green-rgb) / 0.45);
     transition:
       transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
       width 160ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -663,11 +738,14 @@
   }
 
 
-  /* Refined translation typography under each ayah. */
+  /* Refined translation typography under each ayah. It shares the page's
+     measure and stays clearly subordinate to the Arabic above it. */
   .quran-translation {
     font-family: 'Plex Arabic', Georgia, 'Palatino Linotype', 'Times New Roman', serif;
-    border-inline-start: 2px solid rgb(var(--accent-gold-rgb) / 0.35);
-    padding-inline-start: 0.75rem;
+    max-width: 46rem;
+    margin-inline: auto;
+    border-inline-start: 1px solid rgb(var(--mushaf-gold-rgb) / 0.28);
+    padding-inline-start: 0.9rem;
     color: rgb(var(--text-soft-rgb));
   }
 

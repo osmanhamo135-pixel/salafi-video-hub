@@ -966,12 +966,14 @@ const SurahReader: React.FC = () => {
       <div className={`quran-reading-surface mx-auto mt-2 max-w-[68rem] ${warshMode ? 'quran-riwayah-warsh' : ''}`}>
         {/* The gliding recitation cue — one pill that follows the exact word. */}
         <span aria-hidden="true" id={`quran-cue-${surah.id}`} className="quran-word-cue" />
+        {/* The surah header band: the name in a quiet cartouche between two
+            hairlines, which is what a printed mushaf's surah header is. */}
         <h2
           dir="rtl"
-          className="quran-surah-heading quran-script arabic-text mb-5 text-center font-normal"
-          style={{ fontSize: fontSize * 0.72, lineHeight: 1.4 }}
+          className="quran-surah-heading quran-script arabic-text mb-6 text-center font-normal"
+          style={{ fontSize: fontSize * 0.66, lineHeight: 1.5 }}
         >
-          سُورَةُ {surah.name}
+          <span className="quran-surah-title">سُورَةُ {surah.name}</span>
         </h2>
 
         {/* The unnumbered opening basmala: written before every surah except
@@ -1001,7 +1003,7 @@ const SurahReader: React.FC = () => {
 
               return (
                 <div key={verse.id}>
-                  <p dir="rtl" className="quran-script arabic-text" style={{ fontSize, lineHeight: 2.35 }}>
+                  <p dir="rtl" className="quran-ayah-line quran-script arabic-text" style={{ fontSize, lineHeight: 2.3 }}>
                     <span
                       id={`quran-verse-${surah.id}-${verse.id}`}
                       onClick={() => handleAyahClick(verse.id)}
@@ -1044,8 +1046,7 @@ const SurahReader: React.FC = () => {
           </div>
         ) : (
           /* Mushaf page mode: one continuous justified flow, like a real page. */
-          <p dir="rtl" className="quran-flow quran-script arabic-text" style={{ fontSize, lineHeight: 2.2 }}>
-            <span className="quran-passage-bracket" aria-hidden="true">﴿</span>{' '}
+          <p dir="rtl" className="quran-flow quran-script arabic-text" style={{ fontSize, lineHeight: 2.3 }}>
             {surah.verses.map((verse) => {
               const bookmark = { surahId: surah.id, verseId: verse.id };
               const marked = isBookmarked(bookmark);
@@ -1088,7 +1089,6 @@ const SurahReader: React.FC = () => {
                 </span>
               );
             })}
-            {' '}<span className="quran-passage-bracket" aria-hidden="true">﴾</span>
           </p>
         )}
       </div>

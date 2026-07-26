@@ -1,8 +1,27 @@
-KFGQPC Uthmanic Script HAFS (UthmanicHafs1 Ver09)
+KFGQPC HAFS Uthmanic Script (v0.18)  —  KFGQPC-Hafs-v18.woff2
+KFGQPC Warsh (v10)                   —  KFGQPC-Warsh-v10.woff2
 
 Copyright: King Fahd Glorious Qur'an Printing Complex (KFGQPC), Madinah.
-This is the official typeface of the printed Madinah mushaf, distributed
+These are the official typefaces of the printed Madinah mushaf, distributed
 free of charge by the Complex for use in displaying the Qur'an.
-Source: http://qurancomplex.gov.sa / fonts.qurancomplex.gov.sa
+Source: https://qurancomplex.gov.sa/en/techquran/dev/
 License terms: http://dm.qurancomplex.gov.sa/copyright-2/
-The font is included unmodified.
+The fonts are included unmodified. The licence does not permit modification.
+
+Note on the Hafs version
+------------------------
+The app previously bundled UthmanicHafs1 Ver09 (a 2011 build). It now uses the
+Complex's current v0.18 (2019). Verified before the swap:
+
+  vertical metrics   identical (hhea 2400/-1200, OS/2 typo 2400/-1200,
+                     winAsc/Desc 2400/1200, upem 2048) — so line layout,
+                     and with it the recitation cue geometry, cannot shift
+  cmap               strict superset: 0 codepoints lost, 337 gained
+  glyphs             1071 -> 1412
+
+Word-level recitation sync is unaffected by construction: segmentation is
+`text.split(/\s+/)` over the Unicode text, which no font can influence.
+
+Do NOT substitute the Complex's "Hafs smart" face (v8). Despite the name it is
+not Unicode-encoded — its cmap is 2754 private-use entries with no alef, beh or
+harakat — and it would render the mushaf as empty boxes.
