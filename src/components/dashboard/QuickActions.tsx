@@ -65,38 +65,41 @@ export const QuickActions: React.FC = () => {
   const hasLastPlaylist = !!settings?.lastOpenedPlaylistId;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <button
-          onClick={handleImport}
-          disabled={importing}
-          className="btn-primary"
-        >
-          {importing ? (
-            <Loader2 size={16} className="motion-safe:animate-spin" />
-          ) : (
-            <FolderOpen size={16} />
-          )}
-          {importing ? t('importingStatus') : t('importFolder')}
-        </button>
+    /* Three buttons of equal weight read as a toolbar and flatten the
+       masthead. One filled primary carries the page's single call to action;
+       the rest step down to quiet text actions on a second line. */
+    <div className="flex flex-col items-start gap-3 xl:items-end">
+      <button
+        onClick={handleImport}
+        disabled={importing}
+        className="btn-primary px-5 py-2.5"
+      >
+        {importing ? (
+          <Loader2 size={16} className="motion-safe:animate-spin" />
+        ) : (
+          <FolderOpen size={16} />
+        )}
+        {importing ? t('importingStatus') : t('importFolder')}
+      </button>
 
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 xl:justify-end">
         <button
           onClick={handleImportSingleVideo}
           disabled={importing}
-          className="btn-secondary"
+          className="quiet-action"
         >
-          <FileVideo size={16} />
+          <FileVideo size={14} />
           {t('importSingleVideo')}
         </button>
 
         {hasLastPlaylist && (
-          <button
-            onClick={handleOpenLastPlaylist}
-            className="btn-secondary"
-          >
-            <History size={16} />
-            {t('openLastPlaylist')}
-          </button>
+          <>
+            <span aria-hidden="true" className="text-xs text-text-faint">·</span>
+            <button onClick={handleOpenLastPlaylist} className="quiet-action">
+              <History size={14} />
+              {t('openLastPlaylist')}
+            </button>
+          </>
         )}
       </div>
 
