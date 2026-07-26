@@ -15,3 +15,8 @@ src-tauri/gen
 .idea
 *.log
 dist-before/
+
+# Visual-audit renders. The harness regenerates these on demand;
+# committing ~20MB of PNGs per phase would dwarf the source tree.
+# The measurements next to them (metrics.json, probe.json) are tracked.
+design-audit/**/*.png
