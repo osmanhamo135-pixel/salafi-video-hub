@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import {
@@ -73,11 +73,17 @@ export const Downloads: React.FC = () => {
       ? localizeProgressMessage(stage, message, t)
       : t('noDownloadYet');
 
+  // Pre-check the box for a collection URL, but only once per distinct URL, so
+  // unchecking it sticks instead of being forced back on by the next render.
+  const autoPlaylistUrlRef = useRef<string | null>(null);
   useEffect(() => {
-    if (isLikelyPlaylistUrl(url)) {
+    const trimmed = url.trim();
+    if (!trimmed || autoPlaylistUrlRef.current === trimmed) return;
+    autoPlaylistUrlRef.current = trimmed;
+    if (isLikelyPlaylistUrl(trimmed)) {
       setDownloadPlaylist(true);
     }
-  }, [url]);
+  }, [url, setDownloadPlaylist]);
 
   const canDownload = useMemo(() => {
     const trimmed = url.trim();
@@ -443,22 +449,27 @@ const ToggleRow: React.FC<{
   </label>
 );
 
+// Mirrors `looks_like_collection_url` in the Rust downloader. A `list=` beside a
+// `v=` is a single video copied from a playlist page, not a collection — only a
+// bare `list=` counts, so an ordinary watch link never pre-checks the box.
 const isLikelyPlaylistUrl = (value: string) => {
   try {
     const parsed = new URL(value.trim());
     const host = parsed.hostname.toLowerCase();
     const path = parsed.pathname.toLowerCase();
     return (
-      (host.includes('youtube.com') && (path.includes('/playlist') || parsed.searchParams.has('list'))) ||
+      (host.includes('youtube.com') &&
+        (path.includes('/playlist') ||
+          (parsed.searchParams.has('list') && !parsed.searchParams.has('v')))) ||
       (host.includes('instagram.com') && !path.includes('/reel/') && !path.includes('/p/')) ||
       (host.includes('tiktok.com') && path.includes('/@') && !path.includes('/video/')) ||
       ((host.includes('twitter.com') || host.includes('x.com')) && !path.includes('/status/'))
     );
   } catch {
     const lower = value.toLowerCase();
+    const hasVideoId = lower.includes('?v=') || lower.includes('&v=');
     return lower.includes('youtube.com/playlist') ||
-      lower.includes('?list=') ||
-      lower.includes('&list=') ||
+      ((lower.includes('?list=') || lower.includes('&list=')) && !hasVideoId) ||
       (lower.includes('instagram.com/') && !lower.includes('/reel/') && !lower.includes('/p/')) ||
       (lower.includes('tiktok.com/@') && !lower.includes('/video/')) ||
       ((lower.includes('twitter.com/') || lower.includes('x.com/')) && !lower.includes('/status/'));

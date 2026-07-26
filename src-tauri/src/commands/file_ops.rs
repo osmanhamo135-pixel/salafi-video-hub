@@ -31,12 +31,30 @@ pub async fn allow_video_asset_path(
     .map_err(|error| error.to_string())?
 }
 
+/// Reveals a file in the OS file manager.
+///
+/// On Windows `explorer /select,<path>` is spawned directly rather than through
+/// a shell, so `&` in a filename is never treated as a command separator.
+/// Explorer parses its own command line and wants the path quoted as one token,
+/// which Rust's default quoting would not produce for `/select,<path>` — hence
+/// `raw_arg` with explicit quotes.
 #[tauri::command]
 pub fn open_file_location(file_path: String) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
+        use std::os::windows::process::CommandExt;
+
+        // A Windows path can never contain a quote, so rejecting one costs
+        // nothing and removes any way to close the quoted argument early.
+        if file_path.contains('"') {
+            return Err("File path contains an unsupported character".to_string());
+        }
+        if !Path::new(&file_path).exists() {
+            return Err(format!("File does not exist: {}", file_path));
+        }
+
         hidden_command("explorer")
-            .arg(format!("/select,{}", file_path))
+            .raw_arg(format!("/select,\"{}\"", file_path))
             .spawn()
             .map_err(|e| format!("Failed to open file location: {}", e))?;
     }
@@ -68,12 +86,21 @@ pub fn open_file_location(file_path: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Opens a file with the OS default handler.
+///
+/// This deliberately does not shell out through `cmd /C start`. Rust only
+/// quotes an argument containing spaces or tabs, so a path such as
+/// `C:\videos\lesson&calc.mp4` reached `cmd` unquoted and `&` was parsed as a
+/// command separator. Downloaded filenames come from remote video titles, so
+/// that was arbitrary command execution from an attacker-chosen name, not just
+/// a failed open. Spawning the handler directly passes the path as a single
+/// argv entry, with no command line for it to escape from.
 #[tauri::command]
 pub fn open_file_externally(file_path: String) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        hidden_command("cmd")
-            .args(["/C", "start", "", &file_path])
+        hidden_command("explorer")
+            .arg(&file_path)
             .spawn()
             .map_err(|e| format!("Failed to open file: {}", e))?;
     }
