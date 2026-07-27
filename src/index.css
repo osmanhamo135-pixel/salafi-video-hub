@@ -3513,3 +3513,95 @@
     scroll-behavior: auto !important;
   }
 }
+
+@layer components {
+  /* ── Command palette ────────────────────────────────────────────────────
+     Ctrl+K. Sits above everything including the title bar, because it is the
+     one surface that owns the whole interaction while it is open. */
+  .palette-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: flex;
+    justify-content: center;
+    padding-top: 12vh;
+    background: rgb(var(--shade-rgb) / 0.55);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    animation: palette-scrim-in var(--dur-fast) var(--ease-out) both;
+  }
+
+  .palette {
+    width: min(40rem, calc(100vw - 3rem));
+    max-height: min(30rem, 70vh);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* A real drop shadow is correct here: this is a transient, light-dismiss
+       surface floating over content, which is the one case the design rules
+       allow it. */
+    box-shadow:
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.10),
+      0 32px 72px -20px rgb(var(--shade-rgb) / 0.7);
+    animation: palette-in var(--dur-normal) var(--ease-spring) both;
+  }
+
+  .palette-field {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    padding: var(--s4) var(--s5);
+    border-bottom: 1px solid var(--hair);
+  }
+
+  .palette-kbd {
+    flex-shrink: 0;
+    border-radius: var(--r-sm);
+    border: 1px solid var(--hair);
+    padding: 0.1rem 0.4rem;
+    font-size: 10px;
+    color: rgb(var(--text-faint-rgb));
+  }
+
+  .palette-list {
+    overflow-y: auto;
+    padding: var(--s2);
+  }
+
+  .palette-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    padding: 0.55rem var(--s3);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+  }
+
+  /* Selection is driven by data-active, not :hover — the keyboard and the
+     pointer must never disagree about which row is current. */
+  .palette-row[data-active='true'] {
+    background: rgb(var(--accent-gold-rgb) / 0.12);
+    box-shadow: inset 2px 0 0 rgb(var(--accent-gold-rgb));
+  }
+
+  html[dir='rtl'] .palette-row[data-active='true'] {
+    box-shadow: inset -2px 0 0 rgb(var(--accent-gold-rgb));
+  }
+
+  @keyframes palette-scrim-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  @keyframes palette-in {
+    from { opacity: 0; transform: translateY(-8px) scale(0.985); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .palette-scrim,
+    .palette {
+      animation: none;
+    }
+  }
+}
