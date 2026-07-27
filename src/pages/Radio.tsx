@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Loader2, Pause, Play, RadioTower, RefreshCw, Search, Star, Wifi } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { RadioStation, useRadioStore } from '@/store/radioStore';
 import { SectionHead } from '@/components/ui/SectionHead';
 import { useI18n } from '@/i18n';
@@ -183,6 +184,7 @@ export const Radio: React.FC = () => {
             )}
             <StationSection
               title={t('radioAllStations')}
+              virtualize
               stations={otherStations}
               emptyLabel={filtered.length === 0 ? t('radioNoStations') : undefined}
             />
@@ -194,11 +196,105 @@ export const Radio: React.FC = () => {
   );
 };
 
+/* The catalog is ~175 stations and the page scrolled 6431px of live DOM to
+   show it — every row mounted, every row subscribed to the radio store. This
+   renders only what is on screen plus a small overscan.
+
+   The grid is two columns from `lg`, so the virtualizer measures ROWS of two
+   rather than individual cards; virtualizing a flat list inside a CSS grid
+   would fight the grid for placement. Lane count is observed rather than
+   assumed from a media query, so the two stay in agreement. */
+const ROW_ESTIMATE = 76;
+
+const VirtualStationGrid: React.FC<{ stations: RadioStation[] }> = ({ stations }) => {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [lanes, setLanes] = useState(1);
+  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
+
+  /* Resolve the real scroller by climbing, rather than hardcoding a selector:
+     the page's scroll container has moved once already this cycle, and a
+     virtualizer pointed at the wrong element silently renders nothing. */
+  useLayoutEffect(() => {
+    let node: HTMLElement | null = hostRef.current;
+    while (node && node !== document.body) {
+      const oy = getComputedStyle(node).overflowY;
+      if (oy === 'auto' || oy === 'scroll') break;
+      node = node.parentElement;
+    }
+    setScrollEl(node && node !== document.body ? node : null);
+  }, []);
+
+  useLayoutEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const measure = () => {
+      // The grid's own computed template is the source of truth for lanes.
+      const cols = getComputedStyle(host).gridTemplateColumns.split(' ').filter(Boolean).length;
+      setLanes(Math.max(1, cols));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(host);
+    return () => ro.disconnect();
+  }, []);
+
+  const rowCount = Math.ceil(stations.length / lanes);
+  const virtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => scrollEl,
+    estimateSize: () => ROW_ESTIMATE,
+    overscan: 6,
+  });
+
+  return (
+    <div
+      ref={hostRef}
+      className="grid grid-cols-1 gap-x-10 lg:grid-cols-2"
+      style={{ display: 'grid' }}
+    >
+      {/* One spacer establishes the full scroll height; rows are absolutely
+          placed inside it. The grid columns above still drive lane width. */}
+      <div
+        style={{
+          gridColumn: '1 / -1',
+          position: 'relative',
+          height: `${virtualizer.getTotalSize()}px`,
+        }}
+      >
+        {virtualizer.getVirtualItems().map((row) => {
+          const start = row.index * lanes;
+          const slice = stations.slice(start, start + lanes);
+          return (
+            <div
+              key={row.key}
+              ref={virtualizer.measureElement}
+              data-index={row.index}
+              className="grid grid-cols-1 gap-x-10 lg:grid-cols-2"
+              style={{
+                position: 'absolute',
+                insetInlineStart: 0,
+                insetInlineEnd: 0,
+                transform: `translateY(${row.start}px)`,
+              }}
+            >
+              {slice.map((station) => (
+                <StationCard key={station.id} station={station} />
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const StationSection: React.FC<{
   title: string;
   stations: RadioStation[];
   emptyLabel?: string;
-}> = ({ title, stations, emptyLabel }) => {
+  /** Long lists virtualize; a handful of favourites does not need to. */
+  virtualize?: boolean;
+}> = ({ title, stations, emptyLabel, virtualize }) => {
   if (stations.length === 0 && !emptyLabel) return null;
 
   return (
@@ -208,6 +304,8 @@ const StationSection: React.FC<{
         <div className="empty-panel mt-3 px-6 py-12 text-center">
           <p className="text-sm text-muted-text">{emptyLabel}</p>
         </div>
+      ) : virtualize && stations.length > 40 ? (
+        <VirtualStationGrid stations={stations} />
       ) : (
         // Two columns from `lg` up — no more. Three left a dangling hairline
         // under the last row wherever the station count is not a multiple of
