@@ -2837,8 +2837,40 @@
      re-opaque the panel. */
   .sidebar-glass {
     background: rgb(var(--bg-sidebar-rgb) / 0.62);
-    backdrop-filter: blur(22px) saturate(126%);
-    -webkit-backdrop-filter: blur(22px) saturate(126%);
+    backdrop-filter: blur(26px) saturate(140%);
+    -webkit-backdrop-filter: blur(26px) saturate(140%);
+  }
+
+  /* The footer brand block sits on its own quiet ground: the khatam lattice
+     at a whisper, faded upward so it seats the block against the window's
+     bottom edge without becoming wallpaper. */
+  .sidebar-foot {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sidebar-foot::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url('./assets/marks/girih.svg');
+    background-size: 96px 96px;
+    opacity: 0.06;
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 55%);
+    mask-image: linear-gradient(180deg, transparent 0%, black 55%);
+    pointer-events: none;
+  }
+
+  /* The tile's strokes are white; on Pearl's light ground they would vanish,
+     so the lattice inverts to ink there. Ornament, not Qur'anic text — the
+     no-restyling rule is not in play. */
+  html[data-theme='pearl'] .sidebar-foot::before {
+    filter: invert(1);
+    opacity: 0.08;
+  }
+
+  .sidebar-foot > * {
+    position: relative;
   }
 
   /* No backdrop-filter support, or a compositor that refuses it: fall back to

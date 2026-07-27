@@ -81,9 +81,9 @@ export const Sidebar: React.FC = () => {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         {navGroups.map((group, groupIndex) => (
-          <div key={group.labelKey ?? 'primary'} className={groupIndex > 0 ? 'mt-5' : ''}>
+          <div key={group.labelKey ?? 'primary'} className={groupIndex > 0 ? 'mt-8' : ''}>
             {group.labelKey && (
-              <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-faint">
+              <p className="px-3 pb-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-faint">
                 {t(group.labelKey)}
               </p>
             )}
@@ -103,10 +103,10 @@ export const Sidebar: React.FC = () => {
                       // the same treatment as .rule-row-active. The marker is
                       // physically left, so it flips for RTL or it lands at the
                       // reading END of the active item.
-                      `group relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
+                      `group relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium ${
                         linkActive || isActive
-                          ? 'bg-accent-gold/[0.055] text-text-primary shadow-[inset_3px_0_0_rgb(var(--accent-gold-rgb))] rtl:shadow-[inset_-3px_0_0_rgb(var(--accent-gold-rgb))]'
-                          : 'text-muted-text hover:bg-accent-gold/[0.03] hover:text-text-primary'
+                          ? 'bg-accent-gold/10 text-text-primary shadow-[inset_3px_0_0_rgb(var(--accent-gold-rgb))] rtl:shadow-[inset_-3px_0_0_rgb(var(--accent-gold-rgb))]'
+                          : 'text-muted-text hover:text-text-primary'
                       }`
                     }
                   >
@@ -128,8 +128,8 @@ export const Sidebar: React.FC = () => {
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-border px-5 py-4">
+      {/* Footer — the brand block on its own ornamental ground. */}
+      <div className="sidebar-foot border-t border-border px-5 py-4">
         <div className="flex items-center gap-2.5">
           <Sparkles className="h-4 w-4 shrink-0 text-accent-gold/70" />
           <div className="min-w-0">
