@@ -12,6 +12,7 @@ import {
 import { Playlist, Video } from '@/types';
 import { formatDuration, formatTime } from '@/utils/formatTime';
 import { PlaylistPoster, ProgressMeter, useCategoryLabel } from './PlaylistCard';
+import { Select } from '@/components/ui/Select';
 import { useI18n } from '@/i18n';
 
 interface PlaylistDetailProps {
@@ -250,17 +251,18 @@ export const PlaylistDetail: React.FC<PlaylistDetailProps> = ({
 
               <label className="flex items-center gap-2 text-xs text-muted-text">
                 <SortAsc className="h-3.5 w-3.5" />
-                <select
+                <Select
+                  label={t('sortBy')}
                   value={videoSort}
-                  onChange={(event) => setVideoSort(event.target.value as VideoSortKey)}
-                  className="bg-transparent text-text-primary outline-none"
-                >
-                  <option value="playlist">{t('playlistOrder')}</option>
-                  <option value="title">{t('title')}</option>
-                  <option value="duration">{t('longest')}</option>
-                  <option value="progress">{t('progress')}</option>
-                  <option value="recent">{t('recentlyPlayed')}</option>
-                </select>
+                  onChange={(v) => setVideoSort(v as VideoSortKey)}
+                  options={[
+                    { value: 'playlist', label: t('playlistOrder') },
+                    { value: 'title', label: t('title') },
+                    { value: 'duration', label: t('longest') },
+                    { value: 'progress', label: t('progress') },
+                    { value: 'recent', label: t('recentlyPlayed') },
+                  ]}
+                />
               </label>
             </div>
           </div>

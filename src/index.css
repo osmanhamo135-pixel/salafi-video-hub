@@ -3676,3 +3676,92 @@
     padding-bottom: 5.5rem;
   }
 }
+
+@layer components {
+  /* ── Select (themed listbox) ────────────────────────────────────────────
+     Replaces the native <select>, whose popup is drawn by the OS and cannot
+     be themed — the same class of tell as window.confirm(), which this app
+     already replaced. */
+  .select {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .select-trigger {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    min-width: 0;
+    border-radius: var(--r-sm);
+    padding: 0.3rem 0.5rem;
+    font-size: var(--fs-sm);
+    color: rgb(var(--text-main-rgb));
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+
+  .select-trigger:hover:not(:disabled) {
+    background: rgb(var(--sheen-rgb) / 0.05);
+  }
+
+  .select-trigger:disabled {
+    color: rgb(var(--text-faint-rgb));
+    cursor: default;
+  }
+
+  .select-list {
+    position: absolute;
+    z-index: 60;
+    min-width: 100%;
+    max-width: 20rem;
+    max-height: 17.5rem;
+    overflow-y: auto;
+    padding: var(--s1);
+    border-radius: var(--r-md);
+    /* Floating, transient, light-dismiss — the sanctioned shadow case. */
+    box-shadow:
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.08),
+      0 18px 44px -16px rgb(var(--shade-rgb) / 0.75);
+    animation: select-in var(--dur-fast) var(--ease-out) both;
+  }
+
+  /* Anchored to the trigger's inline-start so it never escapes the window on
+     either side; RTL follows automatically through the logical property. */
+  .select-list[data-drop='down'] {
+    top: calc(100% + 4px);
+    inset-inline-start: 0;
+  }
+
+  .select-list[data-drop='up'] {
+    bottom: calc(100% + 4px);
+    inset-inline-start: 0;
+  }
+
+  .select-option {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    padding: 0.4rem var(--s2);
+    border-radius: var(--r-sm);
+    font-size: var(--fs-sm);
+    color: rgb(var(--text-soft-rgb));
+    cursor: pointer;
+  }
+
+  /* Driven by data-active, not :hover — keyboard and pointer must never
+     disagree about which option is current. */
+  .select-option[data-active='true'] {
+    background: rgb(var(--accent-gold-rgb) / 0.12);
+    color: rgb(var(--text-main-rgb));
+  }
+
+  @keyframes select-in {
+    from { opacity: 0; transform: translateY(-3px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .select-list { animation: none; }
+    .select-trigger { transition: none; }
+    .select-trigger svg { transition: none; }
+  }
+}

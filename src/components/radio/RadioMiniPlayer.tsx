@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { audioElementHolder, SleepMinutes, useRadioStore } from '@/store/radioStore';
 import { formatTime } from '@/utils/formatTime';
+import { Select } from '@/components/ui/Select';
 import { useI18n } from '@/i18n';
 
 const sleepOptions: SleepMinutes[] = [0, 15, 30, 60, 90];
@@ -270,17 +271,16 @@ export const RadioMiniPlayer: React.FC = () => {
 
           <div className="relative" title={t('radioSleepTimer')}>
             <Moon className={`pointer-events-none absolute start-1.5 top-1/2 h-3 w-3 -translate-y-1/2 ${sleepMinutes ? 'text-accent-gold' : 'text-muted-text'}`} />
-            <select
-              value={sleepMinutes}
-              onChange={(event) => setSleepMinutes(Number(event.target.value) as SleepMinutes)}
-              className={`surface-input w-[64px] py-1 ps-6 text-[11px] ${sleepMinutes ? 'text-accent-gold' : ''}`}
-            >
-              {sleepOptions.map((minutes) => (
-                <option key={minutes} value={minutes}>
-                  {minutes === 0 ? t('off') : `${minutes}m`}
-                </option>
-              ))}
-            </select>
+            <Select
+              label={t('sleepTimer')}
+              value={String(sleepMinutes)}
+              onChange={(v) => setSleepMinutes(Number(v) as SleepMinutes)}
+              className={sleepMinutes ? 'text-accent-gold' : ''}
+              options={sleepOptions.map((minutes) => ({
+                value: String(minutes),
+                label: minutes === 0 ? t('off') : `${minutes}m`,
+              }))}
+            />
           </div>
 
           <button

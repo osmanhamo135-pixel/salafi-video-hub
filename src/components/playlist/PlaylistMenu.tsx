@@ -1,11 +1,15 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { MoreVertical, FolderOpen, RefreshCw, Image, Trash2 } from 'lucide-react';
+import { invoke } from '@tauri-apps/api/core';
+import { MoreVertical, FolderOpen, FolderSearch, RefreshCw, Image, Trash2 } from 'lucide-react';
 import { useI18n } from '@/i18n';
 
 interface PlaylistMenuProps {
   playlistId: string;
   playlistName: string;
+  /** Absolute folder on disk. Reachable from the menu rather than printed on
+      the card face — a truncated C:\Users\... is a debug affordance, not UI. */
+  folderPath: string;
   onOpen: () => void;
   onRescan: () => void;
   onRegenerateThumbnails: () => void;
@@ -13,6 +17,7 @@ interface PlaylistMenuProps {
 }
 
 export const PlaylistMenu: React.FC<PlaylistMenuProps> = ({
+  folderPath,
   onOpen,
   onRescan,
   onRegenerateThumbnails,
@@ -96,6 +101,18 @@ export const PlaylistMenu: React.FC<PlaylistMenuProps> = ({
       >
         <FolderOpen className="w-4 h-4 text-muted-text" />
         {t('open')}
+      </button>
+      <button
+        onClick={() =>
+          handleAction(() => {
+            void invoke('open_file_location', { path: folderPath }).catch(() => undefined);
+          })
+        }
+        title={folderPath}
+        className="flex w-full items-center gap-2.5 px-3 py-2 text-start text-sm text-text-primary transition-colors hover:bg-panel-hover"
+      >
+        <FolderSearch className="w-4 h-4 text-muted-text" />
+        {t('openFileLocation')}
       </button>
       <button
         onClick={() => handleAction(onRescan)}

@@ -25,6 +25,7 @@ import { PlaylistDetail } from '@/components/playlist/PlaylistDetail';
 import { SearchResults } from '@/components/playlist/SearchResults';
 import { CONTENT_CATEGORIES } from '@/utils/constants';
 import { formatDuration } from '@/utils/formatTime';
+import { Select } from '@/components/ui/Select';
 import { useI18n } from '@/i18n';
 
 const getErrorMessage = (error: unknown) => {
@@ -481,20 +482,19 @@ export const Library: React.FC = () => {
                 </button>
               </div>
 
-              <label className="flex items-center gap-2 text-xs text-muted-text">
-                <SortAsc className="h-3.5 w-3.5" />
-                <select
-                  value={playlistSort}
-                  onChange={(event) => setPlaylistSort(event.target.value as PlaylistSortKey)}
-                  className="bg-transparent text-text-primary outline-none"
-                >
-                  <option value="recent">{t('recent')}</option>
-                  <option value="name">{t('name')}</option>
-                  <option value="videos">{t('mostVideos')}</option>
-                  <option value="duration">{t('longest')}</option>
-                  <option value="progress">{t('progress')}</option>
-                </select>
-              </label>
+              <Select
+                label={t('sortBy')}
+                value={playlistSort}
+                onChange={(v) => setPlaylistSort(v as PlaylistSortKey)}
+                icon={<SortAsc className="h-3.5 w-3.5 shrink-0 text-muted-text" />}
+                options={[
+                  { value: 'recent', label: t('recent') },
+                  { value: 'name', label: t('name') },
+                  { value: 'videos', label: t('mostVideos') },
+                  { value: 'duration', label: t('longest') },
+                  { value: 'progress', label: t('progress') },
+                ]}
+              />
             </div>
           </div>
 
@@ -513,21 +513,20 @@ export const Library: React.FC = () => {
                 {t('empty')} <bdi>{librarySummary.empty}</bdi>
               </button>
             </div>
-            <label className="ms-auto flex items-center gap-2 text-xs text-muted-text">
-              <SlidersHorizontal className="h-3.5 w-3.5" />
-              <select
-                value={categoryFilter}
-                onChange={(event) => setCategoryFilter(event.target.value)}
-                className="bg-transparent text-text-primary outline-none"
-              >
-                <option value="">{t('allCategories')}</option>
-                {CONTENT_CATEGORIES.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {t(category.labelKey)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <Select
+              className="ms-auto"
+              label={t('allCategories')}
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+              icon={<SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-muted-text" />}
+              options={[
+                { value: '', label: t('allCategories') },
+                ...CONTENT_CATEGORIES.map((category) => ({
+                  value: category.id,
+                  label: t(category.labelKey),
+                })),
+              ]}
+            />
           </div>
 
           {importError && (

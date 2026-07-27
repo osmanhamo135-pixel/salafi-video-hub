@@ -4,6 +4,7 @@ import { Reminder, Playlist, Video } from '@/types';
 import { Volume2, Volume1, VolumeX, Play, AlertCircle, FolderOpen, X } from 'lucide-react';
 import { playReminderSound, stopReminderSound } from '@/utils/reminderAudio';
 import { useI18n } from '@/i18n';
+import { Select } from '@/components/ui/Select';
 
 interface ReminderFormProps {
   reminder?: Reminder | null;
@@ -264,20 +265,16 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
           {/* The chevron is the platform's own again: the hand-drawn one was a
               hardcoded #7E8AA1 pinned to the right edge — invisible on the
               light theme and on the wrong side in Arabic. */}
-          <select
+          <Select
+            label={t('choose')}
             value={form.targetId}
-            onChange={(e) => updateField('targetId', e.target.value)}
-            className={`field-quiet text-sm ${errors.targetId ? 'border-b-danger-red' : ''}`}
-          >
-            <option value="" disabled>
-              {t('choose')}
-            </option>
-            {targetOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+            onChange={(v: string) => updateField('targetId', v)}
+            className={errors.targetId ? 'text-danger-red' : ''}
+            options={[
+              { value: '', label: t('choose') },
+              ...targetOptions.map((opt) => ({ value: opt.value, label: opt.label })),
+            ]}
+          />
           {errors.targetId && (
             <p className="mt-1 text-xs text-danger-red flex items-center gap-1">
               <AlertCircle className="w-3 h-3" />
@@ -319,21 +316,17 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
           <label className="block text-xs font-medium text-muted-text mb-1.5">
             {t('repeat')}
           </label>
-          <select
+          <Select
+            label={t('repeat')}
             value={form.repeat}
-            onChange={(e) =>
-              updateField(
-                'repeat',
-                e.target.value as ReminderFormData['repeat']
-              )
-            }
-            className="field-quiet text-sm"
-          >
-            <option value="none">{t('noRepeat')}</option>
-            <option value="daily">{t('daily')}</option>
-            <option value="weekly">{t('weekly')}</option>
-            <option value="custom">{t('customDays')}</option>
-          </select>
+            onChange={(v: string) => updateField('repeat', v as ReminderFormData['repeat'])}
+            options={[
+              { value: 'none', label: t('noRepeat') },
+              { value: 'daily', label: t('daily') },
+              { value: 'weekly', label: t('weekly') },
+              { value: 'custom', label: t('customDays') },
+            ]}
+          />
         </div>
       </div>
 

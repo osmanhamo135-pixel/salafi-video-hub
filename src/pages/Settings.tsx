@@ -28,6 +28,7 @@ import { playReminderSound, stopReminderSound } from '@/utils/reminderAudio';
 import { AppLanguage, AppTheme } from '@/types';
 import { languageOptions, themeOptions, useI18n } from '@/i18n';
 import { MOTION_KEY } from '@/components/layout/AmbientLayer';
+import { Select } from '@/components/ui/Select';
 
 interface ThumbnailBatchResult {
   generated_count: number;
@@ -601,18 +602,19 @@ export const Settings: React.FC = () => {
             />
           </SettingRow>
           <SettingRow label={t('thumbnailMode')} description={t('thumbnailHelp')}>
-            <select
+            <Select
+              label={t('thumbnailMode')}
               value={settings.automaticThumbnailsMode}
-              onChange={(event) => updateSettings({
-                automaticThumbnailsMode: event.target.value as typeof settings.automaticThumbnailsMode,
+              onChange={(v) => updateSettings({
+                automaticThumbnailsMode: v as typeof settings.automaticThumbnailsMode,
               })}
-              className="field-quiet max-w-[14rem] border-b-transparent text-sm"
-            >
-              <option value="automatic">{t('automatic')}</option>
-              <option value="visible-only">{t('visibleOnly')}</option>
-              <option value="idle-only">{t('idleOnly')}</option>
-              <option value="disabled">{t('disabled')}</option>
-            </select>
+              options={[
+                { value: 'automatic', label: t('automatic') },
+                { value: 'visible-only', label: t('visibleOnly') },
+                { value: 'idle-only', label: t('idleOnly') },
+                { value: 'disabled', label: t('disabled') },
+              ]}
+            />
           </SettingRow>
           <ActionBar>
             {ffmpegStatus?.status === 'missing' && (
