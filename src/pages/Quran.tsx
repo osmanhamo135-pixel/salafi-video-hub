@@ -1293,6 +1293,9 @@ const SurahReader: React.FC = () => {
             so it frames the visible page and does not scroll away with the
             text. */}
         <div className="quran-jadwal" aria-hidden="true" />
+        {/* The opaque page margin, painted over the scrolling text so no ayah
+            ever crosses the rules or the band. See .quran-frame-shutter. */}
+        <div className="quran-frame-shutter" aria-hidden="true" />
         <div className="quran-reading-viewport">
       <div className={`quran-reading-surface ${warshMode ? 'quran-riwayah-warsh' : ''}`}>
         {/* The gliding recitation cue — one pill that follows the exact word. */}

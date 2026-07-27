@@ -945,7 +945,9 @@
     border-radius: 10px;
     /* The inline padding clears the jadwal's inner rule at every width — the
        band and its rules occupy the first ~32px of the page margin. */
-    padding: clamp(2.1rem, 3.4vw, 3.4rem) clamp(2.4rem, 4.2vw, 3.5rem);
+    /* Block padding trimmed by the margin the viewport now carries, so the
+       resting page looks unchanged while scrolled text stops at the rule. */
+    padding: clamp(0.5rem, 1.1vw, 1.35rem) clamp(2.4rem, 4.2vw, 3.5rem);
     color: rgb(var(--text-main-rgb));
     background: radial-gradient(
       118% 74% at 50% 0%,
@@ -982,6 +984,10 @@
     isolation: isolate;
     overflow: hidden;
     border-radius: 10px;
+    /* The page margin: where the rules and the band live, and where ayah text
+       may never go. One value, so the shutter, the viewport's padding and the
+       inner rule cannot drift apart. */
+    --jadwal-margin: clamp(1.72rem, 2.3vw, 2.05rem);
   }
 
   .quran-reading-viewport {
@@ -989,13 +995,40 @@
     min-height: 19rem;
     overflow-y: auto;
     overscroll-behavior: contain;
+    /* Text starts and ends inside the margin, so nothing rests underneath the
+       shutter at either end of the scroll. */
+    padding-block: var(--jadwal-margin);
+  }
+
+  /* The page margin, made opaque and painted OVER the text.
+
+     The ayah text is z-index 1 (it must sit above the frame's ground); the
+     jadwal band and its rules were z-index 0, so every scrolled line passed
+     straight over the gold ornament and the rules — the owner's words: "the
+     texts in quran still crossing the lines and also the lines". Raising the
+     band alone would not fix it: the band is a mask on a transparent element,
+     so text would still show through its gaps.
+
+     So the margin itself becomes an opaque plane, drawn as a border in the
+     frame's own ground colour with the reading area left clear. Text now
+     stops exactly at the inner rule instead of running through it, and the
+     ornament is drawn above the plane where nothing can cross it. */
+  .quran-frame-shutter {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    box-sizing: border-box;
+    border: var(--jadwal-margin) solid rgb(var(--bg-main-rgb));
+    border-radius: 10px;
   }
 
   .quran-reading-frame::before,
   .quran-reading-frame::after {
     content: '';
     position: absolute;
-    z-index: 0;
+    /* Above the shutter (2), which is above the text (1). */
+    z-index: 3;
     pointer-events: none;
     border: 1px solid rgb(var(--mushaf-gold-rgb) / 0.30);
     border-radius: 0;
@@ -1039,6 +1072,9 @@
     position: absolute;
     inset: clamp(0.85rem, 1.35vw, 1.1rem);
     z-index: 0;
+    /* On the mushaf the band must clear the scrolling text, so it rides
+       above the opaque page margin. Elsewhere (.jadwal on the hero) there is
+       no scroller and z-index 0 is still correct. */
     pointer-events: none;
     background: rgb(var(--mushaf-gold-rgb) / 0.40);
     -webkit-mask-image:
@@ -1095,6 +1131,13 @@
   .quran-reading-surface > * {
     position: relative;
     z-index: 1;
+  }
+
+  /* The mushaf's band rides above the opaque page margin (2) so scrolling
+     ayat can never cross it. The hero's .jadwal keeps z-index 0: no scroller
+     there, and the hero content must stay above its own frame. */
+  .quran-jadwal {
+    z-index: 3;
   }
 
   /* The surah header band. The old ۞ ornaments sat at 0.42em and rendered as
@@ -2268,8 +2311,14 @@
       /* one warm key, high and to the reading edge, the same direction the
          hero lights from — two opposing glows cancel into a flat wash */
       radial-gradient(96% 62% at 22% -8%, rgb(var(--accent-gold-rgb) / 0.085), transparent 68%),
-      radial-gradient(130% 88% at 22% -8%, rgb(var(--accent-gold-rgb) / 0.035), transparent 76%),
-      var(--bg-main);
+      radial-gradient(130% 88% at 22% -8%, rgb(var(--accent-gold-rgb) / 0.035), transparent 76%);
+      /* NO opaque base layer. This stack used to end in var(--bg-main), and
+         that one line was the void: an opaque plane over the whole main
+         region that buried the ambient system — washes, scenes, lattice,
+         motifs, canvas — in every theme, on every page. Months of "the
+         background is not visible" traced here. The opaque ground lives on
+         .ambient-wash, which always renders; this container only shapes
+         light that sits over it. */
   }
 
   [dir='rtl'] .page-container {
@@ -2281,8 +2330,7 @@
         rgb(var(--shade-rgb) / 0.062) 100%
       ),
       radial-gradient(96% 62% at 78% -8%, rgb(var(--accent-gold-rgb) / 0.085), transparent 68%),
-      radial-gradient(130% 88% at 78% -8%, rgb(var(--accent-gold-rgb) / 0.035), transparent 76%),
-      var(--bg-main);
+      radial-gradient(130% 88% at 78% -8%, rgb(var(--accent-gold-rgb) / 0.035), transparent 76%);
   }
   
   .content-max-width {
@@ -2573,6 +2621,124 @@
      video, and no light competes with the picture. */
   html[data-route='player'] .ambient-scene {
     background: radial-gradient(130% 90% at 50% 50%, transparent 52%, rgb(var(--shade-rgb) / 0.30));
+  }
+
+  /* ── The section MOTIF ──────────────────────────────────────────────────
+     The light says where the lamp is; the motif says what room this is. A
+     drawn line-art scene per section — book spines for the library, a mihrab
+     arch for the mushaf, a broadcast mast for the radio — masked over a
+     token fill so every theme draws the same room in its own ink. All of
+     them objects and geometry, never beings. The dashboard deliberately has
+     none: its canvas field IS its scene. */
+  .ambient-motif {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    will-change: transform;
+  }
+
+  @keyframes motif-drift {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-1.2%, 0.8%, 0) scale(1.02); }
+  }
+
+  html[data-route='library'] .ambient-motif {
+    background-color: rgb(var(--accent-gold-rgb) / 0.30);
+    -webkit-mask-image: url('./assets/marks/motif-library.svg');
+    mask-image: url('./assets/marks/motif-library.svg');
+    -webkit-mask-size: 1200px auto;
+    mask-size: 1200px auto;
+    -webkit-mask-position: center bottom;
+    mask-position: center bottom;
+    -webkit-mask-repeat: repeat-x;
+    mask-repeat: repeat-x;
+    animation: motif-drift 110s ease-in-out infinite alternate;
+  }
+
+  html[data-route='quran'] .ambient-motif {
+    background-color: rgb(var(--accent-gold-rgb) / 0.16);
+    -webkit-mask-image: url('./assets/marks/motif-quran.svg');
+    mask-image: url('./assets/marks/motif-quran.svg');
+    -webkit-mask-size: 640px auto;
+    mask-size: 640px auto;
+    -webkit-mask-position: center top;
+    mask-position: center top;
+    /* Tier 1 on this route kills every ambient animation; stating it here
+       too keeps the guarantee even if the clamp ever regresses. */
+    animation: none;
+  }
+
+  html[data-route='radio'] .ambient-motif {
+    background-color: rgb(var(--accent-teal-rgb) / 0.32);
+    -webkit-mask-image: url('./assets/marks/motif-radio.svg');
+    mask-image: url('./assets/marks/motif-radio.svg');
+    -webkit-mask-size: 620px auto;
+    mask-size: 620px auto;
+    -webkit-mask-position: right -3rem top 4rem;
+    mask-position: right -3rem top 4rem;
+    animation: motif-drift 110s ease-in-out infinite alternate;
+  }
+
+  html[data-route='watch'] .ambient-motif {
+    background-color: rgb(var(--text-soft-rgb) / 0.26);
+    -webkit-mask-image: url('./assets/marks/motif-watch.svg');
+    mask-image: url('./assets/marks/motif-watch.svg');
+    -webkit-mask-size: 900px auto;
+    mask-size: 900px auto;
+    -webkit-mask-position: center top 2.5rem;
+    mask-position: center top 2.5rem;
+    animation: motif-drift 110s ease-in-out infinite alternate;
+  }
+
+  html[data-route='reminders'] .ambient-motif {
+    background-color: rgb(var(--accent-gold-rgb) / 0.32);
+    -webkit-mask-image: url('./assets/marks/motif-reminders.svg');
+    mask-image: url('./assets/marks/motif-reminders.svg');
+    -webkit-mask-size: 560px auto;
+    mask-size: 560px auto;
+    -webkit-mask-position: right 3rem top 2.5rem;
+    mask-position: right 3rem top 2.5rem;
+    animation: motif-drift 110s ease-in-out infinite alternate;
+  }
+
+  html[data-route='downloads'] .ambient-motif {
+    background-color: rgb(var(--accent-teal-rgb) / 0.30);
+    -webkit-mask-image: url('./assets/marks/motif-downloads.svg');
+    mask-image: url('./assets/marks/motif-downloads.svg');
+    -webkit-mask-size: 480px auto;
+    mask-size: 480px auto;
+    -webkit-mask-position: right 4rem bottom 2rem;
+    mask-position: right 4rem bottom 2rem;
+    animation: motif-drift 110s ease-in-out infinite alternate;
+  }
+
+  html[data-route='settings'] .ambient-motif {
+    background-color: rgb(var(--sheen-rgb) / 0.22);
+    -webkit-mask-image: url('./assets/marks/motif-settings.svg');
+    mask-image: url('./assets/marks/motif-settings.svg');
+    -webkit-mask-size: 520px auto;
+    mask-size: 520px auto;
+    -webkit-mask-position: right -5rem bottom -5rem;
+    mask-position: right -5rem bottom -5rem;
+    animation: motif-drift 110s ease-in-out infinite alternate;
+  }
+
+  /* Pearl draws every motif in quiet ink — accent fills at these alphas
+     read as grime on a light ground. */
+  html[data-theme='pearl'] .ambient-motif {
+    background-color: rgb(var(--shade-rgb) / 0.14) !important;
+  }
+
+  .ambient-layer[data-tier='1'] .ambient-motif {
+    animation: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ambient-motif {
+      animation: none;
+    }
   }
 
   /* Pearl: light ground — the scene inverts to shade, softly, and stands

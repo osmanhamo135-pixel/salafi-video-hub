@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="680" viewBox="0 0 900 680">
+  <!-- Section motif: a broadcast mast with concentric airwave arcs.
+       Used as a CSS mask: strokes are white, the theme's token supplies the
+       colour. Real file, never a data: URI (CSP img-src has no data:). -->
+  <g fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="450" y1="640" x2="450" y2="300" stroke-width="7"/>
+    <polyline points="450 640, 476 620, 424 568, 476 516, 424 464, 476 412, 424 360, 450 316"/>
+    <circle cx="450" cy="286" r="10"/>
+    <path d="M 495 232 A 70 70 0 0 1 495 340"/>
+    <path d="M 405 232 A 70 70 0 0 0 405 340"/>
+    <path d="M 527 194 A 120 120 0 0 1 527 378"/>
+    <path d="M 373 194 A 120 120 0 0 0 373 378"/>
+    <path d="M 559 156 A 170 170 0 0 1 559 416"/>
+    <path d="M 341 156 A 170 170 0 0 0 341 416"/>
+    <path d="M 591 117 A 220 220 0 0 1 591 455"/>
+    <path d="M 309 117 A 220 220 0 0 0 309 455"/>
+  </g>
+</svg>

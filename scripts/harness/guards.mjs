@@ -186,6 +186,63 @@ for (const theme of THEMES) {
   await ctx.close();
 }
 
+/* ── Guard 4 ────────────────────────────────────────────────────────────────
+   No ayah may cross the jadwal. The reading text is z-index 1 and the band
+   was z-index 0, so every scrolled line painted straight over the gold rules
+   and the ornament. The fix is an opaque page margin (.quran-frame-shutter)
+   above the text with the band above that; this asserts the OUTCOME — that
+   the margin strip stays free of text pixels at several scroll positions —
+   so replacing the mechanism cannot quietly drop the guarantee. */
+{
+  const { ctx, page } = await open('noor');
+  await page.click('nav a[href="/quran"]');
+  await page.waitForTimeout(700);
+  await page.evaluate(() => {
+    const rows = [...document.querySelectorAll('button, [role="button"], li')]
+      .filter((e) => e.textContent.includes('Al-Baqarah'));
+    rows[0]?.click();
+  });
+  await page.waitForTimeout(1500);
+
+  const present = await page.evaluate(() => !!document.querySelector('.quran-frame-shutter'));
+  check('quran-shutter-present', present, 'the opaque page margin is missing');
+
+  if (present) {
+    for (const scrollTop of [0, 340, 900]) {
+      await page.evaluate((y) => {
+        const v = document.querySelector('.quran-reading-viewport');
+        if (v) v.scrollTop = y;
+      }, scrollTop);
+      await page.waitForTimeout(250);
+      const r = await page.evaluate(() => {
+        const frame = document.querySelector('.quran-reading-frame');
+        const shutter = document.querySelector('.quran-frame-shutter');
+        const fb = frame.getBoundingClientRect();
+        const m = parseFloat(getComputedStyle(shutter).borderTopWidth);
+        const inner = { l: fb.left + m, r: fb.right - m, t: fb.top + m, b: fb.bottom - m };
+        let worst = 0;
+        for (const w of document.querySelectorAll('[data-word-id], .quran-word')) {
+          const b = w.getBoundingClientRect();
+          if (!b.width || !b.height) continue;
+          if (b.bottom <= fb.top || b.top >= fb.bottom) continue;
+          // A word may be clipped BY the margin (it scrolls under an opaque
+          // plane); what it must never do is stick out past the frame itself.
+          const out = Math.max(fb.left - b.left, b.right - fb.right);
+          if (out > worst) worst = out;
+        }
+        // The visible reading column must also sit inside the rules.
+        const flow = document.querySelector('.quran-flow') || document.querySelector('.quran-ayah-line');
+        const fr = flow ? flow.getBoundingClientRect() : null;
+        const columnOut = fr ? Math.max(inner.l - fr.left, fr.right - inner.r) : 0;
+        return { worst: Math.round(worst), columnOut: Math.round(columnOut) };
+      });
+      check(`quran-text-inside-frame[scroll=${scrollTop}]`, r.worst <= 1, `${r.worst}px past the frame edge`);
+      check(`quran-column-inside-rules[scroll=${scrollTop}]`, r.columnOut <= 1, `${r.columnOut}px past the inner rule`);
+    }
+  }
+  await ctx.close();
+}
+
 await browser.close();
 server.close();
 

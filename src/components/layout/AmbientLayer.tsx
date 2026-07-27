@@ -279,6 +279,10 @@ export const AmbientLayer: React.FC = () => {
           it stands still; at 0 it is absent. The lattice is the geometric
           structure under the light — same tier rules. */}
       {tier >= 1 && <div className="ambient-lattice" />}
+      {/* The section's own drawn scene — a mask per route, coloured by the
+          theme's tokens. Which motif shows is pure CSS (html[data-route]);
+          this element is just the canvas it lands on. */}
+      {tier >= 1 && <div className="ambient-motif" />}
       {tier >= 1 && <div className="ambient-scene" />}
       {tier >= 2 && <div className="ambient-sweep" />}
       {tier >= 3 && <canvas ref={canvasRef} className="ambient-canvas" />}

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="430" viewBox="0 0 1400 430">
+  <!-- Section motif: a shelf of book spines, pure geometry, no depiction of beings.
+       Used as a CSS mask: strokes are white, the theme's token supplies the
+       colour. Real file, never a data: URI (CSP img-src has no data:). -->
+  <g fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="20" y="229" width="26" height="171" rx="3"/>
+    <rect x="56" y="196" width="36" height="204" rx="3"/>
+    <rect x="105" y="204" width="50" height="196" rx="3"/>
+    <rect x="171" y="214" width="48" height="186" rx="3" transform="rotate(-8 195 400)"/>
+    <rect x="229" y="240" width="53" height="160" rx="3"/>
+    <line x1="234" y1="264" x2="277" y2="264"/>
+    <rect x="293" y="152" width="42" height="248" rx="3"/>
+    <rect x="348" y="219" width="42" height="181" rx="3"/>
+    <rect x="404" y="152" width="37" height="248" rx="3"/>
+    <line x1="409" y1="176" x2="437" y2="176"/>
+    <rect x="455" y="198" width="32" height="202" rx="3"/>
+    <line x1="460" y1="222" x2="482" y2="222"/>
+    <rect x="496" y="191" width="33" height="209" rx="3"/>
+    <rect x="538" y="156" width="27" height="244" rx="3" transform="rotate(-8 552 400)"/>
+    <rect x="572" y="163" width="48" height="237" rx="3"/>
+    <line x1="577" y1="187" x2="615" y2="187"/>
+    <rect x="635" y="185" width="36" height="215" rx="3"/>
+    <line x1="640" y1="209" x2="667" y2="209"/>
+    <rect x="682" y="179" width="39" height="221" rx="3"/>
+    <line x1="687" y1="203" x2="716" y2="203"/>
+    <rect x="733" y="227" width="48" height="173" rx="3"/>
+    <rect x="788" y="153" width="54" height="247" rx="3"/>
+    <rect x="853" y="141" width="40" height="259" rx="3"/>
+    <rect x="903" y="207" width="41" height="193" rx="3" transform="rotate(8 924 400)"/>
+    <line x1="908" y1="231" x2="939" y2="231"/>
+    <rect x="958" y="190" width="48" height="210" rx="3"/>
+    <rect x="1016" y="246" width="48" height="154" rx="3"/>
+    <rect x="1073" y="217" width="49" height="183" rx="3"/>
+    <rect x="1135" y="175" width="35" height="225" rx="3"/>
+    <rect x="1179" y="240" width="36" height="160" rx="3"/>
+    <rect x="1222" y="189" width="28" height="211" rx="3"/>
+    <line x1="1227" y1="213" x2="1245" y2="213"/>
+    <rect x="1256" y="157" width="54" height="243" rx="3" transform="rotate(8 1283 400)"/>
+    <rect x="1317" y="166" width="39" height="234" rx="3"/>
+    <line x1="0" y1="402" x2="1400" y2="402" stroke-width="7"/>
+    <line x1="0" y1="414" x2="1400" y2="414"/>
+  </g>
+</svg>
