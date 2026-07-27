@@ -68,10 +68,17 @@ export const ContinueWatching: React.FC = () => {
   const groups = useMemo(() => {
     const map = new Map<string, { title: string; items: ContinueWatchingItem[] }>();
 
-    /* The first item is the featured card at the top of the route — repeating
-       it here as this section's lead put the same lesson on screen twice,
-       at size, one viewport apart. This section owns everything after it. */
-    for (const item of items.slice(1)) {
+    /* The featured card at the top of the route shows items[0]. Skipping only
+       that ITEM still let its SERIES lead this section — same artwork, same
+       title, one viewport apart, which on a real library read as a straight
+       duplicate. So the whole group the hero belongs to is excluded: this
+       section owns every series EXCEPT the one the hero is already carrying. */
+    const heroKey = items[0]
+      ? items[0].playlist?.id ?? items[0].video.folderPath ?? 'standalone'
+      : null;
+    for (const item of items) {
+      const itemKey = item.playlist?.id ?? item.video.folderPath ?? 'standalone';
+      if (itemKey === heroKey) continue;
       const key = item.playlist?.id ?? item.video.folderPath ?? 'standalone';
       const title = item.playlist?.name ?? item.video.folderPath.split(/[\\/]/).filter(Boolean).pop() ?? t('standaloneVideos');
       const group = map.get(key);
@@ -88,10 +95,12 @@ export const ContinueWatching: React.FC = () => {
 
   const [lead, ...rest] = groups;
 
-  /* Everything this section could show is already on the featured card above:
-     with zero or one lesson in progress there is nothing here but an empty
-     shrug directly underneath a hero that is carrying that same lesson. */
-  if (!loading && items.length <= 1) return null;
+  /* Everything this section could show is already on the featured card above.
+     That includes the case where every in-progress lesson belongs to the ONE
+     series the hero is carrying — groups is then empty, and rendering a
+     "nothing in progress" shrug directly under a hero that is visibly resuming
+     that series would be worse than absence. */
+  if (!loading && (items.length <= 1 || groups.length === 0)) return null;
 
   return (
     /* The most useful thing on the page, so it is the first thing after the
