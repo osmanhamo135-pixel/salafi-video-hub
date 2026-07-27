@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useMemo, useState } from 'react';
-import { CalendarDays, CheckCircle2, FolderClosed, Play } from 'lucide-react';
+import { CalendarDays, CheckCircle2, Play } from 'lucide-react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { Playlist } from '@/types';
 import { formatDuration } from '@/utils/formatTime';
@@ -270,6 +270,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
   const menu = (
     <PlaylistMenu
       playlistId={playlist.id}
+      folderPath={playlist.folderPath}
       playlistName={playlist.name}
       onOpen={() => onOpen(playlist)}
       onRescan={() => onRescan(playlist.id)}
@@ -334,9 +335,6 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
                 <span className="shrink-0 text-text-faint">&middot;</span>
               </>
             )}
-            <span className="truncate text-text-faint" title={playlist.folderPath}>
-              <bdi>{playlist.folderPath}</bdi>
-            </span>
           </div>
         </button>
 
@@ -429,14 +427,6 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
                     </span>
                   </>
                 )}
-                <span className="shrink-0 text-text-faint">&middot;</span>
-                <span
-                  className="inline-flex min-w-0 items-center gap-1.5 text-text-faint"
-                  title={playlist.folderPath}
-                >
-                  <FolderClosed className="h-3 w-3 shrink-0" />
-                  <span className="truncate"><bdi>{playlist.folderPath}</bdi></span>
-                </span>
               </p>
             </div>
 
@@ -527,13 +517,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
             {status}
             <div className="-me-2 shrink-0">{menu}</div>
           </div>
-          <p
-            className="flex min-w-0 items-center gap-1.5 border-t border-border pt-2 text-[11px] text-text-faint"
-            title={playlist.folderPath}
-          >
-            <FolderClosed className="h-3 w-3 shrink-0" />
-            <span className="truncate"><bdi>{playlist.folderPath}</bdi></span>
-          </p>
+
         </div>
       </div>
     </article>

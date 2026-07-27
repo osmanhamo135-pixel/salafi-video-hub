@@ -20,6 +20,7 @@ import {
 import { CookieMode, DownloadQuality, DownloadStage, isDownloadWorking, useDownloadStore } from '@/store/downloadStore';
 import { LocalThumbnail } from '@/components/ui/LocalThumbnail';
 import { TranslationKey, useI18n } from '@/i18n';
+import { Select } from '@/components/ui/Select';
 
 const qualityOptions = [
   { value: 'fast', labelKey: 'qualityFast' },
@@ -179,17 +180,12 @@ export const Downloads: React.FC = () => {
               </Field>
 
               <Field label={t('accountAccess')} icon={Cookie} hint={t('accountAccessHint')}>
-                <select
+                <Select
+                  label={t('downloadCookies')}
                   value={cookieMode}
-                  onChange={(event) => setCookieMode(event.target.value as CookieMode)}
-                  className="field-quiet ps-6 text-sm"
-                >
-                  {cookieModeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {t(option.labelKey)}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v: string) => setCookieMode(v as CookieMode)}
+                  options={cookieModeOptions.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
+                />
               </Field>
 
               {cookieMode === 'file' && (
@@ -217,18 +213,13 @@ export const Downloads: React.FC = () => {
               )}
 
               <Field label={t('quality')} icon={FileVideo}>
-                <select
+                <Select
+                  label={t('quality')}
                   value={quality}
-                  onChange={(event) => setQuality(event.target.value as DownloadQuality)}
+                  onChange={(v: string) => setQuality(v as DownloadQuality)}
                   disabled={audioOnly}
-                  className="field-quiet ps-6 text-sm disabled:opacity-55"
-                >
-                  {qualityOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {t(option.labelKey)}
-                    </option>
-                  ))}
-                </select>
+                  options={qualityOptions.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
+                />
               </Field>
             </div>
 
