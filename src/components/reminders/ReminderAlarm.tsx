@@ -212,7 +212,8 @@ export const ReminderAlarm: React.FC = () => {
   if (!activeAlarm) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div className="scrim" aria-hidden="true" />
       <div className="glass relative w-full max-w-md rounded-lg shadow-2xl">
         <div className="flex items-start gap-3 border-b border-border px-5 py-4">
           <div className="icon-medallion h-10 w-10 shrink-0">

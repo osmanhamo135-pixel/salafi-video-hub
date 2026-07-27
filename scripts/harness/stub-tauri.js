@@ -59,7 +59,31 @@
       return F.surahPayloads[id] || F.surahPayloads[1];
     },
     get_quran_reciters: function () { return F.reciters; },
-    get_quran_word_timing_reads: function () { return []; },
+    /* One synced reciter, so the Read tab's whole transport cluster — play,
+       repeat, times, speed — actually renders in the harness. It returned []
+       for months, which silently excluded every one of those controls from
+       every probe and screenshot. */
+    get_quran_word_timing_reads: function () {
+      return [{ id: 7, name: 'Mishari Rashid al-Afasy', nameAr: 'مشاري راشد العفاسي', timingLevel: 'word', folderUrl: 'https://example.invalid/afasy/' }];
+    },
+    get_quran_synced_audio: function (a) {
+      // Deterministic 4s-per-ayah timings for whatever surah is asked for.
+      var surah = (F.surahMeta || []).find(function (s) { return s.id === (a && a.surahId); });
+      var verses = surah ? surah.total_verses : 7;
+      var ayahTimings = [];
+      var wordTimings = [];
+      var wordsByAyah = [];
+      for (var v = 1; v <= verses; v += 1) {
+        var start = (v - 1) * 4000;
+        ayahTimings.push({ ayah: v, startMs: start, endMs: start + 3900 });
+        var words = ['كلمة', 'كلمة', 'كلمة'];
+        wordsByAyah.push({ ayah: v, words: words });
+        for (var w = 1; w <= words.length; w += 1) {
+          wordTimings.push({ ayah: v, wordIndex: w, startMs: start + (w - 1) * 1200, endMs: start + w * 1200 });
+        }
+      }
+      return { audioUrl: 'https://example.invalid/afasy/' + (a && a.surahId) + '.mp3', ayahTimings: ayahTimings, wordTimings: wordTimings, wordsByAyah: wordsByAyah };
+    },
     get_quran_synced_audio: function () { return null; },
     get_ffmpeg_status: function () { return { status: 'bundled', ffmpegPath: null, ffprobePath: null }; },
     get_diagnostics: function () {

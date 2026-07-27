@@ -70,6 +70,8 @@ interface QuranRepeatSelection {
   mode: QuranRepeatMode;
   startAyah: number;
   endAyah: number;
+  /** How many times to play the segment before continuing on. 0 = forever. */
+  times: number;
 }
 
 export const Quran: React.FC = () => {
@@ -506,11 +508,33 @@ const useWordSync = (
   repeat: QuranRepeatSelection,
 ) => {
   const [activeAyah, setActiveAyah] = useState<number | null>(null);
+  /* Completed passes of the repeat segment, surfaced so the toolbar chip can
+     say "2/3". Set only when a loop closes — once every few seconds at most —
+     never per frame; the per-frame rule (INV: the tick writes no React state
+     except on ayah change) still holds. */
+  const [loopsDone, setLoopsDone] = useState(0);
   const lastAyahRef = useRef<number | null>(null);
   const activeWordElementRef = useRef<HTMLElement | null>(null);
   const lastLoopAtRef = useRef(0);
   // Clock multiplier for the timing values; 0 = not yet detected.
   const scaleRef = useRef(0);
+
+  /* The repeat selection is read through a ref, NOT an effect dependency.
+     When it was a dependency, every keystroke in the repeat panel's number
+     inputs tore the whole engine down — cue hidden, active word cleared,
+     clock scale re-measured — a visible flicker for typing one digit. The
+     tick reads the ref each frame instead, and this tiny effect resets the
+     loop counter whenever the target changes, which is the only part of the
+     old teardown that was actually wanted. */
+  const repeatRef = useRef(repeat);
+  const loopCountRef = useRef(0);
+  const loopArmedRef = useRef(false);
+  useEffect(() => {
+    repeatRef.current = repeat;
+    loopCountRef.current = 0;
+    loopArmedRef.current = false;
+    setLoopsDone(0);
+  }, [repeat]);
 
   useEffect(() => {
     lastAyahRef.current = null;
@@ -532,9 +556,26 @@ const useWordSync = (
 
     let frame = 0;
     let frameCount = 0;
+    /* Whether the paused-state cleanup has already run, so the paused branch
+       does one pass of DOM work and then nothing, rather than thrashing the
+       classList thirty times a second while the reader thinks. */
+    let clearedWhilePaused = false;
     const tick = () => {
       const element = audioElementHolder.current;
+      /* Paused or ended: the green word and the cue used to stay frozen on
+         the last spoken word, so a paused mushaf was indistinguishable from a
+         playing one. Clear them once; they come straight back on resume. */
+      if ((!element || element.paused) && !clearedWhilePaused) {
+        clearedWhilePaused = true;
+        activeWordElementRef.current?.classList.remove('quran-word-active');
+        activeWordElementRef.current = null;
+        if (surahId !== null) {
+          const cue = document.getElementById(`quran-cue-${surahId}`);
+          if (cue) cue.style.opacity = '0';
+        }
+      }
       if (element && !element.paused) {
+        clearedWhilePaused = false;
         if (scaleRef.current === 0 && Number.isFinite(element.duration) && element.duration > 0) {
           scaleRef.current = detectClockScale(ayahTimings, element.duration);
         }
@@ -546,20 +587,39 @@ const useWordSync = (
         let clock = element.currentTime * scaleRef.current;
         frameCount += 1;
 
-        if (repeat.mode === 'ayah' || repeat.mode === 'range') {
-          const first = ayahTimings.find((timing) => timing.ayah === repeat.startAyah);
-          const last = ayahTimings.find((timing) => timing.ayah === repeat.endAyah);
+        const repeatNow = repeatRef.current;
+        if (repeatNow.mode === 'ayah' || repeatNow.mode === 'range') {
+          const first = ayahTimings.find((timing) => timing.ayah === repeatNow.startAyah);
+          const last = ayahTimings.find((timing) => timing.ayah === repeatNow.endAyah);
           const now = performance.now();
+          /* The latch: a pass only counts after the playhead has actually
+             been INSIDE the segment. Without it, the moment the final pass
+             flows onward the end-of-segment condition stays true and the
+             counter climbs forever, once per debounce window. */
+          if (first && last && clock >= first.startMs + 120 && clock < last.endMs - 500) {
+            loopArmedRef.current = true;
+          }
           if (
             first &&
             last &&
+            loopArmedRef.current &&
             clock >= last.endMs - 45 &&
             clock > first.startMs + 120 &&
             now - lastLoopAtRef.current > 250
           ) {
             lastLoopAtRef.current = now;
-            element.currentTime = first.startMs / scaleRef.current;
-            clock = first.startMs;
+            loopArmedRef.current = false;
+            /* times = 0 means forever. Otherwise count completed passes and,
+               once the asked-for number has played, let the recitation flow
+               on past the segment instead of looping — which is what a
+               memorisation pass actually wants: repeat ayah 12 three times,
+               then continue the surah. */
+            loopCountRef.current += 1;
+            setLoopsDone(loopCountRef.current);
+            if (repeatNow.times === 0 || loopCountRef.current < repeatNow.times) {
+              element.currentTime = first.startMs / scaleRef.current;
+              clock = first.startMs;
+            }
           }
         }
 
@@ -606,9 +666,11 @@ const useWordSync = (
       activeWordElementRef.current = null;
       hideCue();
     };
-  }, [repeat, syncActive, synced, surahId]);
+    /* `repeat` is deliberately NOT here — it is read through repeatRef. See
+       the comment on repeatRef for the flicker this dependency caused. */
+  }, [syncActive, synced, surahId]);
 
-  return activeAyah;
+  return { activeAyah, loopsDone };
 };
 
 const QuranVerseWords: React.FC<{
@@ -678,6 +740,49 @@ const ToolbarPanel: React.FC<{
 const ToolbarDivider: React.FC = () => (
   <span aria-hidden="true" className="hidden h-5 w-px shrink-0 bg-border sm:block" />
 );
+
+/**
+ * An ayah-number field that lets the reader actually type.
+ *
+ * The naive controlled number input clamped on every keystroke, and
+ * `Number('')` is 0, so CLEARING the field snapped it to 1 — a two-digit ayah
+ * could literally not be typed. The draft lives here as a string; the clamp
+ * and the commit happen on blur or Enter — when the reader has said what they
+ * mean — and an emptied field reverts to the last committed value.
+ */
+const AyahField: React.FC<{
+  value: number;
+  max: number;
+  label: string;
+  onCommit: (value: number) => void;
+}> = ({ value, max, label, onCommit }) => {
+  const [draft, setDraft] = useState<string | null>(null);
+
+  const commit = (raw: string) => {
+    setDraft(null);
+    if (raw.trim() === '') return; // an emptied field reverts, never snaps to 1
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return;
+    onCommit(Math.min(Math.max(Math.round(parsed), 1), max));
+  };
+
+  return (
+    <input
+      type="number"
+      min={1}
+      max={max}
+      value={draft ?? value}
+      aria-label={label}
+      title={label}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={(event) => commit(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') commit((event.target as HTMLInputElement).value);
+      }}
+      className="field-quiet w-16 py-1 text-center text-[11px] tabular-nums"
+    />
+  );
+};
 
 /**
  * The reading position: surah, the ayah currently at the top of the viewport,
@@ -766,6 +871,10 @@ const SurahReader: React.FC = () => {
   const [repeatMode, setRepeatMode] = useState<QuranRepeatMode>('off');
   const [repeatStart, setRepeatStart] = useState(1);
   const [repeatEnd, setRepeatEnd] = useState(1);
+  /* 0 = repeat forever. Any other value plays the segment that many times and
+     then lets the recitation continue — the memorisation flow. */
+  const [repeatTimes, setRepeatTimes] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
   // Only one toolbar panel is ever open, so the mushaf is never covered twice.
   const [openMenu, setOpenMenu] = useState<QuranToolbarMenu>('none');
   const programmaticScrollRef = useRef(false);
@@ -788,17 +897,39 @@ const SurahReader: React.FC = () => {
     [synced],
   );
   const repeatSelection = useMemo<QuranRepeatSelection>(
-    () => ({ mode: repeatMode, startAyah: repeatStart, endAyah: repeatEnd }),
-    [repeatEnd, repeatMode, repeatStart],
+    () => ({ mode: repeatMode, startAyah: repeatStart, endAyah: repeatEnd, times: repeatTimes }),
+    [repeatEnd, repeatMode, repeatStart, repeatTimes],
   );
-  const activeAyah = useWordSync(syncActive, synced, surah?.id ?? null, repeatSelection);
+  const { activeAyah, loopsDone } = useWordSync(
+    syncActive,
+    synced,
+    surah?.id ?? null,
+    repeatSelection,
+  );
 
   useEffect(() => {
     if (!surah) return;
     setRepeatMode('off');
     setRepeatStart(1);
     setRepeatEnd(1);
+    setRepeatTimes(0);
   }, [surah?.id]);
+
+  /* Recitation speed. Applied only while OUR station is the one playing, and
+     reset to 1 the moment it is not — the radio and the Listen tab share this
+     same element, and a 1.5x radio stream would be a bug shipped to every
+     station. The element remounts when the station changes (its key is
+     id+url), so the rate is re-applied on syncActive/url transitions. The
+     word tracker is unaffected: it reads currentTime, which runs on the same
+     accelerated clock as the audio itself. */
+  useEffect(() => {
+    const element = audioElementHolder.current;
+    if (!element) return;
+    element.playbackRate = syncActive ? playbackRate : 1;
+    return () => {
+      element.playbackRate = 1;
+    };
+  }, [playbackRate, syncActive, currentStation?.url]);
 
   useEffect(() => {
     if (!syncActive) return;
@@ -933,6 +1064,19 @@ const SurahReader: React.FC = () => {
   const clampAyah = (value: number) =>
     Math.min(Math.max(Math.round(Number.isFinite(value) ? value : 1), 1), surah.total_verses);
 
+  /* Committing a repeat target while the recitation is playing seeks to it
+     immediately. Before this, typing a new ayah number changed only the loop
+     bounds — playback stayed wherever it was until it happened to drift past
+     the segment's end, which read as the control simply not working. */
+  const seekToAyahIfPlaying = (ayah: number) => {
+    if (!syncActive || !synced) return;
+    const segment = synced.ayahTimings.find((timing) => timing.ayah === ayah);
+    if (segment) {
+      seekToTimingMs(segment.startMs);
+      setFollowPaused(false);
+    }
+  };
+
   const handleRepeatMode = (mode: QuranRepeatMode) => {
     const preferredAyah = clampAyah(
       activeAyah ?? (lastRead?.surahId === surah.id ? lastRead.verseId : repeatStart),
@@ -940,9 +1084,11 @@ const SurahReader: React.FC = () => {
     if (mode === 'ayah') {
       setRepeatStart(preferredAyah);
       setRepeatEnd(preferredAyah);
+      seekToAyahIfPlaying(preferredAyah);
     } else if (mode === 'range') {
       setRepeatStart(Math.min(repeatStart, repeatEnd));
       setRepeatEnd(Math.max(repeatStart, repeatEnd));
+      seekToAyahIfPlaying(Math.min(repeatStart, repeatEnd));
     }
     setRepeatMode(mode);
   };
@@ -974,6 +1120,22 @@ const SurahReader: React.FC = () => {
     { mode: 'range', label: t('quranRepeatRange') },
     { mode: 'surah', label: t('quranRepeatSurah') },
   ];
+  /* "ayah 12 · 2/3" — the live summary of what repeat is doing. Null when off,
+     which is what hides the chip. loopsDone can exceed times briefly on the
+     final pass, so it is clamped for display. */
+  const repeatChip = (() => {
+    if (repeatMode === 'off') return null;
+    if (repeatMode === 'surah') return t('quranRepeatSurah');
+    const target =
+      repeatMode === 'ayah'
+        ? `${t('quranAyah')} ${repeatStart}`
+        : `${repeatStart}–${repeatEnd}`;
+    const progress =
+      repeatTimes === 0
+        ? '∞'
+        : `${Math.min(loopsDone + 1, repeatTimes)}/${repeatTimes}`;
+    return `${target} · ${progress}`;
+  })();
 
   return (
     <div>
@@ -1000,8 +1162,8 @@ const SurahReader: React.FC = () => {
                 type="button"
                 onClick={() => (syncActive ? togglePlay() : void handlePlaySurah())}
                 disabled={preparingAudio}
-                title={t('quranPlaySurah')}
-                aria-label={t('quranPlaySurah')}
+                title={syncPlaying ? t('pause') : t('quranPlaySurah')}
+                aria-label={syncPlaying ? t('pause') : t('quranPlaySurah')}
                 className="group inline-flex items-center gap-2 py-1 text-xs font-medium text-text-primary transition-colors hover:text-accent-gold disabled:opacity-60 motion-reduce:transition-none"
               >
                 {/* The page's one primary action, so it gets a transport ring
@@ -1031,12 +1193,22 @@ const SurahReader: React.FC = () => {
                 onClick={() => toggleMenu('repeat')}
                 aria-haspopup="dialog"
                 aria-expanded={openMenu === 'repeat'}
-                title={t('quranRepeat')}
-                aria-label={t('quranRepeat')}
-                className={`icon-btn h-7 w-7 ${repeatMode === 'off' ? '' : 'text-text-primary'}`}
+                aria-pressed={repeatMode !== 'off'}
+                title={repeatChip ? `${t('quranRepeat')} · ${repeatChip}` : t('quranRepeat')}
+                aria-label={repeatChip ? `${t('quranRepeat')} · ${repeatChip}` : t('quranRepeat')}
+                className={`icon-btn h-7 w-7 ${repeatMode === 'off' ? '' : 'text-accent-gold'}`}
               >
                 <Repeat className="h-3.5 w-3.5" />
               </button>
+              {/* The chip: repeat state used to live only inside the popover,
+                  signalled outside it by a 14px icon changing colour. A
+                  memorisation session runs for minutes — what it repeats and
+                  how far through it is belongs on the toolbar. */}
+              {repeatChip && (
+                <span className="rounded-full border border-accent-gold/25 bg-accent-gold/10 px-2 py-0.5 text-[10px] font-medium leading-none text-accent-gold">
+                  <bdi>{repeatChip}</bdi>
+                </span>
+              )}
               {openMenu === 'repeat' && (
                 <ToolbarPanel label={t('quranRepeat')} onClose={closeMenu}>
                       <div className="rule-list" role="radiogroup" aria-label={t('quranRepeat')}>
@@ -1056,55 +1228,98 @@ const SurahReader: React.FC = () => {
                         ))}
                       </div>
                       {repeatMode === 'ayah' && (
-                        <label className="mt-2 flex items-center justify-between gap-2 px-0.5 text-[11px] text-muted-text">
+                        <div className="mt-2 flex items-center justify-between gap-2 px-0.5 text-[11px] text-muted-text">
                           {t('quranAyah')}
-                          <input
-                            type="number"
-                            min={1}
-                            max={surah.total_verses}
+                          <AyahField
                             value={repeatStart}
-                            onChange={(event) => {
-                              const next = clampAyah(Number(event.target.value));
+                            max={surah.total_verses}
+                            label={t('quranAyah')}
+                            onCommit={(next) => {
                               setRepeatStart(next);
                               setRepeatEnd(next);
+                              seekToAyahIfPlaying(next);
                             }}
-                            className="field-quiet w-16 py-1 text-center text-[11px] tabular-nums"
-                          />
-                        </label>
-                      )}
-                      {repeatMode === 'range' && (
-                        <div className="mt-2 flex items-center justify-between gap-1.5 px-0.5 text-[11px] text-muted-text">
-                          <input
-                            type="number"
-                            min={1}
-                            max={surah.total_verses}
-                            value={repeatStart}
-                            aria-label={t('quranRepeatFrom')}
-                            title={t('quranRepeatFrom')}
-                            onChange={(event) => {
-                              const next = clampAyah(Number(event.target.value));
-                              setRepeatStart(next);
-                              if (next > repeatEnd) setRepeatEnd(next);
-                            }}
-                            className="field-quiet w-16 py-1 text-center text-[11px] tabular-nums"
-                          />
-                          <span aria-hidden="true">–</span>
-                          <input
-                            type="number"
-                            min={1}
-                            max={surah.total_verses}
-                            value={repeatEnd}
-                            aria-label={t('quranRepeatTo')}
-                            title={t('quranRepeatTo')}
-                            onChange={(event) => {
-                              const next = clampAyah(Number(event.target.value));
-                              setRepeatEnd(next);
-                              if (next < repeatStart) setRepeatStart(next);
-                            }}
-                            className="field-quiet w-16 py-1 text-center text-[11px] tabular-nums"
                           />
                         </div>
                       )}
+                      {repeatMode === 'range' && (
+                        <div className="mt-2 flex items-center justify-between gap-1.5 px-0.5 text-[11px] text-muted-text">
+                          <AyahField
+                            value={repeatStart}
+                            max={surah.total_verses}
+                            label={t('quranRepeatFrom')}
+                            onCommit={(next) => {
+                              setRepeatStart(next);
+                              if (next > repeatEnd) setRepeatEnd(next);
+                              seekToAyahIfPlaying(next);
+                            }}
+                          />
+                          <span aria-hidden="true">–</span>
+                          <AyahField
+                            value={repeatEnd}
+                            max={surah.total_verses}
+                            label={t('quranRepeatTo')}
+                            onCommit={(next) => {
+                              setRepeatEnd(next);
+                              if (next < repeatStart) setRepeatStart(next);
+                            }}
+                          />
+                        </div>
+                      )}
+                      {/* How many passes. Off (infinite) or a count — after the
+                          count, the recitation flows on. Hidden for surah mode,
+                          which loops the file itself. */}
+                      {(repeatMode === 'ayah' || repeatMode === 'range') && (
+                        <div className="mt-2 px-0.5">
+                          <p className="mb-1 text-[10px] uppercase tracking-[0.12em] text-text-faint">
+                            {t('quranRepeatTimes')}
+                          </p>
+                          <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={t('quranRepeatTimes')}>
+                            {[0, 2, 3, 5, 10].map((count) => (
+                              <button
+                                key={count}
+                                type="button"
+                                role="radio"
+                                aria-checked={repeatTimes === count}
+                                onClick={() => setRepeatTimes(count)}
+                                className={`rounded-full border px-2 py-0.5 text-[11px] tabular-nums transition-colors motion-reduce:transition-none ${
+                                  repeatTimes === count
+                                    ? 'border-accent-gold/60 bg-accent-gold/15 text-accent-gold'
+                                    : 'border-border text-muted-text hover:text-text-primary'
+                                }`}
+                              >
+                                {count === 0 ? '∞' : `${count}×`}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {/* Recitation speed. Pitch is preserved by the platform
+                          default; the word tracker reads the same accelerated
+                          clock, so sync holds at every rate. */}
+                      <div className="mt-2 border-t border-border pt-2 px-0.5">
+                        <p className="mb-1 text-[10px] uppercase tracking-[0.12em] text-text-faint">
+                          {t('playbackSpeed')}
+                        </p>
+                        <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={t('playbackSpeed')}>
+                          {[0.75, 1, 1.25, 1.5].map((rate) => (
+                            <button
+                              key={rate}
+                              type="button"
+                              role="radio"
+                              aria-checked={playbackRate === rate}
+                              onClick={() => setPlaybackRate(rate)}
+                              className={`rounded-full border px-2 py-0.5 text-[11px] tabular-nums transition-colors motion-reduce:transition-none ${
+                                playbackRate === rate
+                                  ? 'border-accent-gold/60 bg-accent-gold/15 text-accent-gold'
+                                  : 'border-border text-muted-text hover:text-text-primary'
+                              }`}
+                            >
+                              {rate}×
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                 </ToolbarPanel>
               )}
             </div>

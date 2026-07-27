@@ -2909,6 +2909,25 @@
     scroll-snap-type: x proximity;
     scroll-padding-inline: var(--s1);
     padding-block-end: var(--s2);
+    /* Edge fade: cards dissolve at the rail's ends rather than being
+       guillotined by the container edge. A mask applies to the whole
+       subtree, which here is exactly right — the fade IS the affordance
+       that more cards exist beyond the fold. Kept narrow (2rem) so the
+       first card loses only its outer sliver at rest. */
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      transparent,
+      black 2rem,
+      black calc(100% - 2rem),
+      transparent
+    );
+    mask-image: linear-gradient(
+      90deg,
+      transparent,
+      black 2rem,
+      black calc(100% - 2rem),
+      transparent
+    );
     /* Overlay scrollbars: a rail that reserves 15px of layout for a scrollbar
        loses a card edge at every breakpoint. */
     scrollbar-width: none;
@@ -3893,6 +3912,36 @@
   /* ── Command palette ────────────────────────────────────────────────────
      Ctrl+K. Sits above everything including the title bar, because it is the
      one surface that owns the whole interaction while it is open. */
+  /* ── The graded scrim ───────────────────────────────────────────────────
+     Every modal used to drop a flat bg-black/60 + blur-sm pane — a grey
+     sheet. A shadow in a real room is not uniform: it deepens toward the
+     centre of attention and the blur underneath it is strongest where the
+     dialog sits. Two layers approximate that ramp: the element carries the
+     base blur and a radial darkening, its ::before carries a heavier blur
+     masked to the middle band where the dialog lives. Neutral shade tokens
+     only — a scrim is a shadow cast over the app, not a themed surface. */
+  .scrim {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      120% 100% at 50% 38%,
+      rgb(var(--shade-rgb) / 0.42),
+      rgb(var(--shade-rgb) / 0.68)
+    );
+    backdrop-filter: blur(6px) saturate(112%);
+    -webkit-backdrop-filter: blur(6px) saturate(112%);
+  }
+
+  .scrim::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    -webkit-mask-image: radial-gradient(90% 70% at 50% 40%, black, transparent 78%);
+    mask-image: radial-gradient(90% 70% at 50% 40%, black, transparent 78%);
+  }
+
   .palette-scrim {
     position: fixed;
     inset: 0;
@@ -3900,8 +3949,13 @@
     display: flex;
     justify-content: center;
     padding-top: 12vh;
-    background: rgb(var(--shade-rgb) / 0.55);
-    backdrop-filter: blur(3px);
+    background: linear-gradient(
+      180deg,
+      rgb(var(--shade-rgb) / 0.62),
+      rgb(var(--shade-rgb) / 0.48) 40%,
+      rgb(var(--shade-rgb) / 0.58)
+    );
+    backdrop-filter: blur(10px) saturate(112%);
     -webkit-backdrop-filter: blur(3px);
     animation: palette-scrim-in var(--dur-fast) var(--ease-out) both;
   }
@@ -4029,6 +4083,25 @@
       transparent
     );
     pointer-events: none;
+  }
+
+  /* The progressive blur — content approaching the dock softens before it
+     passes underneath, instead of being cut by a frosted edge. A pseudo
+     hanging above the dock's top edge carries a masked backdrop blur whose
+     strength fades to nothing over ~5rem; with the dock's own heavy blur it
+     reads as a continuous depth-of-field ramp. Pointer-events none: it is
+     air, not chrome. */
+  .player-dock::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    bottom: 100%;
+    height: 5.5rem;
+    pointer-events: none;
+    backdrop-filter: blur(5px) saturate(112%);
+    -webkit-backdrop-filter: blur(5px) saturate(112%);
+    -webkit-mask-image: linear-gradient(to top, black 18%, transparent);
+    mask-image: linear-gradient(to top, black 18%, transparent);
   }
 
   @keyframes dock-in {

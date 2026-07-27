@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import {
   AlertTriangle,
+  BookOpen,
   ChevronDown,
   ChevronUp,
   Loader2,
@@ -49,6 +50,12 @@ export const RadioMiniPlayer: React.FC = () => {
     () => localStorage.getItem('salafi-hub.player-collapsed') === '1',
   );
   const seekable = Number.isFinite(duration) && duration > 0;
+  /* Recitation plays through this same dock, but it is not a radio station
+     and must not be dressed as one: a mushaf next to a "Live" pip and a
+     RadioTower icon reads as the app not knowing what it is playing. The
+     station id is the discriminator the Qur'an page already keys on. */
+  const isQuran = Boolean(current?.id.startsWith('quran-'));
+  const isQuranSync = Boolean(current?.id.startsWith('quran-sync-'));
 
   const setCollapsedPersisted = (value: boolean) => {
     setCollapsed(value);
@@ -225,7 +232,11 @@ export const RadioMiniPlayer: React.FC = () => {
 
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 text-xs font-semibold text-text-primary">
-            <RadioTower className="h-3.5 w-3.5 shrink-0 text-primary-blue" />
+            {isQuran ? (
+              <BookOpen className="h-3.5 w-3.5 shrink-0 text-accent-gold" />
+            ) : (
+              <RadioTower className="h-3.5 w-3.5 shrink-0 text-primary-blue" />
+            )}
             <span className="truncate" title={current.name}>{current.name}</span>
           </p>
           {playbackError ? (
@@ -264,6 +275,7 @@ export const RadioMiniPlayer: React.FC = () => {
               value={volume}
               onChange={(event) => setVolume(Number(event.target.value))}
               className="range-quiet w-14"
+              aria-label={t('volume')}
               style={{ '--fill': volume } as React.CSSProperties}
               title={t('volume')}
             />
@@ -283,6 +295,7 @@ export const RadioMiniPlayer: React.FC = () => {
             />
           </div>
 
+          {!isQuranSync && (
           <button
             type="button"
             onClick={toggleLooping}
@@ -297,6 +310,7 @@ export const RadioMiniPlayer: React.FC = () => {
           >
             <Repeat className="h-4 w-4" />
           </button>
+          )}
 
           <button
             type="button"
@@ -334,6 +348,8 @@ export const RadioMiniPlayer: React.FC = () => {
               if (audio) audio.currentTime = Number(event.target.value);
             }}
             className="range-quiet min-w-0 flex-1"
+            aria-label={t('playingNow')}
+            title={t('playingNow')}
             style={{ '--fill': duration ? (Math.min(position, duration) / duration) * 100 : 0 } as React.CSSProperties}
           />
           <span className="w-10 text-[10px] tabular-nums text-muted-text" dir="ltr">
