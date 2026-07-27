@@ -8,6 +8,7 @@ import { useAppStore } from '@/store/appStore';
 import { useQuranStore } from '@/store/quranStore';
 import { formatTime } from '@/utils/formatTime';
 import { LocalThumbnail } from '@/components/ui/LocalThumbnail';
+import { Tilt } from '@/components/ui/Tilt';
 import { useI18n } from '@/i18n';
 
 /* The fallback has to go on LocalThumbnail's own element, not on the wrapper:
@@ -117,6 +118,7 @@ export const HeroFeature: React.FC = () => {
   };
 
   return (
+    <Tilt max={3}>
     <section className="hero-feature glass glow-edge p-4 sm:p-6">
       <div className="jadwal" aria-hidden="true" />
 
@@ -183,6 +185,7 @@ export const HeroFeature: React.FC = () => {
         </div>
       </div>
     </section>
+    </Tilt>
   );
 };
 

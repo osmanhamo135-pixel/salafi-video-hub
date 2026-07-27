@@ -117,7 +117,7 @@ export const Dashboard: React.FC = () => {
         <ContinueWatching />
 
         {/* One figure at display scale; everything else is caption. */}
-        <section className="mt-16">
+        <section className="reveal mt-16">
           <div className="mb-8 border-b border-border pb-3">
             <h2 className={eyebrow}>{t('libraryAtAGlance')}</h2>
           </div>

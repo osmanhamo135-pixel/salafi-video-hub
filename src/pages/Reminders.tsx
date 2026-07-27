@@ -185,7 +185,7 @@ export const Reminders: React.FC = () => {
         </div>
 
         {!showInitialLoading && reminders.length > 0 && (
-          <div className="mb-6 grid gap-x-10 md:grid-cols-3">
+          <div className="reveal mb-6 grid gap-x-10 md:grid-cols-3">
             <ReminderMetric icon={Bell} label={t('activeReminders')} value={activeCount.toLocaleString()} />
             <ReminderMetric icon={Clock} label={t('nextDue')} value={nextDueLabel} />
             <ReminderMetric icon={AlertTriangle} label={t('brokenTargets')} value={brokenReminders.length.toLocaleString()} tone={brokenReminders.length > 0 ? 'warning' : 'normal'} />
@@ -228,7 +228,7 @@ export const Reminders: React.FC = () => {
 
         {/* Reminders List */}
         {!showInitialLoading && reminders.length > 0 && (
-          <div className="rule-list">
+          <div className="reveal rule-list">
             {sortedReminders.map((reminder) => (
               <ReminderCard
                 key={reminder.id}

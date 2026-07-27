@@ -96,7 +96,7 @@ export const ContinueWatching: React.FC = () => {
     /* The most useful thing on the page, so it is the first thing after the
        masthead and the only place below the hero that carries an image at
        size. Everything under it is deliberately quieter. */
-    <section className="mt-9">
+    <section className="reveal mt-9">
       <div className="mb-5 flex items-baseline justify-between gap-4 border-b border-border pb-3">
         <h2 className={eyebrow}>{t('continueWatching')}</h2>
         {!loading && items.length > 0 && (

@@ -150,7 +150,7 @@ export const Downloads: React.FC = () => {
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <section>
+          <section className="reveal">
             <div className="space-y-1">
               <Field label={t('youtubeUrl')} icon={Link}>
                 <input
@@ -388,7 +388,7 @@ const DownloadBatchCard: React.FC<{
   const remaining = Math.max(result.downloadedFiles.length - 1, 0);
 
   return (
-    <div className="glass overflow-hidden rounded-lg">
+    <div className="reveal glass overflow-hidden rounded-lg">
       <div className="relative aspect-video bg-elevated-panel">
         <LocalThumbnail
           path={result.previewThumbnailPath}
