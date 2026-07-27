@@ -69,7 +69,7 @@
     get_quran_synced_audio: function (a) {
       // Deterministic 4s-per-ayah timings for whatever surah is asked for.
       var surah = (F.surahMeta || []).find(function (s) { return s.id === (a && a.surahId); });
-      var verses = surah ? surah.total_verses : 7;
+      var verses = surah ? surah.totalVerses : 7;
       var ayahTimings = [];
       var wordTimings = [];
       var wordsByAyah = [];
@@ -84,7 +84,6 @@
       }
       return { audioUrl: 'https://example.invalid/afasy/' + (a && a.surahId) + '.mp3', ayahTimings: ayahTimings, wordTimings: wordTimings, wordsByAyah: wordsByAyah };
     },
-    get_quran_synced_audio: function () { return null; },
     get_ffmpeg_status: function () { return { status: 'bundled', ffmpegPath: null, ffprobePath: null }; },
     get_diagnostics: function () {
       return {
