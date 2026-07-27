@@ -592,7 +592,7 @@ export const Library: React.FC = () => {
             <PlaylistGridSkeleton rows={2} />
           </div>
         ) : playlists.length > 0 && filteredPlaylists.length === 0 ? (
-          <div className="flex flex-col items-center rounded-xl border border-border bg-panel/40 px-6 py-16 text-center">
+          <div className="empty-panel flex flex-col items-center rounded-xl border border-border px-6 py-16 text-center">
             <SearchX className="h-7 w-7 text-text-faint" />
             <p className="mt-5 text-lg font-semibold tracking-[-0.01em] text-text-primary">{t('noPlaylistsMatch')}</p>
             <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-text">{t('switchFilters')}</p>

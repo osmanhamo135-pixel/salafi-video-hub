@@ -131,7 +131,7 @@ const LibraryEmptyState: React.FC<{ onImportFolder?: () => void }> = ({ onImport
   const { t } = useI18n();
 
   return (
-    <div className="flex flex-col items-center overflow-hidden rounded-xl border border-border bg-panel/40 px-6 py-16 text-center">
+    <div className="empty-panel flex flex-col items-center rounded-xl border border-border px-6 py-16 text-center">
       <div className="relative h-28 w-44 overflow-hidden rounded-lg border border-border">
         <PlaylistArt seed="library-empty" name="" dense />
       </div>
