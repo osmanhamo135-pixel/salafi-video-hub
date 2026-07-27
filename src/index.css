@@ -787,9 +787,24 @@
     text-rendering: geometricPrecision;
   }
 
+  /* The reading controls. Glass is legitimate here and only here on this
+     route: the toolbar is sticky chrome that content scrolls *under*, which is
+     precisely the transient-surface case translucency exists for.
+
+     It stays off .quran-reading-surface and .quran-reading-frame. Those sit
+     behind Qur'anic text, and a blur there would mean the mushaf was being
+     read through a treated pane. The frame keeps its opaque plane. */
   .quran-toolbar {
-    background: rgb(var(--bg-main-rgb));
+    background: rgb(var(--bg-main-rgb) / 0.78);
+    backdrop-filter: blur(16px) saturate(126%);
+    -webkit-backdrop-filter: blur(16px) saturate(126%);
     border-bottom: 1px solid var(--hair);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .quran-toolbar {
+      background: rgb(var(--bg-main-rgb));
+    }
   }
 
   /* Mushaf-style Quranic script (Amiri Quran with graceful fallbacks). */
