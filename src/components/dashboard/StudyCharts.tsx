@@ -1,27 +1,35 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { Video } from '@/types';
 import { useAppStore } from '@/store/appStore';
 import { useI18n } from '@/i18n';
 
 /**
- * Study activity, drawn from the library rather than from a chart library.
+ * Study activity, drawn from the library the user already has.
  *
  * Two figures a student of knowledge actually checks: how much they have been
  * studying lately, and whether the habit is unbroken. Both are computed from
- * `lastPlayedAt` on the videos already in the database — no new command, no
- * new table, no telemetry.
+ * `lastPlayedAt` on videos already in the database — no new command, no new
+ * table, no telemetry.
  *
  * Honest limitation, stated because the shape of the data invites a wrong
  * reading: `lastPlayedAt` records only the MOST RECENT play of each video, so
- * a video studied on four separate days contributes to one day, not four.
- * These are therefore "lessons touched per day", not "minutes watched per
- * day", and the label says so. A truthful weaker statistic beats an
- * impressive invented one.
+ * a lesson studied on four separate days contributes to one day, not four.
+ * These are "lessons you returned to, by day", not "minutes watched", and the
+ * caption says so. A truthful weaker statistic beats an impressive invented one.
  *
- * Everything is SVG built from theme tokens: one accent, no second hue, no
- * gradients on text, and no fixed colour anywhere — so it recolours across all
- * ten themes with no per-theme code, and it renders identically on Pearl.
+ * Every colour is `rgb(var(--token))`, which the browser resolves per theme —
+ * so recharts recolours across all ten themes with no per-theme code and no
+ * JS reading computed styles.
  */
 
 const DAYS = 28;
@@ -35,8 +43,8 @@ const startOfDay = (ms: number) => {
 
 interface Bucket {
   day: number;
+  label: string;
   count: number;
-  seconds: number;
 }
 
 export const StudyCharts: React.FC = () => {
@@ -65,14 +73,22 @@ export const StudyCharts: React.FC = () => {
     };
   }, [importRefreshVersion, progressRefreshVersion]);
 
-  const { buckets, streak, totalDays, busiest } = useMemo(() => {
+  const fmtDay = useMemo(
+    () =>
+      new Intl.DateTimeFormat(language === 'ar' ? 'ar' : 'en', {
+        day: 'numeric',
+        month: 'short',
+      }),
+    [language],
+  );
+
+  const { buckets, streak, totalDays, peak } = useMemo(() => {
     const today = startOfDay(Date.now());
-    const empty: Bucket[] = Array.from({ length: DAYS }, (_, i) => ({
-      day: today - (DAYS - 1 - i) * DAY_MS,
-      count: 0,
-      seconds: 0,
-    }));
-    if (!videos?.length) return { buckets: empty, streak: 0, totalDays: 0, busiest: 0 };
+    const empty: Bucket[] = Array.from({ length: DAYS }, (_, i) => {
+      const day = today - (DAYS - 1 - i) * DAY_MS;
+      return { day, label: fmtDay.format(day), count: 0 };
+    });
+    if (!videos?.length) return { buckets: empty, streak: 0, totalDays: 0, peak: 1 };
 
     const index = new Map(empty.map((b, i) => [b.day, i]));
     for (const v of videos) {
@@ -80,10 +96,9 @@ export const StudyCharts: React.FC = () => {
       const slot = index.get(startOfDay(v.lastPlayedAt));
       if (slot === undefined) continue;
       empty[slot].count += 1;
-      empty[slot].seconds += v.progressSeconds;
     }
 
-    // Streak runs back from today; a gap today alone does not break it, since
+    // The streak runs back from today. A gap today alone does not break it —
     // the day is still in progress.
     let run = 0;
     for (let i = empty.length - 1; i >= 0; i -= 1) {
@@ -95,25 +110,11 @@ export const StudyCharts: React.FC = () => {
       buckets: empty,
       streak: run,
       totalDays: empty.filter((b) => b.count > 0).length,
-      busiest: Math.max(...empty.map((b) => b.count)),
+      peak: Math.max(1, ...empty.map((b) => b.count)),
     };
-  }, [videos]);
+  }, [videos, fmtDay]);
 
   if (videos === null) return <ChartsSkeleton />;
-
-  const peak = Math.max(busiest, 1);
-  const W = 100;
-  const H = 30;
-  const step = W / (DAYS - 1);
-
-  // A closed area path plus its top line. Rendered in a normalised viewBox and
-  // stretched, so it stays crisp at any container width without measuring.
-  const points = buckets.map((b, i) => [i * step, H - (b.count / peak) * H] as const);
-  const line = points.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(2)},${y.toFixed(2)}`).join(' ');
-  const area = `${line} L${W},${H} L0,${H} Z`;
-
-  const fmtDay = (ms: number) =>
-    new Intl.DateTimeFormat(language === 'ar' ? 'ar' : 'en', { day: 'numeric', month: 'short' }).format(ms);
 
   return (
     <section className="mt-9">
@@ -133,7 +134,6 @@ export const StudyCharts: React.FC = () => {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,17rem)]">
-        {/* Activity over time. */}
         <div className="glass glow-edge p-5">
           <div className="flex items-baseline gap-3">
             <p className="text-4xl font-semibold leading-none tabular-nums text-text-primary">
@@ -142,41 +142,76 @@ export const StudyCharts: React.FC = () => {
             <p className="text-sm text-muted-text">{t('daysStudied')}</p>
           </div>
 
-          <svg
-            viewBox={`0 0 ${W} ${H}`}
-            preserveAspectRatio="none"
-            className="mt-5 h-24 w-full"
-            role="img"
-            aria-label={t('studyActivityChartLabel')}
-          >
-            <defs>
-              {/* Token-derived, so the fill follows the theme accent. The
-                  gradient is on the AREA, never on text. */}
-              <linearGradient id="study-area" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="rgb(var(--accent-gold-rgb))" stopOpacity="0.30" />
-                <stop offset="100%" stopColor="rgb(var(--accent-gold-rgb))" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <path d={area} fill="url(#study-area)" />
-            <path
-              d={line}
-              fill="none"
-              stroke="rgb(var(--accent-gold-rgb))"
-              strokeWidth="0.7"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              vectorEffect="non-scaling-stroke"
-            />
-          </svg>
+          <div className="mt-5 h-32 w-full" role="img" aria-label={t('studyActivityChartLabel')}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={buckets} margin={{ top: 6, right: 4, bottom: 0, left: 4 }}>
+                <defs>
+                  {/* Token-derived, so the fill follows the active theme's
+                      accent. The gradient is on the AREA, never on text. */}
+                  <linearGradient id="study-area" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="rgb(var(--accent-gold-rgb))" stopOpacity={0.34} />
+                    <stop offset="100%" stopColor="rgb(var(--accent-gold-rgb))" stopOpacity={0} />
+                  </linearGradient>
+                  {/* The "glowing stroke": the line drawn twice, once blurred
+                      underneath. A filter on a 28-point path is cheap; a
+                      filter on a full-screen surface would not be. */}
+                  <filter id="study-glow" x="-20%" y="-40%" width="140%" height="200%">
+                    <feGaussianBlur stdDeviation="2.4" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+
+                <CartesianGrid
+                  vertical={false}
+                  stroke="rgb(var(--sheen-rgb) / 0.06)"
+                  strokeDasharray="0"
+                />
+                <XAxis dataKey="label" hide />
+                <YAxis hide domain={[0, peak]} />
+                <Tooltip
+                  cursor={{ stroke: 'rgb(var(--accent-gold-rgb) / 0.35)', strokeWidth: 1 }}
+                  contentStyle={{
+                    background: 'rgb(var(--bg-panel-rgb) / 0.94)',
+                    border: '1px solid rgb(var(--hair-rgb) / 0.22)',
+                    borderRadius: 'var(--r-md)',
+                    fontSize: 12,
+                    color: 'rgb(var(--text-main-rgb))',
+                    backdropFilter: 'blur(12px)',
+                  }}
+                  labelStyle={{ color: 'rgb(var(--text-muted-rgb))' }}
+                  formatter={(value) => [String(value ?? 0), t('lessonsTouched')] as [string, string]}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="count"
+                  stroke="rgb(var(--accent-gold-rgb))"
+                  strokeWidth={2}
+                  fill="url(#study-area)"
+                  filter="url(#study-glow)"
+                  isAnimationActive={false}
+                  activeDot={{
+                    r: 3.5,
+                    fill: 'rgb(var(--accent-gold-rgb))',
+                    stroke: 'rgb(var(--bg-main-rgb))',
+                    strokeWidth: 2,
+                  }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
 
           <div className="mt-2 flex justify-between text-[10px] tabular-nums text-text-faint">
-            <bdi>{fmtDay(buckets[0].day)}</bdi>
-            <bdi>{fmtDay(buckets[buckets.length - 1].day)}</bdi>
+            <bdi>{buckets[0].label}</bdi>
+            <bdi>{buckets[buckets.length - 1].label}</bdi>
           </div>
           <p className="mt-3 text-xs text-muted-text">{t('studyActivityCaption')}</p>
         </div>
 
-        {/* The streak, and the same 28 days as a calendar band. */}
+        {/* The streak. A heatmap, not a chart — recharts has no calendar and
+            faking one from a scatter costs more than 20 lines of grid. */}
         <div className="glass glow-edge p-5">
           <div className="flex items-baseline gap-3">
             <p className="text-4xl font-semibold leading-none tabular-nums text-accent-gold">
@@ -195,7 +230,7 @@ export const StudyCharts: React.FC = () => {
               return (
                 <span
                   key={b.day}
-                  title={`${fmtDay(b.day)} · ${b.count}`}
+                  title={`${b.label} · ${b.count}`}
                   className="aspect-square rounded-[3px]"
                   style={{
                     background:
