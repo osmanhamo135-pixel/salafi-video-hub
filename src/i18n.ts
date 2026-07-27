@@ -6,6 +6,8 @@ const dictionaries = {
   en: {
     navGroupStudy: 'Study',
     navGroupManage: 'Manage',
+    sidebarCollapse: 'Collapse sidebar',
+    sidebarExpand: 'Expand sidebar',
     navDashboard: 'Dashboard',
     navLibrary: 'Library',
     navReminders: 'Reminders',
@@ -581,6 +583,8 @@ const dictionaries = {
   ar: {
     navGroupStudy: 'الدراسة',
     navGroupManage: 'الإدارة',
+    sidebarCollapse: 'طيّ الشريط الجانبي',
+    sidebarExpand: 'توسيع الشريط الجانبي',
     navDashboard: 'الرئيسية',
     navLibrary: 'المكتبة',
     navReminders: 'التذكيرات',

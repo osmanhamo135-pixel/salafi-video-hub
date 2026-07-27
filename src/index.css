@@ -799,11 +799,14 @@
     background: rgb(var(--accent-gold-rgb) / 0.3);
   }
   
-  /* App scrollbars: quiet sheen, not accent — a scrollbar is chrome, and an
-     accent-coloured one competed with every real accent on the page. */
+  /* App scrollbars: a floating pill, not a gutter. The 3px transparent
+     border with background-clip keeps the thumb off the window edge so it
+     reads as an overlay rather than a docked bar. Resting state is quiet
+     sheen — a scrollbar is chrome — but the hover answers in the accent,
+     the same brighten-on-touch contract every other control keeps. */
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 11px;
+    height: 11px;
   }
 
   ::-webkit-scrollbar-track {
@@ -811,12 +814,22 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgb(var(--sheen-rgb) / 0.14);
-    border-radius: 5px;
+    background: rgb(var(--sheen-rgb) / 0.22);
+    border: 3px solid transparent;
+    background-clip: padding-box;
+    border-radius: 999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgb(var(--sheen-rgb) / 0.3);
+    background-color: rgb(var(--accent-gold-rgb) / 0.45);
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background-color: rgb(var(--accent-gold-rgb) / 0.6);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
   }
 
   /* The mushaf's reading viewport keeps exactly the treatment it always had —
@@ -2299,7 +2312,7 @@
   .premium-surface {
     border: 1px solid transparent;
     background:
-      radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.08), transparent 56%) padding-box,
+      radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.11), transparent 56%) padding-box,
       var(--fill-1) padding-box,
       var(--edge-1) border-box;
     box-shadow: var(--elev-1);
@@ -2308,7 +2321,7 @@
   .surface-2 {
     border: 1px solid transparent;
     background:
-      radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.10), transparent 56%) padding-box,
+      radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.14), transparent 56%) padding-box,
       var(--fill-2) padding-box,
       var(--edge-2) border-box;
     box-shadow: var(--elev-2);
@@ -2322,7 +2335,7 @@
   html[data-theme='pearl'] .surface-1,
   html[data-theme='pearl'] .premium-surface {
     background:
-      radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.04), transparent 56%) padding-box,
+      radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.05), transparent 56%) padding-box,
       var(--fill-1) padding-box,
       var(--edge-1) border-box;
   }
@@ -2669,7 +2682,7 @@
     /* The same interior accent glow the surface ladder carries — the Study
        Activity treatment, everywhere a card is glass. */
     background:
-      radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.10), transparent 56%),
+      radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.14), transparent 56%),
       rgb(var(--bg-card-rgb) / 0.55);
     backdrop-filter: blur(18px) saturate(132%);
     -webkit-backdrop-filter: blur(18px) saturate(132%);
@@ -3046,7 +3059,7 @@
   @supports not (backdrop-filter: blur(1px)) {
     .glass {
       background:
-        radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.10), transparent 56%),
+        radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.14), transparent 56%),
         rgb(var(--bg-card-rgb));
     }
   }
@@ -3080,6 +3093,72 @@
     background: rgb(var(--bg-sidebar-rgb) / 0.62);
     backdrop-filter: blur(26px) saturate(140%);
     -webkit-backdrop-filter: blur(26px) saturate(140%);
+  }
+
+  /* ── Sidebar nav rows ──────────────────────────────────────────────────
+     Rounded rows with a quiet hover lift. The active row KEEPS the inset
+     gold marker — an inset marker and one value step, never a filled box —
+     but now seats it on a gradient pool that fades along the reading
+     direction, with a soft outward glow so the row reads as lit rather
+     than tinted. Layout is fixed LTR in both languages (App.tsx pins
+     root.dir), so the physical left edge is always the marker edge. */
+  .side-nav {
+    border-radius: var(--r-md);
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out),
+      transform var(--dur-fast) var(--ease-out);
+  }
+
+  .side-nav:hover:not(.side-nav-active) {
+    background-color: rgb(var(--bg-card-hover-rgb) / 0.55);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .side-nav:hover:not(.side-nav-active) {
+      transform: translateX(2px);
+    }
+  }
+
+  .side-nav-active {
+    background: linear-gradient(
+      90deg,
+      rgb(var(--accent-gold-rgb) / 0.16),
+      rgb(var(--accent-gold-rgb) / 0.05) 62%,
+      transparent
+    );
+    box-shadow:
+      inset 3px 0 0 rgb(var(--accent-gold-rgb)),
+      0 0 20px -8px rgb(var(--accent-gold-rgb) / 0.45);
+  }
+
+  /* The header brand block mirrors the footer's ornamental ground: the
+     khatam lattice at a whisper, faded downward so it crowns the block
+     without becoming wallpaper. */
+  .sidebar-head {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sidebar-head::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url('./assets/marks/girih.svg');
+    background-size: 96px 96px;
+    opacity: 0.05;
+    -webkit-mask-image: linear-gradient(180deg, black 0%, transparent 80%);
+    mask-image: linear-gradient(180deg, black 0%, transparent 80%);
+    pointer-events: none;
+  }
+
+  html[data-theme='pearl'] .sidebar-head::before {
+    filter: invert(1);
+    opacity: 0.07;
+  }
+
+  .sidebar-head > * {
+    position: relative;
   }
 
   /* The footer brand block sits on its own quiet ground: the khatam lattice
