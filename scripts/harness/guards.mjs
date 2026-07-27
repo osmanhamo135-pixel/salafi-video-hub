@@ -24,6 +24,36 @@ if (!existsSync(dist)) {
   process.exit(1);
 }
 
+const failures = [];
+
+/* ── Guard 0 — runs before a browser is even launched ───────────────────────
+   The CSP is `img-src 'self' asset: ... ytimg.com` with no `data:` source, and
+   background-image and mask-image are both img-src-governed. Vite's default
+   4096-byte assetsInlineLimit inlined four ornament SVGs — including both
+   jadwal bands and the corner khatam — as data: URIs, so the app's signature
+   frame was a blocked request in every packaged build.
+
+   Nothing else catches this: `tauri dev` serves real URLs and never inlines,
+   and dist/index.html has no CSP meta because Tauri injects the policy at
+   serve time, so the Playwright sweep below renders with no policy in force.
+   This is a build-artefact assertion, not a rendering one, deliberately. */
+{
+  const { readdirSync } = await import('node:fs');
+  const assets = join(dist, 'assets');
+  const cssFiles = readdirSync(assets).filter((f) => f.endsWith('.css'));
+  for (const f of cssFiles) {
+    const css = await readFile(join(assets, f), 'utf8');
+    const hits = css.match(/data:image/g) || [];
+    if (hits.length) {
+      failures.push(
+        `csp-no-data-uri[${f}]: ${hits.length} data:image URI(s) in built CSS — ` +
+          `img-src has no data: source, so these are blocked at runtime. ` +
+          `Check build.assetsInlineLimit in vite.config.ts.`,
+      );
+    }
+  }
+}
+
 const server = createServer(async (req, res) => {
   const url = (req.url || '/').split('?')[0];
   const file = join(dist, url === '/' ? 'index.html' : url);
@@ -41,7 +71,6 @@ const base = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 
 const THEMES = ['noor', 'emerald', 'pearl', 'mushaf', 'blue', 'red', 'onyx', 'mushaf-gold', 'maktabah', 'samaa'];
-const failures = [];
 
 async function open(theme, language = 'en') {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'no-preference' });

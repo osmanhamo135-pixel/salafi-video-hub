@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160">
+  <!-- Khatam: an eight-point star from two overlapping squares, with the two
+       squares themselves drawn. Pure construction, no depiction of anything.
+
+       Extracted from a hand-written data: URI in index.css. The app's CSP has
+       no `data:` source in img-src, and background-image is img-src-governed,
+       so as an inline URI this was a blocked request in every packaged build. -->
+  <g fill="none" stroke="#ffffff" stroke-width="1">
+    <path d="M80 8 L104 56 L152 80 L104 104 L80 152 L56 104 L8 80 L56 56 Z"/>
+    <rect x="34" y="34" width="92" height="92" transform="rotate(45 80 80)"/>
+    <rect x="34" y="34" width="92" height="92"/>
+  </g>
+</svg>
