@@ -27,6 +27,7 @@ import { formatBytes } from '@/utils/formatBytes';
 import { playReminderSound, stopReminderSound } from '@/utils/reminderAudio';
 import { AppLanguage, AppTheme } from '@/types';
 import { languageOptions, themeOptions, useI18n } from '@/i18n';
+import { MOTION_KEY } from '@/components/layout/AmbientLayer';
 
 interface ThumbnailBatchResult {
   generated_count: number;
@@ -106,6 +107,27 @@ export const Settings: React.FC = () => {
   const updateError = useUpdateStore((state) => state.error);
   const checkForUpdates = useUpdateStore((state) => state.checkForUpdates);
   const { t } = useI18n();
+
+  /* Presentation-only, so it lives in localStorage rather than the settings
+     row — no schema migration, no command, no round trip. Writing it reloads
+     so AmbientLayer re-resolves its tier from a single source. */
+  const [backgroundMotion, setBackgroundMotionState] = useState<'off' | 'subtle' | 'full'>(() => {
+    try {
+      const v = localStorage.getItem(MOTION_KEY);
+      return v === 'off' || v === 'full' ? v : 'subtle';
+    } catch {
+      return 'subtle';
+    }
+  });
+  const setBackgroundMotion = (value: 'off' | 'subtle' | 'full') => {
+    try {
+      localStorage.setItem(MOTION_KEY, value);
+    } catch {
+      /* private mode — the preference just does not persist */
+    }
+    setBackgroundMotionState(value);
+    window.location.reload();
+  };
 
   const [appVersion, setAppVersion] = useState('');
   const [diagnostics, setDiagnostics] = useState<DiagnosticsReport | null>(null);
@@ -612,6 +634,26 @@ export const Settings: React.FC = () => {
         <Section title={t('performance')}>
           <SettingRow label={t('performanceMode')} description={t('performanceModeDescription')}>
             <Toggle checked={settings.performanceMode} onChange={(checked) => updateSettings({ performanceMode: checked })} />
+          </SettingRow>
+          <SettingRow label={t('backgroundMotion')} description={t('backgroundMotionDescription')}>
+            <div className="segmented">
+              {(['off', 'subtle', 'full'] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  aria-pressed={backgroundMotion === option}
+                  onClick={() => setBackgroundMotion(option)}
+                >
+                  {t(
+                    option === 'off'
+                      ? 'backgroundMotionOff'
+                      : option === 'subtle'
+                        ? 'backgroundMotionSubtle'
+                        : 'backgroundMotionFull',
+                  )}
+                </button>
+              ))}
+            </div>
           </SettingRow>
         </Section>
 

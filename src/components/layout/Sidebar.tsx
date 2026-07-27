@@ -48,7 +48,11 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside 
-      className={`app-sidebar flex flex-col bg-[linear-gradient(180deg,var(--bg-sidebar)_0%,var(--bg-main)_100%)] border-e border-border transition-all duration-200 ${
+      /* relative z-[1] so the sidebar sits above the fixed ambient layer.
+         AmbientLayer is positioned at z-index 0, which paints it above
+         non-positioned in-flow siblings — without this the sidebar's own fill
+         and its group labels disappear underneath it. */
+      className={`app-sidebar sidebar-glass relative z-[1] flex flex-col border-e border-border transition-all duration-200 ${
         isPlayerOpen ? 'w-0 opacity-0 overflow-hidden' : 'w-[240px] opacity-100'
       }`}
     >

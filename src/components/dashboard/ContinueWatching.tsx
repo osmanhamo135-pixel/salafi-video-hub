@@ -67,7 +67,10 @@ export const ContinueWatching: React.FC = () => {
   const groups = useMemo(() => {
     const map = new Map<string, { title: string; items: ContinueWatchingItem[] }>();
 
-    for (const item of items) {
+    /* The first item is the featured card at the top of the route — repeating
+       it here as this section's lead put the same lesson on screen twice,
+       at size, one viewport apart. This section owns everything after it. */
+    for (const item of items.slice(1)) {
       const key = item.playlist?.id ?? item.video.folderPath ?? 'standalone';
       const title = item.playlist?.name ?? item.video.folderPath.split(/[\\/]/).filter(Boolean).pop() ?? t('standaloneVideos');
       const group = map.get(key);
@@ -83,6 +86,11 @@ export const ContinueWatching: React.FC = () => {
   }, [items]);
 
   const [lead, ...rest] = groups;
+
+  /* Everything this section could show is already on the featured card above:
+     with zero or one lesson in progress there is nothing here but an empty
+     shrug directly underneath a hero that is carrying that same lesson. */
+  if (!loading && items.length <= 1) return null;
 
   return (
     /* The most useful thing on the page, so it is the first thing after the

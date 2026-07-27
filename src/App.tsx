@@ -47,6 +47,15 @@ export default function App() {
     root.dataset.theme = theme;
   }, [settings?.language, settings?.theme]);
 
+  /* The active route, published to the document so CSS can act on it. Its one
+     job today is cutting ambient motion behind the mushaf: the rule has to
+     hold in every theme at every tier, so it belongs at the layer rather than
+     inside each generator where a future theme could forget it. */
+  useEffect(() => {
+    document.documentElement.dataset.route =
+      location.pathname === '/' ? 'dashboard' : location.pathname.replace(/^\//, '');
+  }, [location.pathname]);
+
   useEffect(() => {
     const hasUnhandledOpenRequest = playerOpenRequestId !== handledPlayerOpenRequest.current;
     if (isPlayerOpen && hasUnhandledOpenRequest) {

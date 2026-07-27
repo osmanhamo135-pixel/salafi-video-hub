@@ -1,7 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { BookOpen, Radio } from 'lucide-react';
-import { useQuranStore } from '@/store/quranStore';
 import { useI18n } from '@/i18n';
 // Outlined paths from the bundled font, in two groups so the harakat can take
 // the theme accent. See scripts/build-basmala-svg.py.
@@ -25,44 +22,26 @@ const BASMALA_TEXT = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱل�
  * shadow on the glyph itself.
  */
 export const Hero: React.FC = () => {
-  const { t, language } = useI18n();
-  const navigate = useNavigate();
-  const lastRead = useQuranStore((state) => state.lastRead);
-  const surahs = useQuranStore((state) => state.surahs);
-  const openSurah = useQuranStore((state) => state.openSurah);
-
-  const lastSurah = lastRead ? surahs.find((surah) => surah.id === lastRead.surahId) : undefined;
-  const lastSurahName = lastSurah
-    ? language === 'ar'
-      ? lastSurah.name
-      : lastSurah.transliteration
-    : null;
-
-  const openMushaf = () => navigate('/quran');
-
-  const continueReading = () => {
-    if (lastRead) void openSurah(lastRead.surahId);
-    navigate('/quran');
-  };
+  const { t } = useI18n();
 
   return (
     /* The hero already dissolves into the page through .hero-fade, so the old
        24px margin on top of that read as a gap rather than a hand-off; the
        masthead's own top margin carries the separation now. */
     <section className="hero mb-1">
-      <div className="hero-ground" aria-hidden="true" />
-      {/* Three depth bands of one room: pitch converges and blur increases with
-          distance from the key light. Separate elements rather than clipped
-          pseudo-elements so each can carry its own soft-edged mask — a hard
-          clip left a visible vertical seam where the bands met. */}
-      <div className="hero-scene" aria-hidden="true">
-        <div className="hero-band hero-band-near" />
-        <div className="hero-band hero-band-mid" />
-        <div className="hero-band hero-band-far" />
+      {/* Every paint layer lives inside .hero-clip, which owns the rounded
+          clip. .hero itself must stay overflow:visible — it is an ancestor of
+          .hero-basmala, and Qur'anic text is never clipped. */}
+      <div className="hero-clip" aria-hidden="true">
+        <div className="hero-ground" />
+        {/* The shelf scene is gone. Its three depth bands were composed for a
+            400px+ room; cropped to a 120px band they read as dark rectangles
+            with visible seams. At this scale the ground's key light and the
+            girih are the whole picture. */}
+        <div className="hero-girih" />
+        <div className="hero-arch" />
+        <div className="hero-scrim" />
       </div>
-      <div className="hero-girih" aria-hidden="true" />
-      <div className="hero-arch" aria-hidden="true" />
-      <div className="hero-scrim" aria-hidden="true" />
 
       <div className="hero-inner">
         {/* The verse is announced in full to assistive tech; the inline SVG
@@ -83,43 +62,7 @@ export const Hero: React.FC = () => {
           dangerouslySetInnerHTML={{ __html: noorSvg }}
         />
 
-        <h1 className="hero-wordmark">
-          {language === 'ar' ? (
-            'سلفي هَب'
-          ) : (
-            <span className="hero-wordmark-latin">Salafi Hub</span>
-          )}
-        </h1>
 
-        <p className="hero-purpose">{t('heroPurpose')}</p>
-
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <button type="button" onClick={openMushaf} className="btn-primary px-5 py-2.5 text-sm">
-            <BookOpen className="h-4 w-4" />
-            {t('heroOpenMushaf')}
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/radio')}
-            className="btn-secondary px-5 py-2.5 text-sm"
-          >
-            <Radio className="h-4 w-4" />
-            {t('heroRadio')}
-          </button>
-        </div>
-
-        {lastRead && lastSurahName && (
-          <button
-            type="button"
-            onClick={continueReading}
-            className="mt-6 inline-flex items-center gap-2 rounded-full border border-border px-4 py-1.5 text-[11px] text-muted-text transition-colors hover:text-text-primary"
-          >
-            {t('heroContinue')}
-            <span className="font-medium text-text-primary">
-              {lastSurahName} · {t('quranAyah')} {lastRead.verseId}
-            </span>
-          </button>
-        )}
       </div>
 
       <div className="hero-fade" aria-hidden="true" />
