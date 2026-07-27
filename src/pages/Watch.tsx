@@ -19,6 +19,7 @@ import { CONTENT_CATEGORIES } from '@/utils/constants';
 import { formatTime } from '@/utils/formatTime';
 import { DashboardRails } from '@/components/dashboard/DashboardRails';
 import { useI18n } from '@/i18n';
+import { Tilt } from '@/components/ui/Tilt';
 
 /**
  * What the empty state offers to search for. Taken from the app's own content
@@ -444,7 +445,8 @@ const HistoryCard: React.FC<{ item: WatchHistoryItem }> = React.memo(({ item }) 
     : 0;
 
   return (
-    <div className="glass glass-hover group relative w-56 shrink-0 overflow-hidden rounded-lg">
+    <Tilt max={7} className="w-56 shrink-0">
+    <div className="glass glass-hover group relative overflow-hidden rounded-lg">
       <button
         type="button"
         onClick={() => void playUrl(item.url)}
@@ -496,6 +498,7 @@ const HistoryCard: React.FC<{ item: WatchHistoryItem }> = React.memo(({ item }) 
         <X className="h-3.5 w-3.5" />
       </button>
     </div>
+    </Tilt>
   );
 });
 
@@ -507,11 +510,12 @@ const ResultCard: React.FC<{ item: YoutubeSearchItem }> = React.memo(({ item }) 
   const resolving = useWatchStore((state) => state.resolving);
 
   return (
+    <Tilt max={6}>
     <button
       type="button"
       onClick={() => void play(item)}
       disabled={resolving}
-      className="glass glass-hover group overflow-hidden rounded-lg text-start disabled:opacity-60"
+      className="glass glass-hover group block w-full overflow-hidden rounded-lg text-start disabled:opacity-60"
     >
       <div className="relative aspect-video w-full overflow-hidden bg-elevated-panel">
         <img
@@ -550,6 +554,7 @@ const ResultCard: React.FC<{ item: YoutubeSearchItem }> = React.memo(({ item }) 
         </p>
       </div>
     </button>
+    </Tilt>
   );
 });
 

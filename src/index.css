@@ -2482,6 +2482,35 @@
       radial-gradient(36% 30% at 74% 72%, rgb(var(--accent-gold-rgb) / 0.16), transparent 74%);
   }
 
+  /* noor: light from above — one high gold shaft, green settling low. */
+  html[data-theme='noor'] .ambient-scene::before {
+    background:
+      radial-gradient(46% 52% at 38% 8%, rgb(var(--accent-gold-rgb) / 0.30), transparent 68%),
+      radial-gradient(40% 30% at 74% 82%, rgb(var(--quran-green-rgb) / 0.20), transparent 72%);
+  }
+
+  /* emerald: the garden theme leads with its own green; gold is the ember. */
+  html[data-theme='emerald'] .ambient-scene::before {
+    background:
+      radial-gradient(50% 42% at 28% 26%, rgb(var(--quran-green-rgb) / 0.30), transparent 68%),
+      radial-gradient(32% 28% at 76% 66%, rgb(var(--accent-gold-rgb) / 0.18), transparent 72%);
+  }
+
+  /* mushaf: two warm pools low on the page, candle-side light for the
+     near-black ink ground. */
+  html[data-theme='mushaf'] .ambient-scene::before {
+    background:
+      radial-gradient(44% 40% at 24% 62%, rgb(var(--accent-gold-rgb) / 0.24), transparent 70%),
+      radial-gradient(34% 30% at 72% 30%, rgb(var(--accent-gold-rgb) / 0.14), transparent 74%);
+  }
+
+  /* onyx: restraint is the recipe — monochrome sheen, one faint gold trace. */
+  html[data-theme='onyx'] .ambient-scene::before {
+    background:
+      radial-gradient(48% 40% at 30% 24%, rgb(var(--sheen-rgb) / 0.10), transparent 70%),
+      radial-gradient(30% 26% at 74% 70%, rgb(var(--accent-gold-rgb) / 0.10), transparent 74%);
+  }
+
   /* Pearl: light ground — the scene inverts to shade, softly, and stands
      still even at higher tiers. Light themes never move. */
   html[data-theme='pearl'] .ambient-scene::before {
