@@ -107,9 +107,20 @@ export const AmbientLayer: React.FC = () => {
   }, []);
 
   /* "Subtle" no longer amputates the field — it plays the same generator at
-     reduced intensity. Off/reduced-motion/Performance Mode still mean flat. */
-  const intensity = motion === 'full' ? 1 : 0.65;
-  const ceiling: Tier = prefersReducedMotion() || performanceMode || motion === 'off' ? 0 : 3;
+     reduced intensity. Off/reduced-motion/Performance Mode still mean flat.
+     0.8, not 0.65: subtle is the DEFAULT, so it is the intensity most
+     installs actually see, and at 0.65 the owner's word for it was still
+     "void". Subtle now means calmer, not fainter. */
+  const intensity = motion === 'full' ? 1 : 0.8;
+  /* Ceiling 1, never 0. Reduced motion, Performance Mode and the "off"
+     toggle all mean NO MOVEMENT — they must not mean no room. Windows'
+     "animation effects" switch surfaces here as prefers-reduced-motion, and
+     with the old ceiling of 0 that one OS setting erased every theme's
+     ground entirely: the owner's machine showed the void the harness could
+     not reproduce. Tier 1 is the static scene + lattice with every
+     animation dead, which is the contract those three switches actually
+     promise. */
+  const ceiling: Tier = prefersReducedMotion() || performanceMode || motion === 'off' ? 1 : 3;
 
   /* The mushaf clamp lives here, in the resolver, so the loop does not run at
      all on /quran — display:none only hides the pixels, not the work. */
@@ -129,8 +140,13 @@ export const AmbientLayer: React.FC = () => {
     let t = 0;
     let stopped = false;
 
-    const W = 480;
-    const H = 280;
+    /* 768x448, up from 480x280. At 480 wide the upscale to a 2560px window
+       was ~5.3x — every mote smeared into a faint blur, which is why the
+       fields "worked" in the 1280px harness and vanished on the owner's real
+       display. ~3.3x keeps the particles readable at desktop sizes while the
+       draw loop stays trivially cheap. */
+    const W = 768;
+    const H = 448;
     canvas.width = W;
     canvas.height = H;
 
@@ -148,13 +164,13 @@ export const AmbientLayer: React.FC = () => {
       ctx.clearRect(0, 0, W, H);
 
       if (field === 'motes') {
-        for (let i = 0; i < 90; i += 1) {
-          const speed = 4 + rnd(i, 1) * 9;
-          const x = rnd(i, 2) * W + Math.sin(t * 0.3 + i) * 6;
+        for (let i = 0; i < 110; i += 1) {
+          const speed = 6 + rnd(i, 1) * 14;
+          const x = rnd(i, 2) * W + Math.sin(t * 0.3 + i) * 10;
           const y = ((rnd(i, 3) * H - t * speed) % H + H) % H;
-          const r = 0.5 + rnd(i, 4) * 1.7;
+          const r = 0.9 + rnd(i, 4) * 2.6;
           const tw = 0.5 + 0.5 * Math.sin(t * (0.6 + rnd(i, 5)) + i * 2.1);
-          ctx.globalAlpha = (0.10 + 0.30 * tw) * intensity;
+          ctx.globalAlpha = (0.14 + 0.38 * tw) * intensity;
           ctx.fillStyle = `rgb(${accent})`;
           ctx.beginPath();
           ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -162,14 +178,14 @@ export const AmbientLayer: React.FC = () => {
         }
       } else if (field === 'stars') {
         for (let band = 0; band < 3; band += 1) {
-          const drift = (band + 1) * 1.1;
+          const drift = (band + 1) * 1.7;
           for (let i = 0; i < 60; i += 1) {
             const k = band * 60 + i;
             const x = ((rnd(k, 6) * W + t * drift) % W + W) % W;
             const y = rnd(k, 7) * H;
-            const r = 0.35 + band * 0.28 + rnd(k, 8) * 0.5;
+            const r = 0.6 + band * 0.42 + rnd(k, 8) * 0.8;
             const tw = 0.55 + 0.45 * Math.sin(t * (0.8 + rnd(k, 9) * 1.6) + k);
-            ctx.globalAlpha = (0.10 + 0.34 * tw) * intensity;
+            ctx.globalAlpha = (0.14 + 0.40 * tw) * intensity;
             ctx.fillStyle = band === 2 ? `rgb(${accent})` : `rgb(${soft})`;
             ctx.beginPath();
             ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -179,11 +195,11 @@ export const AmbientLayer: React.FC = () => {
       } else if (field === 'ink') {
         ctx.globalCompositeOperation = 'lighter';
         for (let i = 0; i < 7; i += 1) {
-          const x = W * (0.15 + 0.7 * rnd(i, 10)) + Math.sin(t * 0.11 + i * 2.2) * 46;
-          const y = H * (0.2 + 0.6 * rnd(i, 11)) + Math.cos(t * 0.09 + i * 1.7) * 30;
-          const r = 60 + rnd(i, 12) * 80 + Math.sin(t * 0.13 + i) * 12;
+          const x = W * (0.15 + 0.7 * rnd(i, 10)) + Math.sin(t * 0.11 + i * 2.2) * 74;
+          const y = H * (0.2 + 0.6 * rnd(i, 11)) + Math.cos(t * 0.09 + i * 1.7) * 48;
+          const r = 95 + rnd(i, 12) * 130 + Math.sin(t * 0.13 + i) * 19;
           const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-          g.addColorStop(0, `rgb(${accent} / ${0.10 * intensity})`);
+          g.addColorStop(0, `rgb(${accent} / ${0.15 * intensity})`);
           g.addColorStop(1, 'transparent');
           ctx.globalAlpha = 1;
           ctx.fillStyle = g;
@@ -195,18 +211,23 @@ export const AmbientLayer: React.FC = () => {
       } else {
         // clouds — big soft ellipses in the text-soft tone, drifting slowly
         for (let i = 0; i < 9; i += 1) {
-          const x = ((rnd(i, 13) * (W + 200) + t * (2 + rnd(i, 14) * 2.4)) % (W + 200)) - 100;
+          const x = ((rnd(i, 13) * (W + 320) + t * (3.2 + rnd(i, 14) * 3.8)) % (W + 320)) - 160;
           const y = H * (0.12 + 0.7 * rnd(i, 15));
-          const rx = 70 + rnd(i, 16) * 90;
+          const rx = 110 + rnd(i, 16) * 145;
           const ry = rx * 0.34;
-          const g = ctx.createRadialGradient(x, y, 0, x, y, rx);
-          g.addColorStop(0, `rgb(${soft} / ${0.085 * intensity})`);
-          g.addColorStop(1, 'transparent');
           ctx.globalAlpha = 1;
-          ctx.fillStyle = g;
           ctx.save();
           ctx.translate(x, y);
           ctx.scale(1, ry / rx);
+          /* The gradient is built AFTER the translate, centred on the origin
+             of the transformed space. Built at (x, y) before the transform it
+             lands at (2x, 2y) in device space — the circle then samples only
+             the gradient's transparent tail, which is why samaa's cloud field
+             painted literally zero pixels in every release that carried it. */
+          const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+          g.addColorStop(0, `rgb(${soft} / ${0.13 * intensity})`);
+          g.addColorStop(1, 'transparent');
+          ctx.fillStyle = g;
           ctx.beginPath();
           ctx.arc(0, 0, rx, 0, Math.PI * 2);
           ctx.fill();
@@ -234,7 +255,9 @@ export const AmbientLayer: React.FC = () => {
       {/* The per-theme scene: the layer that stops the ground being a void.
           Pure CSS, transform/opacity only; its recipe comes from
           html[data-theme] so all ten themes carry their own weather. At tier 1
-          it stands still; at 0 it is absent. */}
+          it stands still; at 0 it is absent. The lattice is the geometric
+          structure under the light — same tier rules. */}
+      {tier >= 1 && <div className="ambient-lattice" />}
       {tier >= 1 && <div className="ambient-scene" />}
       {tier >= 2 && <div className="ambient-sweep" />}
       {tier >= 3 && <canvas ref={canvasRef} className="ambient-canvas" />}

@@ -27,6 +27,8 @@ import { CONTENT_CATEGORIES } from '@/utils/constants';
 import { formatDuration } from '@/utils/formatTime';
 import { Select } from '@/components/ui/Select';
 import { useI18n } from '@/i18n';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { useSettingsStore } from '@/store/settingsStore';
 
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) return error.message;
@@ -63,6 +65,19 @@ export const Library: React.FC = () => {
   const progressRefreshVersion = useAppStore((state) => state.progressRefreshVersion);
   const importRefreshVersion = useAppStore((state) => state.importRefreshVersion);
   const openPlayerPlaylist = usePlayerStore((state) => state.openPlaylist);
+  const settings = useSettingsStore((state) => state.settings);
+  const removeImportedFolder = useSettingsStore((state) => state.removeImportedFolder);
+  const ffmpegStatus = useSettingsStore((state) => state.ffmpegStatus);
+  const detectFfmpeg = useSettingsStore((state) => state.detectFfmpeg);
+  const loadStats = useAppStore((state) => state.loadStats);
+  const thumbnailJobsRunning = useAppStore((state) => state.thumbnailJobsRunning);
+  const thumbnailFailedCount = useAppStore((state) => state.thumbnailFailedCount);
+
+  /* R4 error detection. Folders are checked with the same command the player
+     uses for files; a folder that fails the check is a drive unplugged or a
+     path renamed, and it deserves a panel with its fix — not silence while
+     rails quietly shrink. */
+  const [missingFolders, setMissingFolders] = useState<string[]>([]);
 
   const [importing, setImporting] = useState(false);
   const [includeSubfolders, setIncludeSubfolders] = useState(true);
@@ -80,6 +95,30 @@ export const Library: React.FC = () => {
   // the restyle was meant to change how things look, not what they do. The
   // ruled list is one click away and both variants carry the house style.
   const [viewMode, setViewMode] = useState<PlaylistViewMode>('grid');
+
+  useEffect(() => {
+    let cancelled = false;
+    const folders = settings?.importedFolders ?? [];
+    if (folders.length === 0) {
+      setMissingFolders([]);
+    } else {
+      void Promise.all(
+        folders.map(async (f) => {
+          try {
+            const ok = await invoke<boolean>('check_file_exists', { filePath: f });
+            return ok ? null : f;
+          } catch {
+            return f;
+          }
+        }),
+      ).then((results) => {
+        if (!cancelled) setMissingFolders(results.filter((f): f is string => f !== null));
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [settings?.importedFolders, importRefreshVersion]);
 
   useEffect(() => {
     loadPlaylists();
@@ -537,10 +576,77 @@ export const Library: React.FC = () => {
           )}
 
           {playlistsError && (
-            <div className="flex items-start gap-2 border-s-2 border-warning-orange/70 ps-3 text-sm text-warning-orange">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <bdi>{playlistsError}</bdi>
-            </div>
+            <ErrorState
+              className="mb-6"
+              title={t('errLibraryLoadTitle')}
+              body={t('errLibraryLoadBody')}
+              detail={playlistsError}
+              actions={[
+                { label: t('retry'), primary: true, run: async () => { await loadPlaylists(); } },
+                {
+                  label: t('repairDatabase'),
+                  run: async () => {
+                    await invoke('repair_database');
+                    await loadPlaylists();
+                  },
+                },
+              ]}
+            />
+          )}
+
+          {missingFolders.map((folder) => (
+            <ErrorState
+              key={folder}
+              className="mb-6"
+              title={t('errFolderMissingTitle')}
+              body={t('errFolderMissingBody')}
+              detail={folder}
+              actions={[
+                {
+                  label: t('rescanAll'),
+                  primary: true,
+                  run: async () => {
+                    await invoke('rescan_all');
+                    await loadPlaylists();
+                    await loadStats();
+                  },
+                },
+                {
+                  label: t('removeFolder'),
+                  run: async () => {
+                    await removeImportedFolder(folder);
+                    setMissingFolders((m) => m.filter((f) => f !== folder));
+                    await loadPlaylists();
+                  },
+                },
+              ]}
+            />
+          ))}
+
+          {!thumbnailJobsRunning && thumbnailFailedCount > 3 && (
+            <ErrorState
+              className="mb-6"
+              title={t('errThumbsTitle')}
+              body={ffmpegStatus?.status === 'missing' ? t('errThumbsBodyFfmpeg') : t('errThumbsBody')}
+              actions={[
+                ffmpegStatus?.status === 'missing'
+                  ? {
+                      label: t('installFfmpeg'),
+                      primary: true,
+                      run: async () => {
+                        await invoke('install_ffmpeg_helper');
+                        await detectFfmpeg();
+                      },
+                    }
+                  : {
+                      label: t('regenerateThumbnails'),
+                      primary: true,
+                      run: async () => {
+                        await invoke('regenerate_missing_thumbnails');
+                      },
+                    },
+              ]}
+            />
           )}
 
           {importResult && <ImportSummary result={importResult} />}
