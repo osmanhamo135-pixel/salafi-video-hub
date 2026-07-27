@@ -2511,6 +2511,70 @@
       radial-gradient(30% 26% at 74% 70%, rgb(var(--accent-gold-rgb) / 0.10), transparent 74%);
   }
 
+  /* ── The per-SECTION light ──────────────────────────────────────────────
+     The theme recipes above answer "what colour is this room"; these answer
+     "where is the lamp in this room". Each route paints its own geometry on
+     the .ambient-scene ELEMENT — the pseudo-elements stay the theme's — and
+     every colour is a token, so all ten themes re-tint each section's mood
+     automatically: ten themes x nine sections from nine rules, not ninety.
+     App.tsx publishes the route on <html data-route>. */
+
+  /* dashboard: crown light — the landing gets the widest, highest arc. */
+  html[data-route='dashboard'] .ambient-scene {
+    background: radial-gradient(70% 42% at 50% -8%, rgb(var(--accent-gold-rgb) / 0.16), transparent 66%);
+  }
+
+  /* library: shelf light — two pools from the upper corners, like lamps
+     over stacks. */
+  html[data-route='library'] .ambient-scene {
+    background:
+      radial-gradient(36% 32% at 6% 10%, rgb(var(--accent-gold-rgb) / 0.15), transparent 70%),
+      radial-gradient(36% 32% at 94% 12%, rgb(var(--accent-teal-rgb) / 0.11), transparent 70%);
+  }
+
+  /* watch: projector — one beam from centre-top, the floor falls away. */
+  html[data-route='watch'] .ambient-scene {
+    background:
+      radial-gradient(48% 40% at 50% 4%, rgb(var(--text-soft-rgb) / 0.12), transparent 68%),
+      radial-gradient(130% 60% at 50% 112%, rgb(var(--shade-rgb) / 0.30), transparent 62%);
+  }
+
+  /* radio: airwaves — two long side bands passing at different heights. */
+  html[data-route='radio'] .ambient-scene {
+    background:
+      radial-gradient(52% 24% at 0% 42%, rgb(var(--accent-teal-rgb) / 0.13), transparent 72%),
+      radial-gradient(52% 24% at 100% 58%, rgb(var(--accent-gold-rgb) / 0.13), transparent 72%);
+  }
+
+  /* reminders: dawn — a thin band of light along the very top. */
+  html[data-route='reminders'] .ambient-scene {
+    background:
+      linear-gradient(180deg, rgb(var(--accent-gold-rgb) / 0.11), transparent 26%),
+      radial-gradient(44% 30% at 72% 6%, rgb(var(--quran-green-rgb) / 0.10), transparent 70%);
+  }
+
+  /* downloads: the work happens low — a quiet pool at the bottom. */
+  html[data-route='downloads'] .ambient-scene {
+    background: radial-gradient(62% 32% at 50% 106%, rgb(var(--accent-teal-rgb) / 0.13), transparent 70%);
+  }
+
+  /* settings: the utility room keeps its light neutral and low. */
+  html[data-route='settings'] .ambient-scene {
+    background: radial-gradient(54% 36% at 50% -4%, rgb(var(--sheen-rgb) / 0.07), transparent 66%);
+  }
+
+  /* quran: a warm, still vignette high behind the frame. The route is
+     clamped to tier 1 in the resolver, so nothing here ever moves. */
+  html[data-route='quran'] .ambient-scene {
+    background: radial-gradient(80% 56% at 50% 14%, rgb(var(--accent-gold-rgb) / 0.09), transparent 70%);
+  }
+
+  /* player: the room goes dark — a shade vignette keeps every eye on the
+     video, and no light competes with the picture. */
+  html[data-route='player'] .ambient-scene {
+    background: radial-gradient(130% 90% at 50% 50%, transparent 52%, rgb(var(--shade-rgb) / 0.30));
+  }
+
   /* Pearl: light ground — the scene inverts to shade, softly, and stands
      still even at higher tiers. Light themes never move. */
   html[data-theme='pearl'] .ambient-scene::before {
