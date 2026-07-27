@@ -3937,3 +3937,27 @@
     .theme-tile { transition: none; }
   }
 }
+
+@layer components {
+  /* The reading position. A caption above the frame, not a chip on it —
+     the mushaf page keeps its own quiet, and chrome does not sit on the
+     jadwal. */
+  .reading-position {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: var(--s2);
+    padding-inline: var(--s2);
+    padding-block-end: 0.35rem;
+    font-size: var(--fs-cap);
+    color: rgb(var(--text-soft-rgb));
+  }
+
+  .reading-position-label {
+    color: rgb(var(--text-faint-rgb));
+  }
+
+  .reading-position-dot {
+    color: rgb(var(--text-faint-rgb));
+  }
+}
