@@ -27,6 +27,7 @@ import {
 } from '@/store/quranStore';
 import { audioElementHolder, useRadioStore } from '@/store/radioStore';
 import { TranslationKey, useI18n } from '@/i18n';
+import { juzFor } from '@/utils/juz';
 
 const BASMALA_TEXT = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
 const BASMALA_LIGATURE = '﷽';
@@ -669,6 +670,62 @@ const ToolbarDivider: React.FC = () => (
   <span aria-hidden="true" className="hidden h-5 w-px shrink-0 bg-border sm:block" />
 );
 
+/**
+ * The reading position: surah, the ayah currently at the top of the viewport,
+ * and — in Hafs only — the juz.
+ *
+ * The ayah is observed rather than stored: an IntersectionObserver over the
+ * rendered ayat reports the topmost one still on screen. It deliberately does
+ * NOT write to the store on every scroll tick — the word-sync engine already
+ * owns per-frame state, and a second writer on the same path is how that kind
+ * of machinery starts dropping frames.
+ */
+const ReadingPosition: React.FC<{ surahId: number; riwayah: 'hafs' | 'warsh' }> = ({
+  surahId,
+  riwayah,
+}) => {
+  const { t } = useI18n();
+  const [ayah, setAyah] = useState<number | null>(null);
+
+  useEffect(() => {
+    setAyah(null);
+    const nodes = Array.from(document.querySelectorAll<HTMLElement>('[data-verse-id]'));
+    if (!nodes.length) return;
+
+    const visible = new Set<number>();
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          const id = Number((e.target as HTMLElement).dataset.verseId);
+          if (!Number.isFinite(id)) continue;
+          if (e.isIntersecting) visible.add(id);
+          else visible.delete(id);
+        }
+        setAyah(visible.size ? Math.min(...visible) : null);
+      },
+      { root: document.querySelector('.quran-reading-viewport'), threshold: 0 },
+    );
+    nodes.forEach((n) => io.observe(n));
+    return () => io.disconnect();
+  }, [surahId]);
+
+  const juz = ayah != null ? juzFor(riwayah, surahId, ayah) : null;
+
+  return (
+    <p className="reading-position mx-auto max-w-[68rem]">
+      <span className="reading-position-label">{t('quranAyah')}</span>
+      <bdi className="tabular-nums">{ayah ?? '\u2014'}</bdi>
+      {juz != null && (
+        <>
+          <span aria-hidden="true" className="reading-position-dot">&middot;</span>
+          <span className="reading-position-label">{t('quranJuz')}</span>
+          <bdi className="tabular-nums">{juz}</bdi>
+        </>
+      )}
+    </p>
+  );
+};
+
 const SurahReader: React.FC = () => {
   const { t, language } = useI18n();
   const surah = useQuranStore((state) => state.currentSurah);
@@ -1215,6 +1272,13 @@ const SurahReader: React.FC = () => {
           offsetParent's, and an absolutely positioned child of a scroller moves
           with the content, so the cue would sit scrollTop pixels out. With the
           scroller one level up, both rects move together and the delta holds. */}
+      {/* Where you are, which a reader checks constantly and the app could not
+          previously tell them. Juz appears only in Hafs: the thirty boundaries
+          are agreed in the Kufan numbering, and 50 of the 114 surahs carry a
+          different ayah count in Warsh, so the same table would name the wrong
+          juz there. A missing figure beats a confidently wrong one. */}
+      <ReadingPosition surahId={surah.id} riwayah={riwayah} />
+
       <div className="quran-reading-frame mx-auto mt-2 max-w-[68rem]">
         {/* The illuminated band. It is a sibling of the scroller, not a child,
             so it frames the visible page and does not scroll away with the
@@ -1260,7 +1324,7 @@ const SurahReader: React.FC = () => {
               const isActive = syncActive && activeAyah === verse.id;
 
               return (
-                <div key={verse.id}>
+                <div key={verse.id} data-verse-id={verse.id}>
                   <p dir="rtl" className="quran-ayah-line quran-script arabic-text" style={{ fontSize, lineHeight: 2.3 }}>
                     <span
                       id={`quran-verse-${surah.id}-${verse.id}`}
@@ -1315,6 +1379,7 @@ const SurahReader: React.FC = () => {
                 <span
                   key={verse.id}
                   id={`quran-verse-${surah.id}-${verse.id}`}
+                  data-verse-id={verse.id}
                   onClick={() => handleAyahClick(verse.id)}
                   onContextMenu={(event) => {
                     event.preventDefault();
