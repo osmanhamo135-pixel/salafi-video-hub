@@ -7,6 +7,7 @@ import { ContinueWatching, useEyebrowClass } from '@/components/dashboard/Contin
 import { RecentlyAdded } from '@/components/dashboard/RecentlyAdded';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { Hero } from '@/components/home/Hero';
+import { HeroFeature } from '@/components/home/HeroFeature';
 import { formatBytes } from '@/utils/formatBytes';
 import { formatDurationLong } from '@/utils/formatTime';
 import { useI18n } from '@/i18n';
@@ -82,54 +83,31 @@ export const Dashboard: React.FC = () => {
     },
   ];
 
-  /* Arabic has no case, and letter-spacing breaks Arabic letter joining, so
-     the display tracking on the page title is Latin-only. */
-  const titleType = language === 'ar'
-    ? 'text-4xl leading-[1.25] sm:text-5xl'
-    : 'text-4xl leading-[1.03] tracking-[-0.02em] sm:text-[3.25rem]';
-
   return (
     <div className="page-container">
       <div className="content-max-width">
         <Hero />
 
-        {/* Masthead. The hero hands off to a title at display scale and a
-            single filled action, then a thread closes the block — without it
-            the page fell from a lit room straight into 14px body copy. */}
-        <header className="mt-2">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between xl:gap-10">
-            <div className="min-w-0">
-              <div className="flex items-center gap-3">
-                <span aria-hidden="true" className="h-px w-8 bg-accent-gold/50" />
-                <span
-                  className={
-                    language === 'ar'
-                      ? 'text-[11px] font-medium text-accent-gold'
-                      : 'text-[11px] font-semibold uppercase tracking-[0.16em] text-accent-gold'
-                  }
-                >
-                  {t('premiumLibraryCommand')}
-                </span>
-              </div>
-              <h1 className={`mt-4 font-semibold text-text-primary ${titleType}`}>
-                {t('dashboard')}
-              </h1>
-              <p className="mt-3 max-w-lg text-sm text-muted-text sm:text-base">
-                {t('dashboardSubtitle')}
-              </p>
-            </div>
+        {/* The hero that does work. The masthead that used to sit here carried
+            an <h1>Dashboard</h1> restating the highlighted sidebar item and a
+            "PREMIUM VIDEO LIBRARY" badge that said nothing — between them they
+            were the first thing the eye hit and the last thing it needed. The
+            featured lesson takes that space instead. */}
+        <header className="mt-4">
+          <HeroFeature />
+          {/* One row closes the block: the directional thread runs from the
+              reading edge and the import actions sit at its far end — the
+              actions used to float alone in a 160px band of empty ground. */}
+          <div className="mt-4 flex items-center gap-6">
+            <div
+              aria-hidden="true"
+              className="h-px min-w-0 flex-1"
+              style={{
+                background: `linear-gradient(${language === 'ar' ? '270deg' : '90deg'}, rgb(var(--accent-gold-rgb) / 0.55), rgb(var(--accent-gold-rgb) / 0.14) 34%, rgb(var(--accent-gold-rgb) / 0.04) 68%, transparent)`,
+              }}
+            />
             <QuickActions />
           </div>
-          {/* A directional thread, brightest at the reading edge and gone by
-              the far margin — the same key light the hero is lit by, rather
-              than a symmetric divider. Flipped for RTL. */}
-          <div
-            aria-hidden="true"
-            className="mt-8 h-px w-full"
-            style={{
-              background: `linear-gradient(${language === 'ar' ? '270deg' : '90deg'}, rgb(var(--accent-gold-rgb) / 0.55), rgb(var(--accent-gold-rgb) / 0.14) 34%, rgb(var(--accent-gold-rgb) / 0.04) 68%, transparent)`,
-            }}
-          />
         </header>
 
         {/* The lesson you were part-way through, first and largest. */}

@@ -916,6 +916,12 @@
      this element. A CSS mask applies to an element's whole subtree, so a
      hairline drawn on ::before here would be cut to the band's own silhouette
      and mostly disappear. */
+  /* `.jadwal` is the app's signature element and is deliberately rationed: the
+     mushaf reading pane, the Dashboard's featured card, and nothing else. A
+     motif used everywhere is wallpaper — the whole reason it reads as the
+     app's structural grammar is that it marks exactly the two places that
+     carry the app's purpose. `.quran-jadwal` is the mushaf's alias for it. */
+  .jadwal,
   .quran-jadwal {
     --jadwal-h: url('./assets/marks/jadwal-band-h.svg');
     --jadwal-v: url('./assets/marks/jadwal-band-v.svg');
@@ -1455,16 +1461,102 @@
     position: relative;
     display: grid;
     place-items: center;
-    /* Sized to its content plus breathing room, not to a share of the window.
-       At 62vh the hero was 620px tall around 332px of content — 144px of dead
-       ground above and below — which pushed the resume card, the most useful
-       thing on the page, just under the fold at 1000px. */
-    min-height: 23rem;
-    height: 52vh;
-    max-height: 34rem;
+    /* A band, not a screensaver. This was 52vh — 416px of a 764px frame at
+       1280x800, 54% of everything the user could see — carrying a wordmark, a
+       one-line description and two buttons. The Basmala stays honoured and
+       full size; what goes is the empty ground it was floating in. The work of
+       the page now belongs to the featured card directly below. */
+    min-height: 7.5rem;
+    height: 15vh;
+    max-height: 10rem;
+    /* NOT overflow:hidden. This element is an ancestor of .hero-basmala, and
+       Qur'anic text is never clipped — at this height a clip here would crop
+       the calligraphy the moment the band tightened. The background layers do
+       their own clipping in .hero-clip, which contains no text. */
+    overflow: visible;
+    isolation: isolate;
+  }
+
+  /* Carries the rounded clip that .hero itself must not have. Contains only
+     aria-hidden paint layers, so nothing here can crop a glyph. */
+  .hero-clip {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
     overflow: hidden;
+    border-radius: var(--r-lg);
+    pointer-events: none;
+  }
+
+  /* ── The featured card — the hero that does work ────────────────────────
+     One dominant object per screen, carrying the lesson the reader was
+     part-way through: artwork, an editorial headline, the speaker, real
+     progress, and two inline actions. Everything else on the route is
+     subordinate to it.
+
+     It is jadwal-framed, which is the app's one structural flourish and is
+     spent here and on the mushaf page only. */
+  .hero-feature {
+    position: relative;
     isolation: isolate;
     border-radius: var(--r-lg);
+    background: var(--fill-2, rgb(var(--bg-card-rgb) / 0.55));
+    box-shadow: var(--elev-1);
+    overflow: hidden;
+  }
+
+  /* The artwork side. A value step and one directional wash, not a picture
+     frame — the thumbnail supplies whatever image there is. */
+  .hero-feature-art {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: var(--r-md);
+    background: rgb(var(--bg-panel-rgb));
+  }
+
+  .hero-feature-art::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      190deg,
+      transparent 42%,
+      rgb(var(--shade-rgb) / 0.34)
+    );
+  }
+
+  /* Progress. A rule that fills, not a bar in a box — the same value-step
+     logic the rest of the app uses instead of borders. */
+  .hero-feature-progress {
+    position: relative;
+    height: 3px;
+    border-radius: 2px;
+    background: rgb(var(--sheen-rgb) / 0.09);
+    overflow: hidden;
+  }
+
+  .hero-feature-progress > span {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      to right,
+      rgb(var(--accent-gold-rgb) / 0.75),
+      rgb(var(--accent-gold-rgb))
+    );
+  }
+
+  /* RTL: the fill has to grow from the reading edge, and a left-to-right
+     gradient inside it would run the bright end into the wrong margin. */
+  html[dir='rtl'] .hero-feature-progress > span {
+    background: linear-gradient(
+      to left,
+      rgb(var(--accent-gold-rgb) / 0.75),
+      rgb(var(--accent-gold-rgb))
+    );
   }
 
   /* layer 1 — ground, one warm key light, and the vignette.
@@ -1988,6 +2080,139 @@
       radial-gradient(54% 44% at 4% 98%, rgb(var(--quran-green-rgb) / 0.055), transparent 70%),
       radial-gradient(86% 52% at 42% 0%, rgb(var(--accent-teal-rgb) / 0.05), transparent 62%),
       linear-gradient(180deg, var(--bg-sidebar) 0%, var(--bg-main) 26rem);
+  }
+
+  /* ── Ambient layer ──────────────────────────────────────────────────────
+     Sits behind everything at z-index 0, mounted once outside the router so a
+     route change cannot restart it. See AmbientLayer.tsx for the tier rules.
+
+     Note it is z-index 0 and not negative: a negative z-index inside the
+     shell's stacking context would paint behind the shell's own fill, and the
+     custom title bar has to stay above it either way. */
+  .ambient-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  /* Tier 0/1 — the token gradient. This is the whole ambient on reduced
+     motion, Performance Mode, and the light theme, and it costs nothing. */
+  .ambient-wash {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(62% 46% at 78% -4%, rgb(var(--accent-gold-rgb) / 0.075), transparent 68%),
+      radial-gradient(54% 44% at 4% 98%, rgb(var(--quran-green-rgb) / 0.055), transparent 70%),
+      radial-gradient(86% 52% at 42% 0%, rgb(var(--accent-teal-rgb) / 0.05), transparent 62%),
+      linear-gradient(180deg, var(--bg-sidebar) 0%, var(--bg-main) 26rem);
+  }
+
+  /* Tier 2 — one slow light sweep. Compositor-only: transform and opacity,
+     never a layout or paint property, and never a filter on a large animated
+     element. 48s because atmosphere the eye can time is decoration. */
+  .ambient-sweep {
+    position: absolute;
+    top: -30%;
+    left: -40%;
+    width: 90%;
+    height: 160%;
+    background: radial-gradient(
+      closest-side,
+      rgb(var(--accent-gold-rgb) / 0.07),
+      transparent 72%
+    );
+    will-change: transform;
+    animation: ambient-sweep 48s linear infinite;
+  }
+
+  @keyframes ambient-sweep {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(160%, 0, 0); }
+  }
+
+  /* Tier 3 — the generated field. Rendered at 320x200 and scaled up: a
+     full-resolution animated surface is the reliable way to tank a WebView's
+     frame rate, and at this luminance the upscale is invisible. */
+  .ambient-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.5;
+  }
+
+  /* The one non-negotiable. Motion behind Qur'anic text is forbidden in every
+     theme at every tier, so it is cut here at the layer rather than trusted to
+     each generator — and the reading frame is given its own opaque plane so it
+     does not depend on the ambient layer behaving at all. */
+  html[data-route='quran'] .ambient-sweep,
+  html[data-route='quran'] .ambient-canvas {
+    display: none;
+  }
+
+  .quran-reading-frame {
+    background: rgb(var(--bg-main-rgb));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ambient-sweep {
+      animation: none;
+    }
+    .ambient-canvas {
+      display: none;
+    }
+  }
+
+  /* Frosted glass over the ambient ground. This is the single move that
+     separates a layered app from a flat one: the sidebar stops being a colour
+     and becomes a translucent plane with the room visible through it.
+
+     Legitimate here specifically because the sidebar is persistent chrome —
+     translucency stays off anchored content surfaces, where it would fight the
+     reading material. The fill is set here rather than by a utility at the
+     call site, because a utility would beat this rule in the cascade and
+     re-opaque the panel. */
+  .sidebar-glass {
+    background: rgb(var(--bg-sidebar-rgb) / 0.62);
+    backdrop-filter: blur(22px) saturate(126%);
+    -webkit-backdrop-filter: blur(22px) saturate(126%);
+  }
+
+  /* No backdrop-filter support, or a compositor that refuses it: fall back to
+     the opaque panel rather than a see-through unreadable one. */
+  @supports not (backdrop-filter: blur(1px)) {
+    .sidebar-glass {
+      background: rgb(var(--bg-sidebar-rgb));
+    }
+  }
+
+  /* The un-thumbnailed plate. A black rectangle the size of a poster is the
+     loudest "unfinished" signal in a media app — it reads as a broken image,
+     and in a grid there are dozens of them. This is a khatam construction —
+     eight-point star from two overlapping squares — drawn from the theme's own
+     gold at low alpha, so the empty state is ornament rather than absence. */
+  /* Doubled selector so it beats .thumbnail-fallback's own `background:
+     var(--fill-well)` regardless of source order — the two are always applied
+     together and the plate is the one that should win. */
+  .thumbnail-plate,
+  .thumbnail-fallback.thumbnail-plate {
+    position: relative;
+    background:
+      radial-gradient(120% 100% at 50% 0%, rgb(var(--accent-gold-rgb) / 0.07), transparent 62%),
+      linear-gradient(180deg, rgb(var(--bg-card-rgb)), rgb(var(--bg-panel-rgb)));
+  }
+
+  .thumbnail-plate::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url('./assets/marks/noor.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: min(38%, 5.5rem);
+    opacity: 0.13;
   }
 
   .surface-well {
