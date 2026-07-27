@@ -98,6 +98,18 @@ export const RadioMiniPlayer: React.FC = () => {
     setDuration(0);
   }, [current?.id, current?.url]);
 
+  /* Publish dock presence to the document so page layout can reserve space
+     for it. A fixed dock that covers the last row of a list is the classic
+     "why can't I reach the bottom item" bug. */
+  useEffect(() => {
+    const root = document.documentElement;
+    if (current) root.dataset.dock = collapsed ? 'pill' : 'bar';
+    else delete root.dataset.dock;
+    return () => {
+      delete root.dataset.dock;
+    };
+  }, [current, collapsed]);
+
   if (!current) return null;
 
   const audioElement = (
@@ -184,8 +196,15 @@ export const RadioMiniPlayer: React.FC = () => {
         trimming the two fixed-width controls gives the name a readable share
         without the controls ever shrinking.
       */}
-      <div className="fixed bottom-5 end-5 z-40 w-[460px] max-w-[calc(100vw-2.5rem)] rounded-xl border border-border/70 bg-panel/85 p-3.5 backdrop-blur-xl [box-shadow:0_1px_0_0_rgb(var(--text-main-rgb)/0.07)_inset,0_16px_48px_-12px_rgb(0_0_0/0.7),0_4px_12px_-4px_rgb(0_0_0/0.45)]">
-        <div className="flex items-center gap-3">
+      {/* A dock, not a floating card. It spans the content column and sits on
+          the window's bottom edge, which is where a desktop app puts transport
+          — a 460px pill parked in the corner reads as a notification.
+          It deliberately keeps owning the single global <audio> element:
+          the Qur'an word-sync engine reads that element's clock every frame
+          through audioElementHolder, so a second element, or moving ownership,
+          would desynchronise the tracker from the recitation. */}
+      <div className="player-dock">
+        <div className="player-dock-inner flex items-center gap-3">
         <button
           type="button"
           onClick={playbackError ? retry : togglePlay}

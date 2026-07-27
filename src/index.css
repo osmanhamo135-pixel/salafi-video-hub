@@ -3605,3 +3605,74 @@
     }
   }
 }
+
+@layer components {
+  /* ── Docked player ──────────────────────────────────────────────────────
+     Transport belongs on the window's bottom edge in a desktop app; a 460px
+     pill parked in the corner reads as a notification you have not dismissed.
+
+     This is glass over content and it is genuinely transient in the sense the
+     design rules care about — it exists only while something is playing — so
+     it carries a real shadow and a backdrop blur, which anchored surfaces
+     never do. */
+  .player-dock {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 40;
+    padding: var(--s3) var(--s5);
+    background: rgb(var(--bg-sidebar-rgb) / 0.72);
+    backdrop-filter: blur(26px) saturate(140%);
+    -webkit-backdrop-filter: blur(26px) saturate(140%);
+    border-top: 1px solid var(--hair);
+    box-shadow:
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.07),
+      0 -18px 48px -24px rgb(var(--shade-rgb) / 0.8);
+    animation: dock-in var(--dur-normal) var(--ease-spring) both;
+  }
+
+  /* Aligned to the same measure as page content, so the transport sits under
+     the column it belongs to rather than drifting to the window edge. */
+  .player-dock-inner {
+    margin-inline: auto;
+    max-width: 1600px;
+  }
+
+  /* A hairline of the theme accent along the very top edge — the dock reads
+     as lit from the content above it rather than pasted on. */
+  .player-dock::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: -1px;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(var(--accent-gold-rgb) / 0.5) 30%,
+      rgb(var(--accent-gold-rgb) / 0.5) 70%,
+      transparent
+    );
+    pointer-events: none;
+  }
+
+  @keyframes dock-in {
+    from { transform: translateY(100%); }
+    to   { transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .player-dock {
+      animation: none;
+    }
+  }
+}
+
+@layer components {
+  /* Reserve the dock's height so a fixed bar never covers the last row of a
+     list. Only while the dock is actually mounted — an always-on gutter would
+     be dead space for anyone who never opens the radio. */
+  html[data-dock='bar'] .page-container {
+    padding-bottom: 5.5rem;
+  }
+}
