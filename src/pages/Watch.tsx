@@ -17,6 +17,7 @@ import { useWatchStore, WatchHistoryItem, YoutubeSearchItem } from '@/store/watc
 import { useDownloadStore } from '@/store/downloadStore';
 import { CONTENT_CATEGORIES } from '@/utils/constants';
 import { formatTime } from '@/utils/formatTime';
+import { DashboardRails } from '@/components/dashboard/DashboardRails';
 import { useI18n } from '@/i18n';
 
 /**
@@ -148,6 +149,12 @@ export const Watch: React.FC = () => {
             suggestions
           />
         )}
+
+        {/* The route measured 473px of dead ground below the chips at 1080p —
+            nearly half the frame, on a page whose whole purpose is finding
+            something to watch. The local library answers that better than
+            empty navy does. */}
+        {!hasSearched && !searching && results.length === 0 && <DashboardRails />}
 
         {/* Returning reader, nothing searched yet: the history strip is on
             screen but everything under it was empty. The same starting points

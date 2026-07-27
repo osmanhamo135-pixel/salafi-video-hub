@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { RiseIn } from '@/components/ui/Spring';
 import { useI18n } from '@/i18n';
 
 interface ReminderModalProps {
@@ -41,8 +42,9 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
       {/* Modal — a hairline and a value step, no drop shadow. */}
+      <RiseIn className="w-full max-w-lg">
       <div
-        className="glass relative w-full max-w-lg overflow-hidden rounded-xl"
+        className="glass relative w-full overflow-hidden rounded-xl"
         style={{ background: 'rgb(var(--bg-panel-rgb))' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -64,6 +66,7 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({
           {children}
         </div>
       </div>
+      </RiseIn>
     </div>
   );
 };
