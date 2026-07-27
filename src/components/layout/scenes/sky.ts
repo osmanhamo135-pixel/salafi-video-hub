@@ -429,6 +429,253 @@ export const paintSky: ScenePainter = (f) => {
   }
 
   // ---------------------------------------------------------------------
+  // 4b. BLOSSOM BRANCH — the signature layer.
+  //
+  // One dark bough enters from the upper corner OPPOSITE the sun, so the
+  // light always falls across it instead of from behind it, and forks into a
+  // few slender twigs carrying pale five-petal blossoms, with a handful of
+  // shed petals adrift below. It owns only the outer quarter of the frame
+  // diagonally and its petals stay on its side of the sky, so the reading
+  // air in the middle stays clear.
+  //
+  // Wood is the one place strokes are allowed, and only layered: 2-3 passes
+  // of decreasing width and rising alpha read as one painted limb, where a
+  // single thin stroke would smear on upscale. Blossoms and petals are all
+  // filled beziers under gradients — no outline anywhere.
+  //
+  // Sway reads only from `t`: at speed 0 every sin() term is a constant and
+  // the branch, twigs and airborne petals all freeze mid-pose.
+  // ---------------------------------------------------------------------
+
+  /** Growth direction: sun on the left means the branch enters upper-right. */
+  const growX = sunX < W * 0.5 ? -1 : 1;
+  const ex = growX < 0 ? W + 6 : -6;
+  const ey = -6;
+  // Sparse air carries a thinner, higher, shorter branch — a different
+  // branch, not a faded one, matching how the cloud counts flip above.
+  const reach = diag * (sparse ? 0.15 : 0.19);
+  const boughW = sparse ? 3 : 4.4;
+  const branchA = (0.36 + d * 0.18) * A;
+  const blossomA = (sparse ? 0.6 : 0.52) * A;
+
+  /** Cubic bezier on one axis; the bough is one cubic, sampled for forks. */
+  const bez = (c0: number, c1: number, c2: number, c3: number, u: number): number => {
+    const v = 1 - u;
+    return v * v * v * c0 + 3 * v * v * u * c1 + 3 * v * u * u * c2 + u * u * u * c3;
+  };
+
+  const bX = [
+    ex,
+    ex + growX * reach * 0.32,
+    ex + growX * reach * 0.7,
+    ex + growX * reach * 1.02,
+  ];
+  const bY = [
+    ey,
+    ey + reach * 0.16,
+    ey + reach * (sparse ? 0.26 : 0.38),
+    ey + reach * (sparse ? 0.46 : 0.68),
+  ];
+
+  /**
+   * Wind. Two incommensurate sines so the sway never loops visibly. The
+   * whole branch pivots a fraction of a degree around its entry point; twigs
+   * ride the same pivot multiplied up, which is how real wood moves — the
+   * limb barely, the extremities more.
+   */
+  const swayBase = Math.sin(t * 0.42) * 0.006 + Math.sin(t * 0.19 + 2.3) * 0.0045;
+
+  /** One filled teardrop petal: base at (x,y), tip `len` away along `ang`. */
+  const petalShape = (
+    x: number,
+    y: number,
+    ang: number,
+    len: number,
+    wd: number,
+    fill: string | CanvasGradient,
+  ): void => {
+    const ca = Math.cos(ang);
+    const sa = Math.sin(ang);
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.bezierCurveTo(
+      x + ca * len * 0.3 - sa * wd,
+      y + sa * len * 0.3 + ca * wd,
+      x + ca * len * 0.92 - sa * wd * 0.55,
+      y + sa * len * 0.92 + ca * wd * 0.55,
+      x + ca * len,
+      y + sa * len,
+    );
+    ctx.bezierCurveTo(
+      x + ca * len * 0.92 + sa * wd * 0.55,
+      y + sa * len * 0.92 - ca * wd * 0.55,
+      x + ca * len * 0.3 + sa * wd,
+      y + sa * len * 0.3 - ca * wd,
+      x,
+      y,
+    );
+    ctx.fill();
+  };
+
+  /**
+   * A five-petal blossom. Every petal shares one radial gradient centred on
+   * the flower — deeper at the base, palest past the tip — and takes its own
+   * length and angle jitter, which is the whole difference between a flower
+   * and a stamped icon. Sparse skies bleach the base toward sheen: fewer,
+   * whiter blossoms up high.
+   */
+  const blossom = (x: number, y: number, r: number, alpha: number, salt: number): void => {
+    const g = ctx.createRadialGradient(x, y, r * 0.1, x, y, r * 1.05);
+    g.addColorStop(0.0, rgba(sparse ? p.sheen : p.soft, alpha));
+    g.addColorStop(0.55, rgba(p.sheen, alpha * 0.8));
+    g.addColorStop(1.0, rgba(p.sheen, alpha * 0.42));
+    const rot = f.rnd(0, salt) * TAU;
+    for (let k = 0; k < 5; k++) {
+      const ang = rot + (k / 5) * TAU + (f.rnd(k, salt + 3) - 0.5) * 0.34;
+      const len = r * (0.8 + f.rnd(k, salt + 11) * 0.36);
+      petalShape(x, y, ang, len, len * 0.36, g);
+    }
+    const coreG = ctx.createRadialGradient(x, y, 0, x, y, r * 0.32);
+    coreG.addColorStop(0.0, rgba(p.accent, alpha * 0.85));
+    coreG.addColorStop(1.0, rgba(p.accent, 0));
+    ctx.fillStyle = coreG;
+    ctx.beginPath();
+    ctx.arc(x, y, r * 0.32, 0, TAU);
+    ctx.fill();
+  };
+
+  // The bough: three passes, widest and faintest first, so the accumulated
+  // edge is soft the way the clouds' edges are — no single hard line.
+  ctx.save();
+  ctx.translate(ex, ey);
+  ctx.rotate(swayBase);
+  ctx.translate(-ex, -ey);
+  ctx.lineCap = 'round';
+  const boughPasses: Array<[number, number]> = [
+    [1.0, 0.3],
+    [0.62, 0.5],
+    [0.34, 0.8],
+  ];
+  for (let i = 0; i < boughPasses.length; i++) {
+    ctx.strokeStyle = rgba(p.shade, branchA * boughPasses[i][1]);
+    ctx.lineWidth = boughW * boughPasses[i][0];
+    ctx.beginPath();
+    ctx.moveTo(bX[0], bY[0]);
+    ctx.bezierCurveTo(bX[1], bY[1], bX[2], bY[2], bX[3], bY[3]);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Twigs fork alternately above and below the bough's tangent, each with
+  // its own angle jitter and a slight gravity droop at the end. Each twig's
+  // blossoms are drawn inside the twig's own sway transform, so a flower
+  // never detaches from its wood as the wind moves.
+  const twigN = sparse ? 3 : 5;
+  for (let i = 0; i < twigN; i++) {
+    const u0 = 0.34 + (i / (twigN - 1)) * 0.6 + (f.rnd(i, 503) - 0.5) * 0.07;
+    const rx = bez(bX[0], bX[1], bX[2], bX[3], u0);
+    const ry = bez(bY[0], bY[1], bY[2], bY[3], u0);
+    const nx = bez(bX[0], bX[1], bX[2], bX[3], Math.min(1, u0 + 0.02));
+    const ny = bez(bY[0], bY[1], bY[2], bY[3], Math.min(1, u0 + 0.02));
+    const boughAng = Math.atan2(ny - ry, nx - rx);
+    const fork = (i % 2 === 0 ? -1 : 1) * (0.35 + f.rnd(i, 521) * 0.5);
+    const ang = boughAng + fork;
+    const tl = reach * (0.2 + f.rnd(i, 541) * 0.18) * (sparse ? 0.85 : 1);
+    const cx2 = rx + Math.cos(ang) * tl * 0.55;
+    const cy2 = ry + Math.sin(ang) * tl * 0.55;
+    const tipX = rx + Math.cos(ang) * tl;
+    const tipY = ry + Math.sin(ang) * tl + tl * 0.2;
+
+    const swayT = swayBase * 1.5 + Math.sin(t * 0.55 + i * 1.9) * 0.0045;
+    ctx.save();
+    ctx.translate(ex, ey);
+    ctx.rotate(swayT);
+    ctx.translate(-ex, -ey);
+    ctx.lineCap = 'round';
+    for (let pass = 0; pass < 2; pass++) {
+      ctx.strokeStyle = rgba(p.shade, branchA * (pass === 0 ? 0.4 : 0.75));
+      ctx.lineWidth = boughW * (pass === 0 ? 0.42 : 0.22);
+      ctx.beginPath();
+      ctx.moveTo(rx, ry);
+      ctx.quadraticCurveTo(cx2, cy2, tipX, tipY);
+      ctx.stroke();
+    }
+
+    // Tight buds low on the twig — small filled teardrops, no petals yet.
+    const budN = 1 + (f.rnd(i, 563) < 0.5 ? 0 : 1);
+    for (let k = 0; k < budN; k++) {
+      const v = 0.3 + f.rnd(k, 571 + i * 13) * 0.45;
+      const iv = 1 - v;
+      const qx = iv * iv * rx + 2 * iv * v * cx2 + v * v * tipX;
+      const qy = iv * iv * ry + 2 * iv * v * cy2 + v * v * tipY;
+      const bl = 2.6 + f.rnd(k, 577 + i * 13) * 2;
+      const bAng = ang + (f.rnd(k, 587 + i * 13) - 0.5) * 1.6;
+      const bg = ctx.createRadialGradient(qx, qy, 0, qx, qy, bl);
+      bg.addColorStop(0.0, rgba(p.soft, blossomA * 0.9));
+      bg.addColorStop(1.0, rgba(p.sheen, blossomA * 0.45));
+      petalShape(qx, qy, bAng, bl, bl * 0.42, bg);
+    }
+
+    // Open blossoms: the sqrt skew piles them toward the twig tip, they grow
+    // slightly with v, and the side facing the sun runs a touch brighter.
+    const bn = sparse ? 2 : 3 + (f.rnd(i, 557) < 0.5 ? 0 : 1);
+    for (let k = 0; k < bn; k++) {
+      const v = 0.4 + 0.6 * Math.sqrt(f.rnd(k, 601 + i * 17));
+      const iv = 1 - v;
+      const qx = iv * iv * rx + 2 * iv * v * cx2 + v * v * tipX;
+      const qy = iv * iv * ry + 2 * iv * v * cy2 + v * v * tipY;
+      const rr =
+        (sparse ? 3.4 : 4.4) * (0.7 + f.rnd(k, 613 + i * 17) * 0.6) * (0.75 + v * 0.45);
+      const lit2 = 0.82 + 0.3 * clamp01(1 - Math.abs(qx - sunX) / (W * 0.9));
+      blossom(qx, qy, rr, blossomA * lit2, 617 + i * 29 + k * 7);
+    }
+    ctx.restore();
+  }
+
+  // A small crown at the bough's own tip, swaying a little more than the
+  // limb it ends — the extremity again.
+  ctx.save();
+  ctx.translate(ex, ey);
+  ctx.rotate(swayBase * 1.3);
+  ctx.translate(-ex, -ey);
+  const tipN = sparse ? 1 : 2;
+  for (let k = 0; k < tipN; k++) {
+    const qx = bX[3] + (f.rnd(k, 641) - 0.5) * 10;
+    const qy = bY[3] + (f.rnd(k, 647) - 0.5) * 10;
+    const rr = (sparse ? 3.6 : 5) * (0.85 + f.rnd(k, 653) * 0.3);
+    const lit2 = 0.82 + 0.3 * clamp01(1 - Math.abs(qx - sunX) / (W * 0.9));
+    blossom(qx, qy, rr, blossomA * lit2, 659 + k * 11);
+  }
+  ctx.restore();
+
+  // Shed petals adrift: scarce by design — this is the single strongest
+  // "alive" cue and it works by rarity. Each falls on its own wrapped cycle,
+  // sways across the fall, spins slowly either way, and its envelope reaches
+  // zero well before the horizon (the destination-out fade below is only a
+  // second guarantee). They stay on the branch's side of the sky.
+  const driftN = sparse ? 5 : 8;
+  const fallSpan = Math.max(hzY * 0.85, 60);
+  for (let i = 0; i < driftN; i++) {
+    const prog = wrap(f.rnd(i, 701) * fallSpan + t * (5.5 + f.rnd(i, 709) * 4.5), fallSpan);
+    const u = prog / fallSpan;
+    const env = Math.pow(u, 0.25) * Math.pow(1 - u, 1.4) * 1.7;
+    if (env <= 0.01) continue;
+    const startX = ex + growX * reach * (0.15 + f.rnd(i, 719) * 1.25);
+    const swayP =
+      Math.sin(t * (0.45 + f.rnd(i, 727) * 0.35) + i * 2.1) * (7 + f.rnd(i, 733) * 8);
+    const px = startX + growX * prog * 0.4 + swayP;
+    const py = ey + prog;
+    const spin = i * 1.3 + t * (0.35 + f.rnd(i, 739) * 0.4) * (f.rnd(i, 743) < 0.5 ? -1 : 1);
+    const plen = 3.6 + f.rnd(i, 751) * 2.8;
+    const aP = (sparse ? 0.5 : 0.42) * A * Math.min(1, env);
+    const pg = ctx.createRadialGradient(px, py, 0, px, py, plen);
+    pg.addColorStop(0.0, rgba(p.soft, aP));
+    pg.addColorStop(1.0, rgba(p.sheen, aP * 0.4));
+    petalShape(px, py, spin, plen, plen * 0.42, pg);
+  }
+
+  // ---------------------------------------------------------------------
   // 5. HORIZON
   //
   // A pale lift around the ground line — distant air scatters light, and

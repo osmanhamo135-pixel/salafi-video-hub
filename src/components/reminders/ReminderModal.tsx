@@ -39,7 +39,7 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({
     >
       {/* Backdrop. A modal scrim is a shadow cast over the whole application,
           not a themed surface, so it stays neutral in all ten themes. */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="scrim" />
 
       {/* Modal — a hairline and a value step, no drop shadow. */}
       <RiseIn className="w-full max-w-lg">
