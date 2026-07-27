@@ -1744,7 +1744,9 @@
     inset: -40px;
     z-index: 1;
     opacity: 0.05;
-    background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1'%3E%3Cpath d='M80 8 L104 56 L152 80 L104 104 L80 152 L56 104 L8 80 L56 56 Z'/%3E%3Crect x='34' y='34' width='92' height='92' transform='rotate(45 80 80)'/%3E%3Crect x='34' y='34' width='92' height='92'/%3E%3C/g%3E%3C/svg%3E");
+    /* A real file, not a data: URI — img-src has no `data:` source, so the
+       inline form was a blocked request in every packaged build. */
+    background-image: url('./assets/marks/girih.svg');
     background-size: 150px 150px;
     -webkit-mask-image: radial-gradient(70% 60% at 50% 34%, black, transparent 78%);
     mask-image: radial-gradient(70% 60% at 50% 34%, black, transparent 78%);
