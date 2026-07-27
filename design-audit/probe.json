@@ -1,0 +1,185 @@
+{
+  "quranVoid": {
+    "paneWidth": 1088,
+    "paneHeight": 304,
+    "paneArea": 330752,
+    "inkArea": 4646,
+    "inkElements": 3,
+    "emptyShare": 0.986,
+    "surahListWidth": 299
+  },
+  "dashboardHero": {
+    "1280x800": {
+      "frameHeight": 764,
+      "heroHeight": 416,
+      "heroShareOfFrame": 0.545,
+      "firstContentHeadingBelowHero": {
+        "t": "Continue Watching",
+        "y": 674
+      },
+      "contentBelowFold": false
+    },
+    "1920x1080": {
+      "frameHeight": 1044,
+      "heroHeight": 544,
+      "heroShareOfFrame": 0.521,
+      "firstContentHeadingBelowHero": {
+        "t": "Continue Watching",
+        "y": 802
+      },
+      "contentBelowFold": false
+    }
+  },
+  "themes": {
+    "noor": {
+      "--bg-main-rgb": "3 4 4",
+      "--bg-sidebar-rgb": "6 9 8",
+      "--bg-panel-rgb": "9 13 11",
+      "--bg-card-rgb": "13 20 16",
+      "--bg-card-hover-rgb": "18 28 23",
+      "--border-subtle-rgb": "214 181 109",
+      "--accent-gold-rgb": "236 195 102",
+      "--accent-teal-rgb": "219 177 83",
+      "--accent-emerald-rgb": "28 173 111",
+      "--text-main-rgb": "247 248 250",
+      "--text-soft-rgb": "215 221 232",
+      "--text-muted-rgb": "126 138 161",
+      "--text-faint-rgb": "83 96 120"
+    },
+    "emerald": {
+      "--bg-main-rgb": "5 13 10",
+      "--bg-sidebar-rgb": "7 20 15",
+      "--bg-panel-rgb": "9 24 18",
+      "--bg-card-rgb": "13 34 26",
+      "--bg-card-hover-rgb": "18 48 36",
+      "--border-subtle-rgb": "52 211 153",
+      "--accent-gold-rgb": "176 141 87",
+      "--accent-teal-rgb": "34 197 94",
+      "--accent-emerald-rgb": "74 222 128",
+      "--text-main-rgb": "246 250 247",
+      "--text-soft-rgb": "214 232 220",
+      "--text-muted-rgb": "132 162 145",
+      "--text-faint-rgb": "86 111 96"
+    },
+    "pearl": {
+      "--bg-main-rgb": "243 246 247",
+      "--bg-sidebar-rgb": "229 236 238",
+      "--bg-panel-rgb": "249 251 251",
+      "--bg-card-rgb": "255 255 255",
+      "--bg-card-hover-rgb": "238 245 245",
+      "--border-subtle-rgb": "15 118 110",
+      "--accent-gold-rgb": "175 123 45",
+      "--accent-teal-rgb": "15 118 110",
+      "--accent-emerald-rgb": "5 150 105",
+      "--text-main-rgb": "17 24 39",
+      "--text-soft-rgb": "55 65 81",
+      "--text-muted-rgb": "91 105 120",
+      "--text-faint-rgb": "122 137 151"
+    },
+    "mushaf": {
+      "--bg-main-rgb": "5 7 6",
+      "--bg-sidebar-rgb": "8 12 10",
+      "--bg-panel-rgb": "11 16 13",
+      "--bg-card-rgb": "15 22 18",
+      "--bg-card-hover-rgb": "22 33 27",
+      "--border-subtle-rgb": "132 204 22",
+      "--accent-gold-rgb": "200 164 93",
+      "--accent-teal-rgb": "101 163 13",
+      "--accent-emerald-rgb": "34 197 94",
+      "--text-main-rgb": "246 248 241",
+      "--text-soft-rgb": "220 226 205",
+      "--text-muted-rgb": "145 154 127",
+      "--text-faint-rgb": "92 102 80"
+    },
+    "blue": {
+      "--bg-main-rgb": "4 9 18",
+      "--bg-sidebar-rgb": "6 13 26",
+      "--bg-panel-rgb": "9 17 34",
+      "--bg-card-rgb": "12 23 44",
+      "--bg-card-hover-rgb": "18 32 60",
+      "--border-subtle-rgb": "120 170 255",
+      "--accent-gold-rgb": "226 197 122",
+      "--accent-teal-rgb": "59 130 246",
+      "--accent-emerald-rgb": "56 189 248",
+      "--text-main-rgb": "240 245 252",
+      "--text-soft-rgb": "205 216 233",
+      "--text-muted-rgb": "130 148 178",
+      "--text-faint-rgb": "84 102 132"
+    },
+    "red": {
+      "--bg-main-rgb": "14 5 6",
+      "--bg-sidebar-rgb": "20 7 9",
+      "--bg-panel-rgb": "27 9 12",
+      "--bg-card-rgb": "37 13 16",
+      "--bg-card-hover-rgb": "52 19 23",
+      "--border-subtle-rgb": "224 130 120",
+      "--accent-gold-rgb": "226 197 122",
+      "--accent-teal-rgb": "229 84 92",
+      "--accent-emerald-rgb": "214 90 96",
+      "--text-main-rgb": "250 244 244",
+      "--text-soft-rgb": "233 214 214",
+      "--text-muted-rgb": "178 140 140",
+      "--text-faint-rgb": "132 100 100"
+    },
+    "onyx": {
+      "--bg-main-rgb": "2 2 3",
+      "--bg-sidebar-rgb": "7 7 9",
+      "--bg-panel-rgb": "14 14 17",
+      "--bg-card-rgb": "21 21 25",
+      "--bg-card-hover-rgb": "30 30 35",
+      "--border-subtle-rgb": "212 178 90",
+      "--accent-gold-rgb": "226 190 104",
+      "--accent-teal-rgb": "209 170 84",
+      "--accent-emerald-rgb": "190 158 80",
+      "--text-main-rgb": "248 247 244",
+      "--text-soft-rgb": "222 219 210",
+      "--text-muted-rgb": "148 143 130",
+      "--text-faint-rgb": "96 93 84"
+    },
+    "mushaf-gold": {
+      "--bg-main-rgb": "20 16 12",
+      "--bg-sidebar-rgb": "26 21 15",
+      "--bg-panel-rgb": "30 24 17",
+      "--bg-card-rgb": "34 27 19",
+      "--bg-card-hover-rgb": "44 35 25",
+      "--border-subtle-rgb": "240 210 150",
+      "--accent-gold-rgb": "240 210 150",
+      "--accent-teal-rgb": "216 184 122",
+      "--accent-emerald-rgb": "84 199 124",
+      "--text-main-rgb": "242 237 230",
+      "--text-soft-rgb": "214 207 196",
+      "--text-muted-rgb": "134 126 113",
+      "--text-faint-rgb": "110 101 88"
+    },
+    "maktabah": {
+      "--bg-main-rgb": "26 20 16",
+      "--bg-sidebar-rgb": "32 25 20",
+      "--bg-panel-rgb": "37 29 23",
+      "--bg-card-rgb": "42 33 26",
+      "--bg-card-hover-rgb": "54 43 34",
+      "--border-subtle-rgb": "239 161 99",
+      "--accent-gold-rgb": "239 161 99",
+      "--accent-teal-rgb": "214 143 88",
+      "--accent-emerald-rgb": "96 190 132",
+      "--text-main-rgb": "242 237 230",
+      "--text-soft-rgb": "216 205 194",
+      "--text-muted-rgb": "142 126 112",
+      "--text-faint-rgb": "115 98 85"
+    },
+    "samaa": {
+      "--bg-main-rgb": "27 40 54",
+      "--bg-sidebar-rgb": "32 47 62",
+      "--bg-panel-rgb": "36 52 68",
+      "--bg-card-rgb": "40 57 75",
+      "--bg-card-hover-rgb": "52 72 93",
+      "--border-subtle-rgb": "79 195 247",
+      "--accent-gold-rgb": "79 195 247",
+      "--accent-teal-rgb": "79 195 247",
+      "--accent-emerald-rgb": "64 207 154",
+      "--text-main-rgb": "237 242 246",
+      "--text-soft-rgb": "205 217 227",
+      "--text-muted-rgb": "122 147 163",
+      "--text-faint-rgb": "92 118 135"
+    }
+  }
+}

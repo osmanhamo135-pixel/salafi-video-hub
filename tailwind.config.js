@@ -42,7 +42,12 @@ export default {
         '3xl': '1800px',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        // 'Inter' sat here and in index.css for the app's whole life without an
+        // @font-face behind it, so every Latin glyph fell through to system-ui.
+        sans: ['Plex Sans', 'system-ui', '-apple-system', 'sans-serif'],
+        // Latin display only — route titles and the featured headline. Arabic
+        // display is Aref Ruqaa and is not reachable through this token.
+        display: ['Plex Serif', 'Georgia', 'serif'],
       },
       maxWidth: {
         'content': '1600px',

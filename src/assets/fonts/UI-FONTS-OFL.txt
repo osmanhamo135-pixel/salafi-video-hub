@@ -1,10 +1,28 @@
 Aref Ruqaa — Copyright (c) Abdullah Aref, Khaled Hosny.
 IBM Plex Sans Arabic — Copyright (c) IBM Corp.
+IBM Plex Sans — Copyright (c) 2017 IBM Corp.
+IBM Plex Serif — Copyright (c) 2017 IBM Corp.
 
-Both licensed under the SIL Open Font License, Version 1.1:
+All licensed under the SIL Open Font License, Version 1.1:
 https://openfontlicense.org
 
-Included as unmodified Arabic subsets (woff2) produced by Google Fonts.
-Aref Ruqaa is used only for display headings; IBM Plex Sans Arabic is used
-for Arabic UI text. Neither is ever used to render Quranic text — mushaf
-text renders only through the bundled official KFGQPC faces.
+Included as unmodified subsets (woff2). The Arabic subsets were produced by
+Google Fonts; the Latin subsets are the upstream @fontsource 5.3.0 latin
+subsets, copied unmodified.
+
+Roles are kept separate and are not interchangeable:
+
+  Aref Ruqaa            Arabic display headings only.
+  IBM Plex Sans Arabic  Arabic UI and body text.
+  IBM Plex Sans         Latin UI and body text.
+  IBM Plex Serif        Latin display only — route titles and the featured
+                        headline. Never body.
+
+Plex Sans and Plex Sans Arabic are siblings in one superfamily, which is why
+the pair was chosen: this app switches between English and Arabic at a toggle,
+and the two scripts have to sit at the same optical weight on the same row.
+
+None of the above is ever used to render Qur'anic text. Mushaf text renders
+only through the bundled official KFGQPC face for its own riwayah — Hafs v0.18
+or Warsh v10 — see KFGQPC-NOTICE.txt. The ayah medallion is an ornament rather
+than Qur'anic text and is the single permitted exception, using Amiri Quran.

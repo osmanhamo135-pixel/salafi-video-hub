@@ -1,8 +1,21 @@
 # Design plan — Hero & Visual Identity
 
-Status: **proposal awaiting approval**. Nothing here is implemented in the app yet.
+Status: **shipped**, as of v1.17.0–v1.21.0 (PRs #26–#31). This document was
+written as a proposal and its header said so for eight releases after it stopped
+being true — long enough that a fresh session could read it and conclude the hero
+did not exist. It is kept as the record of *why* the visual direction is what it
+is; for what the app actually does today, read `CLAUDE.md` and
+`docs/VISUAL_AUDIT.md`.
+
 Direction: *dark scholarly cinematic* — one warm light, a ruled page, content
 emerging from darkness.
+
+**Known divergence from §2 below: `Inter` is not bundled.** `src/index.css` names
+it as the Latin family, but the only `@font-face` declarations in the app are
+Amiri Quran, Aref Ruqaa, KFGQPC Hafs, KFGQPC Warsh and Plex Arabic. Every Latin
+glyph therefore falls through to `system-ui` — Segoe UI Variable on Windows. The
+table below claiming Inter is "already bundled" has never been true. Choosing the
+Latin face is an open decision, not a bug to silently patch.
 
 ## 1. Tokens
 
@@ -43,7 +56,7 @@ Onyx stays untouched as the default until you say otherwise.
 |---|---|---|---|
 | Arabic display | **Aref Ruqaa** | OFL | Hero wordmark and surah band only. Never body. |
 | Arabic body/UI | **IBM Plex Sans Arabic** | OFL | Replaces Segoe UI/Tahoma fallback. |
-| Latin | **Inter** (already bundled) | OFL | Unchanged. |
+| Latin | **Inter** — *named in CSS, never bundled; falls back to `system-ui`* | OFL | See the divergence note at the top. |
 | Mushaf | **KFGQPC Hafs / Warsh** | KFGQPC | Untouched, never used for UI chrome. |
 | Basmala ligature | **Amiri Quran** | OFL | Stand-in until your vector arrives. |
 
@@ -111,11 +124,22 @@ what replaced them:
 | No sound | No audio added anywhere. |
 | Licences reachable | KFGQPC + OFL notices ship with the fonts; an About → Licences screen is part of the implementation scope. |
 
-## 7. Open items blocking implementation
+## 7. Open items — all resolved
 
-1. The **reference banner and three plates did not arrive** in the message — the
-   palette above comes from your hex table, not sampled from the images.
-2. The **Basmala vector** (two path groups: `.basmala-stroke`, `.basmala-harakat`).
-   Until it arrives the mockups use the Amiri Quran `﷽` ligature.
-3. Confirmation on **two new bundled fonts** (~124 KB woff2 subset estimated) and
-   whether the three themes are *added* to Onyx or replace part of the set.
+Kept as a record of what unblocked implementation.
+
+1. ~~The reference banner and three plates did not arrive.~~ **Resolved.** Three
+   plates arrived (blurred mushaf volumes, cloud/sky, bookshelf wall) and map to
+   the Mushaf Gold, Samaa and Maktabah themes respectively. Note for whoever
+   builds ambients from them: the cloud plate as supplied appears to contain a
+   bird silhouette and must be cropped or its ground regenerated — an animate
+   being at 6% luminance behind glass is still an animate being.
+2. ~~The Basmala vector.~~ **Resolved.** `scripts/build-basmala-svg.py` shapes the
+   real font with HarfBuzz and emits outlines split by the typeface's GDEF mark
+   class, so `.basmala-stroke` and `.basmala-harakat` are the font's own paths
+   rather than a trace. Ships at `src/assets/marks/basmala.svg`.
+3. ~~Confirmation on two new bundled fonts, and whether the three themes are
+   added to Onyx or replace part of the set.~~ **Resolved.** Aref Ruqaa and Plex
+   Arabic both ship. The three themes were *added*: the set is now ten, and Onyx
+   is one of them rather than the default. The Latin face remains unresolved —
+   see the divergence note at the top.
