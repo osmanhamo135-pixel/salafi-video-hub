@@ -8,6 +8,7 @@ import { useAppStore } from '@/store/appStore';
 import { formatTime } from '@/utils/formatTime';
 import { LocalThumbnail } from '@/components/ui/LocalThumbnail';
 import { SectionHead } from '@/components/ui/SectionHead';
+import { Tilt } from '@/components/ui/Tilt';
 import { useI18n } from '@/i18n';
 
 /* .thumbnail-fallback bakes in an .icon-medallion (primary-blue border + fill)
@@ -181,6 +182,9 @@ const FeatureCard: React.FC<{
   const remaining = Math.max(item.video.durationSeconds - item.video.progressSeconds, 0);
 
   return (
+    /* max 3, not the poster 7 — a card this wide at 7 degrees reads as a
+       falling door. */
+    <Tilt max={3}>
     <button
       type="button"
       onClick={() => canPlay && onPlay(item)}
@@ -290,6 +294,7 @@ const FeatureCard: React.FC<{
         </div>
       </div>
     </button>
+    </Tilt>
   );
 };
 
