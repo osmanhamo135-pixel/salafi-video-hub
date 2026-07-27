@@ -2298,14 +2298,40 @@
   .surface-1,
   .premium-surface {
     border: 1px solid transparent;
-    background: var(--fill-1) padding-box, var(--edge-1) border-box;
+    background:
+      radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.08), transparent 56%) padding-box,
+      var(--fill-1) padding-box,
+      var(--edge-1) border-box;
     box-shadow: var(--elev-1);
   }
 
   .surface-2 {
     border: 1px solid transparent;
-    background: var(--fill-2) padding-box, var(--edge-2) border-box;
+    background:
+      radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.10), transparent 56%) padding-box,
+      var(--fill-2) padding-box,
+      var(--edge-2) border-box;
     box-shadow: var(--elev-2);
+  }
+
+  /* The chart card's interior glow, promoted to every card: a soft pool of
+     the theme accent breathing down from the top edge, the same move that
+     makes the Study Activity panel read as lit from within. Accent-derived,
+     so no theme gains a hue it did not have. Pearl takes a fraction of it —
+     a glow on a light ground is grime rather than light. */
+  html[data-theme='pearl'] .surface-1,
+  html[data-theme='pearl'] .premium-surface {
+    background:
+      radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.04), transparent 56%) padding-box,
+      var(--fill-1) padding-box,
+      var(--edge-1) border-box;
+  }
+
+  html[data-theme='pearl'] .surface-2 {
+    background:
+      radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.05), transparent 56%) padding-box,
+      var(--fill-2) padding-box,
+      var(--edge-2) border-box;
   }
 
   .surface-3 {
@@ -2365,9 +2391,9 @@
     position: absolute;
     inset: 0;
     background:
-      radial-gradient(62% 46% at 78% -4%, rgb(var(--accent-gold-rgb) / 0.20), transparent 68%),
-      radial-gradient(54% 44% at 4% 98%, rgb(var(--quran-green-rgb) / 0.13), transparent 70%),
-      radial-gradient(86% 52% at 42% 0%, rgb(var(--accent-teal-rgb) / 0.12), transparent 62%),
+      radial-gradient(62% 46% at 78% -4%, rgb(var(--accent-gold-rgb) / 0.30), transparent 68%),
+      radial-gradient(54% 44% at 4% 98%, rgb(var(--quran-green-rgb) / 0.20), transparent 70%),
+      radial-gradient(86% 52% at 42% 0%, rgb(var(--accent-teal-rgb) / 0.18), transparent 62%),
       linear-gradient(180deg, var(--bg-sidebar) 0%, var(--bg-main) 26rem);
   }
 
@@ -2394,15 +2420,15 @@
 
   .ambient-scene::before {
     background:
-      radial-gradient(42% 36% at 26% 30%, rgb(var(--accent-gold-rgb) / 0.16), transparent 70%),
-      radial-gradient(30% 26% at 72% 64%, rgb(var(--accent-turquoise-rgb) / 0.10), transparent 72%);
+      radial-gradient(42% 36% at 26% 30%, rgb(var(--accent-gold-rgb) / 0.26), transparent 70%),
+      radial-gradient(30% 26% at 72% 64%, rgb(var(--accent-turquoise-rgb) / 0.16), transparent 72%);
     animation: scene-a 52s var(--ease-standard) infinite alternate;
   }
 
   .ambient-scene::after {
     background:
-      radial-gradient(36% 30% at 70% 22%, rgb(var(--accent-teal-rgb) / 0.11), transparent 70%),
-      radial-gradient(26% 24% at 24% 78%, rgb(var(--accent-gold-rgb) / 0.09), transparent 74%);
+      radial-gradient(36% 30% at 70% 22%, rgb(var(--accent-teal-rgb) / 0.18), transparent 70%),
+      radial-gradient(26% 24% at 24% 78%, rgb(var(--accent-gold-rgb) / 0.14), transparent 74%);
     animation: scene-b 76s var(--ease-standard) infinite alternate;
   }
 
@@ -2420,27 +2446,27 @@
      the colour, so these only shape WHERE the light lives. */
   html[data-theme='blue'] .ambient-scene::before {
     background:
-      radial-gradient(50% 40% at 30% 18%, rgb(var(--accent-gold-rgb) / 0.18), transparent 70%),
-      radial-gradient(34% 30% at 76% 70%, rgb(var(--accent-turquoise-rgb) / 0.12), transparent 72%);
+      radial-gradient(50% 40% at 30% 18%, rgb(var(--accent-gold-rgb) / 0.28), transparent 70%),
+      radial-gradient(34% 30% at 76% 70%, rgb(var(--accent-turquoise-rgb) / 0.18), transparent 72%);
   }
 
   html[data-theme='red'] .ambient-scene::before {
     background:
-      radial-gradient(56% 44% at 30% 24%, rgb(var(--accent-gold-rgb) / 0.17), transparent 68%),
-      radial-gradient(40% 34% at 78% 76%, rgb(var(--accent-gold-rgb) / 0.10), transparent 74%);
+      radial-gradient(56% 44% at 30% 24%, rgb(var(--accent-gold-rgb) / 0.26), transparent 68%),
+      radial-gradient(40% 34% at 78% 76%, rgb(var(--accent-gold-rgb) / 0.16), transparent 74%);
   }
 
   html[data-theme='samaa'] .ambient-scene::before {
     background:
-      radial-gradient(60% 34% at 30% 26%, rgb(var(--text-soft-rgb) / 0.10), transparent 70%),
-      radial-gradient(46% 28% at 72% 56%, rgb(var(--accent-gold-rgb) / 0.13), transparent 72%);
+      radial-gradient(60% 34% at 30% 26%, rgb(var(--text-soft-rgb) / 0.16), transparent 70%),
+      radial-gradient(46% 28% at 72% 56%, rgb(var(--accent-gold-rgb) / 0.20), transparent 72%);
   }
 
   html[data-theme='mushaf-gold'] .ambient-scene::before,
   html[data-theme='maktabah'] .ambient-scene::before {
     background:
-      radial-gradient(52% 46% at 32% 30%, rgb(var(--accent-gold-rgb) / 0.20), transparent 66%),
-      radial-gradient(36% 30% at 74% 72%, rgb(var(--accent-gold-rgb) / 0.10), transparent 74%);
+      radial-gradient(52% 46% at 32% 30%, rgb(var(--accent-gold-rgb) / 0.30), transparent 66%),
+      radial-gradient(36% 30% at 74% 72%, rgb(var(--accent-gold-rgb) / 0.16), transparent 74%);
   }
 
   /* Pearl: light ground — the scene inverts to shade, softly, and stands
@@ -2456,15 +2482,49 @@
     animation: none;
   }
 
+  /* ── The girih lattice ──────────────────────────────────────────────────
+     Structure under the light. The gradient plates give each theme its
+     weather, but weather alone still reads as a wash; the khatam lattice
+     tiled across the ground at hairline opacity is what makes the room
+     unmistakably THIS app's room. Drawn as a mask over an accent fill so
+     every theme colours its own lattice — the SVG ships as a real file
+     because img-src has no data: source (Guard 0). Drift is transform-only
+     and dies at tier 1, with the other ambient motion. */
+  .ambient-lattice {
+    position: absolute;
+    inset: -20%;
+    background-color: rgb(var(--accent-gold-rgb) / 0.09);
+    -webkit-mask-image: url('./assets/marks/girih.svg');
+    mask-image: url('./assets/marks/girih.svg');
+    -webkit-mask-size: 21rem 21rem;
+    mask-size: 21rem 21rem;
+    -webkit-mask-repeat: repeat;
+    mask-repeat: repeat;
+    will-change: transform;
+    animation: lattice-drift 140s linear infinite alternate;
+  }
+
+  @keyframes lattice-drift {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(2.4%, 1.8%, 0); }
+  }
+
+  html[data-theme='pearl'] .ambient-lattice {
+    background-color: rgb(var(--shade-rgb) / 0.06);
+    animation: none;
+  }
+
   /* Tier 1: present, motionless. */
   .ambient-layer[data-tier='1'] .ambient-scene::before,
-  .ambient-layer[data-tier='1'] .ambient-scene::after {
+  .ambient-layer[data-tier='1'] .ambient-scene::after,
+  .ambient-layer[data-tier='1'] .ambient-lattice {
     animation: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
     .ambient-scene::before,
-    .ambient-scene::after {
+    .ambient-scene::after,
+    .ambient-lattice {
       animation: none;
     }
   }
@@ -2606,7 +2666,11 @@
   .glass {
     position: relative;
     border-radius: var(--r-lg);
-    background: rgb(var(--bg-card-rgb) / 0.55);
+    /* The same interior accent glow the surface ladder carries — the Study
+       Activity treatment, everywhere a card is glass. */
+    background:
+      radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.10), transparent 56%),
+      rgb(var(--bg-card-rgb) / 0.55);
     backdrop-filter: blur(18px) saturate(132%);
     -webkit-backdrop-filter: blur(18px) saturate(132%);
     box-shadow:
@@ -2974,12 +3038,16 @@
   /* Pearl is the only light theme. Glass over a light ground needs a lighter
      fill and a shade rim rather than a sheen rim, or it reads as dirt. */
   html[data-theme='pearl'] .glass {
-    background: rgb(var(--bg-card-rgb) / 0.72);
+    background:
+      radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.05), transparent 56%),
+      rgb(var(--bg-card-rgb) / 0.72);
   }
 
   @supports not (backdrop-filter: blur(1px)) {
     .glass {
-      background: rgb(var(--bg-card-rgb));
+      background:
+        radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.10), transparent 56%),
+        rgb(var(--bg-card-rgb));
     }
   }
 
@@ -4101,5 +4169,26 @@
 
   @media (prefers-reduced-motion: reduce) {
     .split-handle::before { transition: none; }
+  }
+}
+
+@layer components {
+  /* ── Error state ────────────────────────────────────────────────────────
+     The khatam plate behind a plain-language failure and its wired fix. */
+  .error-state {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--r-lg);
+  }
+
+  .error-state-plate {
+    position: absolute;
+    inset: 0;
+    background-image: url('./assets/marks/girih.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 11rem;
+    opacity: 0.05;
+    pointer-events: none;
   }
 }

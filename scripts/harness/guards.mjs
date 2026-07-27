@@ -81,6 +81,22 @@ async function open(theme, language = 'en') {
   await page.goto(base, { waitUntil: 'networkidle' });
   await page.waitForSelector('nav a', { timeout: 15_000 });
   await page.waitForTimeout(400);
+  // A fixture reminder comes due whenever the harness's real wall-clock
+  // crosses one of the fixture times (e.g. 17:15), and the alarm modal then
+  // intercepts every click below — guard 3 flaked exactly this way at 17:19.
+  // The alarm is correct app behaviour, just not what these guards assert
+  // on; dismiss until quiet. The first button in the dialog is its X.
+  for (let i = 0; i < 5; i += 1) {
+    const quiet = await page.evaluate(() => {
+      const overlay = document.querySelector('div.fixed.inset-0.z-50');
+      if (!overlay) return true;
+      const btn = overlay.querySelector('button');
+      if (btn) btn.click();
+      return false;
+    });
+    if (quiet) break;
+    await page.waitForTimeout(250);
+  }
   return { ctx, page };
 }
 
@@ -149,10 +165,19 @@ for (const theme of THEMES) {
   const r = await page.evaluate(() => {
     const moving = [...document.querySelectorAll('.ambient-sweep, .ambient-canvas')]
       .filter((el) => getComputedStyle(el).display !== 'none');
+    // CSS keyframes count as motion too — the scene plates and the girih
+    // lattice animate at tier >= 2 and must be clamped still on /quran.
+    const layer = document.querySelector('.ambient-layer');
+    const running = layer
+      ? document.getAnimations().filter((a) => {
+          const el = a.effect && 'target' in a.effect ? a.effect.target : null;
+          return el instanceof Element && layer.contains(el) && a.playState === 'running';
+        }).length
+      : 0;
     const frame = document.querySelector('.quran-reading-frame');
     const bg = frame ? getComputedStyle(frame).backgroundColor : null;
     const alpha = bg && bg.startsWith('rgba') ? parseFloat(bg.split(',')[3]) : 1;
-    return { movingCount: moving.length, frameFound: !!frame, frameOpaque: !!bg && alpha >= 0.999 };
+    return { movingCount: moving.length + running, frameFound: !!frame, frameOpaque: !!bg && alpha >= 0.999 };
   });
   check(`quran-no-ambient-motion[${theme}]`, r.movingCount === 0, `${r.movingCount} animated layer(s) live on /quran`);
   if (r.frameFound) {

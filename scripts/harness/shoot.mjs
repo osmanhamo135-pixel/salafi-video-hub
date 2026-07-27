@@ -97,6 +97,21 @@ for (const theme of themes) {
       await page.goto(base, { waitUntil: 'networkidle' });
       await page.waitForSelector('nav a', { timeout: 15_000 });
 
+      // A fixture reminder comes due whenever real wall-clock crosses one of
+      // the fixture times, and its alarm modal intercepts every nav click.
+      // Correct app behaviour — just not what a screenshot sweep is for.
+      for (let i = 0; i < 5; i += 1) {
+        const quiet = await page.evaluate(() => {
+          const overlay = document.querySelector('div.fixed.inset-0.z-50');
+          if (!overlay) return true;
+          const btn = overlay.querySelector('button');
+          if (btn) btn.click();
+          return false;
+        });
+        if (quiet) break;
+        await page.waitForTimeout(250);
+      }
+
       for (const route of ROUTES) {
         await page.click(`nav a[href="${route.path}"]`);
         await page.waitForTimeout(700); // let stores settle
