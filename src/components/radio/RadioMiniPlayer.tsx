@@ -148,7 +148,7 @@ export const RadioMiniPlayer: React.FC = () => {
           <button
             type="button"
             onClick={playbackError ? retry : togglePlay}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-blue text-white shadow transition-transform hover:scale-105"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-blue text-background shadow transition-transform hover:scale-105"
             title={playbackError ? t('retry') : playing ? t('pause') : t('play')}
           >
             {playbackError ? (
@@ -189,7 +189,7 @@ export const RadioMiniPlayer: React.FC = () => {
         <button
           type="button"
           onClick={playbackError ? retry : togglePlay}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-blue text-white shadow-lg transition-transform hover:scale-105"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-blue text-background shadow-lg transition-transform hover:scale-105"
           title={playbackError ? t('retry') : playing ? t('pause') : t('play')}
         >
           {playbackError ? (

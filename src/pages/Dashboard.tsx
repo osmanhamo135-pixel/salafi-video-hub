@@ -8,6 +8,7 @@ import { RecentlyAdded } from '@/components/dashboard/RecentlyAdded';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { Hero } from '@/components/home/Hero';
 import { HeroFeature } from '@/components/home/HeroFeature';
+import { StudyCharts } from '@/components/dashboard/StudyCharts';
 import { formatBytes } from '@/utils/formatBytes';
 import { formatDurationLong } from '@/utils/formatTime';
 import { useI18n } from '@/i18n';
@@ -109,6 +110,8 @@ export const Dashboard: React.FC = () => {
             <QuickActions />
           </div>
         </header>
+
+        <StudyCharts />
 
         {/* The lesson you were part-way through, first and largest. */}
         <ContinueWatching />

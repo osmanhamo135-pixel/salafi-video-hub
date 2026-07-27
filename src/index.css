@@ -2172,6 +2172,100 @@
     }
   }
 
+  /* ── Glass surfaces ─────────────────────────────────────────────────────
+     The liquid-glass idea, rebuilt from tokens rather than installed. Three
+     things make glass read as glass instead of as a grey box: a translucent
+     fill so the ground shows through, a blur so what shows through is
+     *diffused* rather than legible, and a specular top edge — the highlight a
+     real pane catches along its lit rim.
+
+     Every value derives from the theme, so this works on Pearl (light ground,
+     the sheen inverts to shade) exactly as it does on Onyx. There is no
+     `text-white` and no fixed rgba anywhere in it.
+
+     Translucency stays on chrome and on cards that sit over the ambient
+     ground. It never goes on the mushaf reading surface. */
+  .glass {
+    position: relative;
+    border-radius: var(--r-lg);
+    background: rgb(var(--bg-card-rgb) / 0.55);
+    backdrop-filter: blur(18px) saturate(132%);
+    -webkit-backdrop-filter: blur(18px) saturate(132%);
+    box-shadow:
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.07),
+      inset 0 0 0 1px rgb(var(--hair-rgb) / 0.10),
+      0 1px 2px rgb(var(--shade-rgb) / 0.28);
+  }
+
+  /* The specular rim. A gradient hairline that is brightest where the key
+     light hits — top-left, the same direction the hero lights from — and gone
+     by the far corner. A uniform 1px border reads as a box; this reads as an
+     edge catching light. */
+  .glass::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      142deg,
+      rgb(var(--sheen-rgb) / 0.16),
+      rgb(var(--sheen-rgb) / 0.02) 38%,
+      transparent 62%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .glass-hover {
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out);
+  }
+
+  .glass-hover:hover {
+    background: rgb(var(--bg-card-hover-rgb) / 0.66);
+    box-shadow:
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.10),
+      inset 0 0 0 1px rgb(var(--hair-rgb) / 0.17),
+      0 2px 8px rgb(var(--shade-rgb) / 0.34);
+  }
+
+  /* Pearl is the only light theme. Glass over a light ground needs a lighter
+     fill and a shade rim rather than a sheen rim, or it reads as dirt. */
+  html[data-theme='pearl'] .glass {
+    background: rgb(var(--bg-card-rgb) / 0.72);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .glass {
+      background: rgb(var(--bg-card-rgb));
+    }
+  }
+
+  /* `.premium-surface` and `.premium-card` are the old names, kept as aliases
+     so the eleven remaining call sites keep working while they migrate. The
+     word "premium" was always wrong for a private offline study library. */
+  .premium-surface,
+  .premium-card {
+    position: relative;
+    border-radius: var(--r-lg);
+    background: rgb(var(--bg-card-rgb) / 0.55);
+    backdrop-filter: blur(18px) saturate(132%);
+    -webkit-backdrop-filter: blur(18px) saturate(132%);
+    box-shadow:
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.07),
+      inset 0 0 0 1px rgb(var(--hair-rgb) / 0.10),
+      0 1px 2px rgb(var(--shade-rgb) / 0.28);
+  }
+
   /* Frosted glass over the ambient ground. This is the single move that
      separates a layered app from a flat one: the sidebar stops being a colour
      and becomes a translucent plane with the room visible through it.

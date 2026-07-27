@@ -26,7 +26,12 @@ const surahMeta = quran.map((s) => ({
 }));
 
 const DAY = 86_400_000;
-const now = 1_753_500_000_000; // fixed clock — screenshots must be reproducible
+/* Anchored to today's midnight rather than a fixed epoch. A frozen clock made
+   screenshots byte-reproducible, but it also put every seeded `lastPlayedAt`
+   outside any rolling window the UI computes — the study-activity charts read
+   zero against data that looked fine in the fixture file. Midnight-anchored
+   keeps runs within a day stable and keeps relative-time UI honest. */
+const now = new Date().setHours(0, 0, 0, 0) + 11 * 3_600_000;
 
 /** Titles drawn from the app's own stated subject matter, with realistic length spread. */
 const SOURCES = [
@@ -74,7 +79,10 @@ const videos = Array.from({ length: 163 }, (_, i) => {
     modifiedAt: now - i * DAY,
     createdAt: now - i * DAY,
     updatedAt: now - i * DAY,
-    lastPlayedAt: progress ? now - i * 3_600_000 : null,
+    /* Spread across the last four weeks so rolling-window UI (the study
+       activity chart, "recently played") has something truthful to show,
+       with a deliberate gap so a streak is not trivially unbroken. */
+    lastPlayedAt: progress ? now - ((i * 3) % 26) * DAY - (i % 7) * 3_600_000 : null,
     playableStatus: 'playable',
     lastPlaybackError: null,
     codecInfo: 'h264 / aac',

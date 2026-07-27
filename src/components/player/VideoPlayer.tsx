@@ -413,7 +413,7 @@ export const VideoPlayer: React.FC = () => {
 
       {status === 'paused' && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-black/55">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full border border-border bg-black/55">
             <PlayIcon className="w-8 h-8 text-white/80 ms-1" />
           </div>
         </div>

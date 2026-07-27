@@ -86,7 +86,7 @@ export const HeroFeature: React.FC = () => {
      card becoming an empty state. */
   if (!item) {
     return (
-      <section className="hero-feature p-6 sm:p-8">
+      <section className="hero-feature glass p-6 sm:p-8">
         <div className="jadwal" aria-hidden="true" />
         <div className="relative z-[1] flex flex-col items-start gap-4 py-6 sm:py-10">
           <p className="text-[11px] font-medium text-accent-gold">{t('heroFeatureEyebrowMushaf')}</p>
@@ -117,7 +117,7 @@ export const HeroFeature: React.FC = () => {
   };
 
   return (
-    <section className="hero-feature p-4 sm:p-6">
+    <section className="hero-feature glass p-4 sm:p-6">
       <div className="jadwal" aria-hidden="true" />
 
       <div className="relative z-[1] grid gap-5 sm:gap-7 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-center">
@@ -189,7 +189,7 @@ export const HeroFeature: React.FC = () => {
 /* Matched to the block it replaces rather than a spinner in a card slot, so
    the layout does not jump when the lesson arrives. */
 const HeroFeatureSkeleton: React.FC = () => (
-  <section className="hero-feature p-4 sm:p-6">
+  <section className="hero-feature glass p-4 sm:p-6">
     <div className="relative z-[1] grid gap-5 sm:gap-7 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-center">
       <div className="hero-feature-art motion-safe:animate-pulse" />
       <div className="min-w-0">
