@@ -213,7 +213,7 @@ export const ReminderAlarm: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
-      <div className="premium-surface relative w-full max-w-md rounded-lg shadow-2xl">
+      <div className="glass relative w-full max-w-md rounded-lg shadow-2xl">
         <div className="flex items-start gap-3 border-b border-border px-5 py-4">
           <div className="icon-medallion h-10 w-10 shrink-0">
             <Bell className="h-5 w-5 text-primary-blue" />

@@ -75,7 +75,7 @@ export const PlayerPage: React.FC = () => {
   if (!isPlayerOpen || !hasCurrentVideo) {
     return (
       <div className="flex flex-1 items-center justify-center bg-background p-6 text-muted-text">
-        <div className="premium-surface relative flex w-full max-w-md flex-col items-center gap-4 rounded-lg p-8 text-center">
+        <div className="glass relative flex w-full max-w-md flex-col items-center gap-4 rounded-lg p-8 text-center">
           <div className="icon-medallion h-16 w-16">
             <svg viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8 text-primary-blue/55">
               <polygon points="5,3 19,12 5,21" />

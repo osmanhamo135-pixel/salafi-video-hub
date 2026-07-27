@@ -317,7 +317,7 @@ const WatchPlayer: React.FC = () => {
   };
 
   return (
-    <section className="premium-surface mb-5 overflow-hidden rounded-lg">
+    <section className="glass mb-5 overflow-hidden rounded-lg">
       {/* A player letterbox is black on every theme — that is what a video
           frame is, not a themed surface. */}
       <div className="aspect-video w-full bg-black">
@@ -437,7 +437,7 @@ const HistoryCard: React.FC<{ item: WatchHistoryItem }> = React.memo(({ item }) 
     : 0;
 
   return (
-    <div className="premium-card premium-card-hover group relative w-56 shrink-0 overflow-hidden rounded-lg">
+    <div className="glass glass-hover group relative w-56 shrink-0 overflow-hidden rounded-lg">
       <button
         type="button"
         onClick={() => void playUrl(item.url)}
@@ -484,7 +484,7 @@ const HistoryCard: React.FC<{ item: WatchHistoryItem }> = React.memo(({ item }) 
         type="button"
         onClick={() => removeFromHistory(item.id)}
         title={t('remove')}
-        className="absolute end-1.5 top-1.5 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity hover:bg-danger-red group-hover:opacity-100 focus:opacity-100 motion-reduce:transition-none"
+        className="absolute end-1.5 top-1.5 rounded-full bg-black/60 p-1 text-text-primary opacity-0 transition-opacity hover:bg-danger-red group-hover:opacity-100 focus:opacity-100 motion-reduce:transition-none"
       >
         <X className="h-3.5 w-3.5" />
       </button>
@@ -504,7 +504,7 @@ const ResultCard: React.FC<{ item: YoutubeSearchItem }> = React.memo(({ item }) 
       type="button"
       onClick={() => void play(item)}
       disabled={resolving}
-      className="premium-card premium-card-hover group overflow-hidden rounded-lg text-start disabled:opacity-60"
+      className="glass glass-hover group overflow-hidden rounded-lg text-start disabled:opacity-60"
     >
       <div className="relative aspect-video w-full overflow-hidden bg-elevated-panel">
         <img

@@ -38,6 +38,11 @@ export const Hero: React.FC = () => {
             400px+ room; cropped to a 120px band they read as dark rectangles
             with visible seams. At this scale the ground's key light and the
             girih are the whole picture. */}
+        {/* Two counter-drifting colour fields, masked away from the centre so
+            nothing moves behind the calligraphy. Transform-only, so this is a
+            composite each frame rather than a repaint. */}
+        <div className="hero-aurora" />
+        <div className="hero-aurora hero-aurora-b" />
         <div className="hero-girih" />
         <div className="hero-arch" />
         <div className="hero-scrim" />

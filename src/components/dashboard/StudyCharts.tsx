@@ -134,7 +134,7 @@ export const StudyCharts: React.FC = () => {
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,17rem)]">
         {/* Activity over time. */}
-        <div className="glass p-5">
+        <div className="glass glow-edge p-5">
           <div className="flex items-baseline gap-3">
             <p className="text-4xl font-semibold leading-none tabular-nums text-text-primary">
               <bdi>{totalDays}</bdi>
@@ -177,7 +177,7 @@ export const StudyCharts: React.FC = () => {
         </div>
 
         {/* The streak, and the same 28 days as a calendar band. */}
-        <div className="glass p-5">
+        <div className="glass glow-edge p-5">
           <div className="flex items-baseline gap-3">
             <p className="text-4xl font-semibold leading-none tabular-nums text-accent-gold">
               <bdi>{streak}</bdi>

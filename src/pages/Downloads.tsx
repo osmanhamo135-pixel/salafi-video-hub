@@ -388,7 +388,7 @@ const DownloadBatchCard: React.FC<{
   const remaining = Math.max(result.downloadedFiles.length - 1, 0);
 
   return (
-    <div className="premium-card overflow-hidden rounded-lg">
+    <div className="glass overflow-hidden rounded-lg">
       <div className="relative aspect-video bg-elevated-panel">
         <LocalThumbnail
           path={result.previewThumbnailPath}

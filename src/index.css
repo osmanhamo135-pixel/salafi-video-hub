@@ -2139,6 +2139,68 @@
     to   { transform: translate3d(160%, 0, 0); }
   }
 
+  /* ── Hero aurora ────────────────────────────────────────────────────────
+     The "cosmic wave" ambient, built from two counter-drifting radial fields
+     rather than a shader. Three constraints shaped it:
+
+     It must never touch the Basmala. It is painted inside .hero-clip, which
+     sits at z-index 0 under .hero-inner, and it is masked away from the centre
+     where the calligraphy sits — so the glyphs are never behind moving colour.
+
+     It animates transform only. No filter, no background-position, no opacity
+     on a large surface — those are paint-and-composite every frame; a
+     translate on a promoted layer is composite-only and costs essentially
+     nothing, which is what lets this run on a 60s cycle without a budget.
+
+     It is slow to the point of being barely perceptible. Ambient motion the
+     eye can time is decoration, and decoration behind calligraphy is exactly
+     what the design rules forbid. */
+  .hero-aurora {
+    position: absolute;
+    inset: -30%;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(38% 46% at 22% 38%, rgb(var(--accent-gold-rgb) / 0.20), transparent 68%),
+      radial-gradient(32% 40% at 74% 62%, rgb(var(--quran-green-rgb) / 0.13), transparent 70%);
+    /* Cleared through the middle band so nothing drifts behind the glyphs. */
+    -webkit-mask: radial-gradient(58% 62% at 50% 50%, transparent 42%, #000 78%);
+    mask: radial-gradient(58% 62% at 50% 50%, transparent 42%, #000 78%);
+    will-change: transform;
+    animation: hero-aurora 64s var(--ease-standard) infinite alternate;
+  }
+
+  .hero-aurora-b {
+    inset: -34%;
+    background:
+      radial-gradient(34% 42% at 68% 30%, rgb(var(--accent-turquoise-rgb) / 0.11), transparent 72%),
+      radial-gradient(30% 38% at 28% 72%, rgb(var(--accent-gold-rgb) / 0.13), transparent 74%);
+    animation: hero-aurora-b 88s var(--ease-standard) infinite alternate;
+  }
+
+  @keyframes hero-aurora {
+    from { transform: translate3d(-3%, -2%, 0) scale(1.04); }
+    to   { transform: translate3d(4%, 3%, 0) scale(1.12); }
+  }
+
+  @keyframes hero-aurora-b {
+    from { transform: translate3d(3%, 2%, 0) scale(1.10); }
+    to   { transform: translate3d(-4%, -3%, 0) scale(1.02); }
+  }
+
+  /* Reduced motion, Performance Mode and the Quran route all still get the
+     colour — they just get it standing still. */
+  html[data-route='quran'] .hero-aurora,
+  .ambient-layer[data-tier='0'] ~ * .hero-aurora {
+    animation: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-aurora {
+      animation: none;
+    }
+  }
+
   /* Tier 3 — the generated field. Rendered at 320x200 and scaled up: a
      full-resolution animated surface is the reliable way to tank a WebView's
      frame rate, and at this luminance the upscale is invisible. */
@@ -2222,6 +2284,76 @@
       linear-gradient(#000 0 0);
     mask-composite: exclude;
     pointer-events: none;
+  }
+
+  /* ── Glow edge ──────────────────────────────────────────────────────────
+     The "glowing border" from the showcase galleries, done as edge lighting
+     rather than as neon. Two differences from the gallery version, both
+     deliberate:
+
+     The glow is the theme accent at low alpha, not a saturated neon hue. This
+     app already forbids a second accent, and a cyan rim on a gold-accented
+     mushaf page is the exact "generic dark dashboard" tell the design notes
+     warn about.
+
+     It brightens on hover instead of pulsing. A border that pulses on its own
+     is motion with no cause; a border that answers the cursor is feedback. */
+  .glow-edge {
+    position: relative;
+  }
+
+  .glow-edge::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(
+      from 140deg,
+      rgb(var(--accent-gold-rgb) / 0.34),
+      rgb(var(--accent-gold-rgb) / 0.04) 28%,
+      transparent 46%,
+      rgb(var(--accent-gold-rgb) / 0.10) 72%,
+      rgb(var(--accent-gold-rgb) / 0.30)
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    opacity: 0.75;
+    transition: opacity var(--dur-normal) var(--ease-out);
+    pointer-events: none;
+  }
+
+  .glow-edge:hover::after,
+  .glow-edge:focus-within::after {
+    opacity: 1;
+  }
+
+  /* The ambient halo that makes the edge read as lit rather than drawn. Kept
+     off Pearl, where a glow on a light ground is grime rather than light. */
+  .glow-edge:hover {
+    box-shadow:
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.10),
+      0 0 0 1px rgb(var(--accent-gold-rgb) / 0.10),
+      0 6px 26px -8px rgb(var(--accent-gold-rgb) / 0.30);
+  }
+
+  html[data-theme='pearl'] .glow-edge:hover {
+    box-shadow:
+      inset 0 1px 0 rgb(var(--shade-rgb) / 0.06),
+      0 0 0 1px rgb(var(--accent-gold-rgb) / 0.18),
+      0 6px 18px -10px rgb(var(--shade-rgb) / 0.28);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .glow-edge::after {
+      transition: none;
+    }
   }
 
   .glass-hover {

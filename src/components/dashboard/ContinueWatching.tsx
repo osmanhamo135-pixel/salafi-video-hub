@@ -109,7 +109,7 @@ export const ContinueWatching: React.FC = () => {
       {loading ? (
         <FeatureSkeleton />
       ) : !lead ? (
-        <div className="premium-card rounded-lg px-8 py-16 text-center">
+        <div className="glass rounded-lg px-8 py-16 text-center">
           <span
             className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-border"
             style={{ background: 'rgb(var(--accent-gold-rgb) / 0.06)' }}
@@ -178,7 +178,7 @@ const FeatureCard: React.FC<{
       type="button"
       onClick={() => canPlay && onPlay(item)}
       disabled={!canPlay}
-      className="premium-card premium-card-hover group w-full overflow-hidden rounded-lg text-start disabled:cursor-default"
+      className="glass glass-hover group w-full overflow-hidden rounded-lg text-start disabled:cursor-default"
     >
       <div className="grid sm:grid-cols-[minmax(0,40%)_minmax(0,1fr)]">
         <div className="relative aspect-video w-full overflow-hidden sm:aspect-auto sm:min-h-[15rem]">
@@ -329,7 +329,7 @@ const QueueRow: React.FC<{
 
 const FeatureSkeleton: React.FC = () => (
   <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,300px)] xl:gap-12">
-    <div className="premium-card overflow-hidden rounded-lg">
+    <div className="glass overflow-hidden rounded-lg">
       <div className="grid sm:grid-cols-[minmax(0,40%)_minmax(0,1fr)]">
         <div className="aspect-video w-full bg-panel-hover motion-safe:animate-pulse" />
         <div className="flex flex-col justify-center gap-4 p-8">

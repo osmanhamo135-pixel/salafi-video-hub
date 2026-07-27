@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri-dev": "tauri dev",
-    "tauri-build": "tauri build"
+    "tauri-build": "tauri build",
+    "sweep": "npm run build && node scripts/harness/shoot.mjs --out design-audit/sweep --themes noor,emerald,pearl,mushaf,blue,red,onyx,mushaf-gold,maktabah,samaa --langs en,ar",
+    "guards": "npm run build && node scripts/harness/guards.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "2.10.1",
