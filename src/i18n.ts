@@ -1135,67 +1135,56 @@ export const themeOptions: Array<{
   id: AppTheme;
   labelKey: TranslationKey;
   descriptionKey: TranslationKey;
-  swatches: string[];
 }> = [
   {
     id: 'noor',
     labelKey: 'themeNoor',
     descriptionKey: 'themeNoorDescription',
-    swatches: ['#030505', '#29C4B4', '#0C1313'],
   },
   {
     id: 'emerald',
     labelKey: 'themeEmerald',
     descriptionKey: 'themeEmeraldDescription',
-    swatches: ['#050D0A', '#3FCB7C', '#0D221A'],
   },
   {
     id: 'pearl',
     labelKey: 'themePearl',
     descriptionKey: 'themePearlDescription',
-    swatches: ['#F3F6F7', '#0E6F68', '#FFFFFF'],
   },
   {
     id: 'mushaf',
     labelKey: 'themeMushaf',
     descriptionKey: 'themeMushafDescription',
-    swatches: ['#050706', '#9BC94A', '#0F1612'],
   },
   {
     id: 'blue',
     labelKey: 'themeBlue',
     descriptionKey: 'themeBlueDescription',
-    swatches: ['#040912', '#5E9DF7', '#0C172C'],
   },
   {
     id: 'red',
     labelKey: 'themeRed',
     descriptionKey: 'themeRedDescription',
-    swatches: ['#0E0506', '#E75E70', '#250D10'],
   },
   {
     id: 'onyx',
     labelKey: 'themeOnyx',
     descriptionKey: 'themeOnyxDescription',
-    swatches: ['#020203', '#E0BC6A', '#151519'],
   },
   {
     id: 'mushaf-gold',
     labelKey: 'themeMushafGold',
     descriptionKey: 'themeMushafGoldDescription',
-    swatches: ['#14100C', '#EFD199', '#221B13'],
   },
   {
     id: 'maktabah',
     labelKey: 'themeMaktabah',
     descriptionKey: 'themeMaktabahDescription',
-    swatches: ['#1A1410', '#EFA163', '#2A211A'],
   },
   {
     id: 'samaa',
     labelKey: 'themeSamaa',
     descriptionKey: 'themeSamaaDescription',
-    swatches: ['#101A24', '#6CC9F0', '#212B35'],
   },
 ];
 

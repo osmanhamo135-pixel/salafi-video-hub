@@ -183,7 +183,9 @@
     --card-wash: linear-gradient(180deg, rgba(16, 26, 26, 0.96), rgba(7, 11, 11, 0.98));
   }
 
-  html[data-theme='emerald'] {
+  html[data-theme='emerald'],
+
+  [data-theme='emerald'] {
     --quran-green-rgb: 74 222 128;
     --bg-main-rgb: 5 13 10;
     --bg-sidebar-rgb: 7 20 15;
@@ -209,7 +211,9 @@
     --card-wash: linear-gradient(180deg, rgba(16, 42, 31, 0.97), rgba(8, 22, 16, 0.98));
   }
 
-  html[data-theme='pearl'] {
+  html[data-theme='pearl'],
+
+  [data-theme='pearl'] {
     --quran-green-rgb: 16 138 87;
     /* The medallion gold is deliberately fixed across themes so a ring never
        turns cyan in Samaa. Pearl is the exception: it is the only theme with a
@@ -255,7 +259,9 @@
     --card-wash: linear-gradient(180deg, rgba(250, 253, 253, 0.98), rgba(236, 244, 243, 0.98));
   }
 
-  html[data-theme='mushaf'] {
+  html[data-theme='mushaf'],
+
+  [data-theme='mushaf'] {
     --quran-green-rgb: 112 205 110;
     --bg-main-rgb: 5 7 6;
     --bg-sidebar-rgb: 8 12 10;
@@ -282,7 +288,9 @@
     --card-wash: linear-gradient(180deg, rgba(19, 29, 23, 0.97), rgba(9, 14, 11, 0.98));
   }
 
-  html[data-theme='blue'] {
+  html[data-theme='blue'],
+
+  [data-theme='blue'] {
     --quran-green-rgb: 64 207 154;
     --bg-main-rgb: 4 9 18;
     --bg-sidebar-rgb: 6 13 26;
@@ -309,7 +317,9 @@
     --card-wash: linear-gradient(180deg, rgba(16, 30, 56, 0.97), rgba(8, 15, 30, 0.98));
   }
 
-  html[data-theme='red'] {
+  html[data-theme='red'],
+
+  [data-theme='red'] {
     --quran-green-rgb: 96 190 132;
     --bg-main-rgb: 14 5 6;
     --bg-sidebar-rgb: 20 7 9;
@@ -337,7 +347,9 @@
     --card-wash: linear-gradient(180deg, rgba(44, 16, 20, 0.97), rgba(20, 8, 10, 0.98));
   }
 
-  html[data-theme='onyx'] {
+  html[data-theme='onyx'],
+
+  [data-theme='onyx'] {
     --quran-green-rgb: 82 196 130;
     /* The ground stays pure black — that is the theme. The three surface
        steps above it were the tightest ladder of any theme (10/15/22 over a
@@ -373,7 +385,8 @@
      Sampled from the calligraphy plates: one warm-gold, one amber, one night
      sky. Each defines the complete variable set so every existing component
      works unchanged. */
-  html[data-theme='mushaf-gold'] {
+  html[data-theme='mushaf-gold'],
+  [data-theme='mushaf-gold'] {
     --quran-green-rgb: 84 199 124;
     --bg-main-rgb: 20 16 12;
     --bg-sidebar-rgb: 26 21 15;
@@ -399,7 +412,9 @@
     --card-wash: linear-gradient(180deg, rgba(40, 32, 23, 0.97), rgba(22, 18, 13, 0.98));
   }
 
-  html[data-theme='maktabah'] {
+  html[data-theme='maktabah'],
+
+  [data-theme='maktabah'] {
     --quran-green-rgb: 96 190 132;
     --bg-main-rgb: 26 20 16;
     --bg-sidebar-rgb: 32 25 20;
@@ -424,7 +439,9 @@
     --card-wash: linear-gradient(180deg, rgba(48, 38, 30, 0.97), rgba(28, 22, 17, 0.98));
   }
 
-  html[data-theme='samaa'] {
+  html[data-theme='samaa'],
+
+  [data-theme='samaa'] {
     --quran-green-rgb: 64 207 154;
     /* Still the lightest dark ground in the app — night sky, not slate. The
        plate's own #1B2836 stays in the surface ladder (it is now the card
@@ -3763,5 +3780,160 @@
     .select-list { animation: none; }
     .select-trigger { transition: none; }
     .select-trigger svg { transition: none; }
+  }
+}
+
+@layer components {
+  /* ── Theme preview ──────────────────────────────────────────────────────
+     A miniature of the app drawn entirely from the previewed theme's own
+     tokens — `data-theme` on the wrapper re-scopes every custom property
+     below it. No literal colours, so a preview cannot disagree with the
+     theme it claims to show. */
+  .theme-preview {
+    display: flex;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    border-radius: var(--r-md);
+    background: rgb(var(--bg-main-rgb));
+    box-shadow: inset 0 0 0 1px rgb(var(--hair-rgb) / 0.22);
+  }
+
+  .tp-side {
+    display: flex;
+    flex-direction: column;
+    gap: 5%;
+    width: 22%;
+    padding: 6% 4%;
+    background: rgb(var(--bg-sidebar-rgb));
+    border-inline-end: 1px solid rgb(var(--hair-rgb) / 0.2);
+  }
+
+  .tp-brand {
+    height: 12%;
+    border-radius: 2px;
+    background: rgb(var(--accent-gold-rgb) / 0.65);
+  }
+
+  .tp-nav {
+    height: 8%;
+    border-radius: 1px;
+    background: rgb(var(--text-main-rgb) / 0.16);
+  }
+
+  /* The active row carries the accent marker, exactly as the real nav does. */
+  .tp-nav-active {
+    background: rgb(var(--accent-gold-rgb) / 0.28);
+    box-shadow: inset 2px 0 0 rgb(var(--accent-gold-rgb));
+  }
+
+  .tp-main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 4%;
+    min-width: 0;
+    padding: 5%;
+  }
+
+  /* The hero's warm key light, off-centre and high, as on the real page. */
+  .tp-hero {
+    height: 22%;
+    border-radius: 2px;
+    background:
+      radial-gradient(60% 120% at 34% 10%, rgb(var(--accent-gold-rgb) / 0.30), transparent 70%),
+      rgb(var(--bg-panel-rgb));
+  }
+
+  .tp-card {
+    display: flex;
+    gap: 5%;
+    flex: 1;
+    min-height: 0;
+    padding: 4%;
+    border-radius: 2px;
+    background: rgb(var(--bg-card-rgb));
+    box-shadow: inset 0 0 0 1px rgb(var(--hair-rgb) / 0.3);
+  }
+
+  .tp-art {
+    width: 38%;
+    border-radius: 2px;
+    background: rgb(var(--bg-panel-rgb));
+    box-shadow: inset 0 0 0 1px rgb(var(--mushaf-gold-rgb) / 0.35);
+  }
+
+  .tp-lines {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 9%;
+    min-width: 0;
+  }
+
+  .tp-line {
+    height: 7%;
+    width: 70%;
+    border-radius: 1px;
+    background: rgb(var(--text-main-rgb) / 0.22);
+  }
+
+  .tp-line-lg {
+    height: 12%;
+    width: 92%;
+    background: rgb(var(--text-main-rgb) / 0.62);
+  }
+
+  .tp-cta {
+    height: 14%;
+    width: 46%;
+    border-radius: 1px;
+    background: rgb(var(--accent-gold-rgb));
+  }
+
+  .tp-rail {
+    display: flex;
+    gap: 3%;
+    height: 22%;
+  }
+
+  .tp-tile {
+    flex: 1;
+    border-radius: 2px;
+    background: rgb(var(--bg-card-rgb));
+    box-shadow: inset 0 0 0 1px rgb(var(--hair-rgb) / 0.22);
+  }
+
+  /* The gallery itself. */
+  .theme-gallery {
+    display: grid;
+    gap: var(--s4);
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  }
+
+  .theme-tile {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    padding: var(--s2);
+    border-radius: var(--r-md);
+    text-align: start;
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out);
+  }
+
+  .theme-tile:hover {
+    background: rgb(var(--sheen-rgb) / 0.05);
+  }
+
+  .theme-tile[aria-checked='true'] {
+    background: rgb(var(--accent-gold-rgb) / 0.10);
+    box-shadow: inset 0 0 0 1px rgb(var(--accent-gold-rgb) / 0.45);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .theme-tile { transition: none; }
   }
 }
