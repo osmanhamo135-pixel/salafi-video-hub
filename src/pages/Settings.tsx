@@ -28,6 +28,7 @@ import { playReminderSound, stopReminderSound } from '@/utils/reminderAudio';
 import { AppLanguage, AppTheme } from '@/types';
 import { languageOptions, themeOptions, useI18n } from '@/i18n';
 import { MOTION_KEY } from '@/components/layout/AmbientLayer';
+import { ThemePreview } from '@/components/ui/ThemePreview';
 import { Select } from '@/components/ui/Select';
 
 interface ThumbnailBatchResult {
@@ -486,7 +487,13 @@ export const Settings: React.FC = () => {
               <h3 className="text-sm text-text-primary">{t('appTheme')}</h3>
               <span className="text-[11px] text-muted-text">{t('appThemeDescription')}</span>
             </div>
-            <div className="rule-list" role="radiogroup" aria-label={t('appTheme')}>
+            {/* A gallery of real miniatures rather than three 12px swatches.
+                You cannot choose a theme you cannot see — and now that the ten
+                themes are genuinely ten different rooms, a colour chip is not
+                enough information to choose between them. Each preview draws
+                from its own theme's tokens, so it cannot disagree with what
+                the theme actually looks like. */}
+            <div className="theme-gallery" role="radiogroup" aria-label={t('appTheme')}>
               {themeOptions.map((theme) => {
                 const active = settings.theme === theme.id;
                 return (
@@ -496,25 +503,20 @@ export const Settings: React.FC = () => {
                     role="radio"
                     aria-checked={active}
                     onClick={() => updateSettings({ theme: theme.id as AppTheme })}
-                    className={`rule-row w-full text-start ${active ? 'rule-row-active' : ''}`}
+                    className="theme-tile"
                   >
-                    {/* The only literal colours on the page, and legitimately
-                        so: they are the specimen of the theme being offered. */}
-                    {/* The hairline is load-bearing: a near-black swatch on a
-                        near-black page is otherwise invisible. */}
-                    <span className="flex shrink-0 overflow-hidden rounded-[3px] border border-border">
-                      {theme.swatches.map((color) => (
-                        <span key={color} className="h-5 w-4" style={{ backgroundColor: color }} />
-                      ))}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className={`block truncate text-sm ${active ? 'text-text-primary' : 'text-text-soft'}`}>
+                    <ThemePreview theme={theme.id} />
+                    <span className="flex min-w-0 items-center gap-1.5 px-1">
+                      <span
+                        className={`min-w-0 flex-1 truncate text-[13px] ${
+                          active ? 'text-text-primary' : 'text-text-soft'
+                        }`}
+                      >
                         {t(theme.labelKey)}
                       </span>
-                      <span className="block truncate text-xs text-muted-text">{t(theme.descriptionKey)}</span>
-                    </span>
-                    <span className="flex w-5 shrink-0 justify-center">
-                      {active && <Check className="h-4 w-4 text-accent-gold" aria-label={t('applied')} />}
+                      {active && (
+                        <Check className="h-3.5 w-3.5 shrink-0 text-accent-gold" aria-label={t('applied')} />
+                      )}
                     </span>
                   </button>
                 );
