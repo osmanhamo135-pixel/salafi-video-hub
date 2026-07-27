@@ -59,6 +59,21 @@ const THEME_FIELD: Record<string, Field> = {
 
 export const MOTION_KEY = 'salafi-hub.background-motion';
 
+/* How much of the canvas field each section gets. The dashboard is the stage;
+   content-dense and task-focused routes pull the particles back so the work,
+   not the weather, holds the eye. Read through a ref each frame so navigation
+   never restarts the field — the particles dim, they do not blink. */
+const ROUTE_FIELD_DIM: Record<string, number> = {
+  dashboard: 1,
+  library: 0.85,
+  watch: 0.7,
+  radio: 0.9,
+  reminders: 0.9,
+  downloads: 0.75,
+  settings: 0.6,
+  player: 0.4,
+};
+
 const prefersReducedMotion = () =>
   typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -84,6 +99,11 @@ export const AmbientLayer: React.FC = () => {
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [awake, setAwake] = useState(true);
+
+  const routeSlug =
+    location.pathname === '/' ? 'dashboard' : location.pathname.replace(/^\//, '').split('/')[0];
+  const fieldDimRef = useRef(1);
+  fieldDimRef.current = ROUTE_FIELD_DIM[routeSlug] ?? 0.8;
 
   useEffect(() => {
     const sleep = () => setAwake(false);
@@ -160,6 +180,7 @@ export const AmbientLayer: React.FC = () => {
       if (now - last < 33) return; // 30fps cap
       last = now;
       t += 0.016;
+      const level = intensity * fieldDimRef.current;
 
       ctx.clearRect(0, 0, W, H);
 
@@ -170,7 +191,7 @@ export const AmbientLayer: React.FC = () => {
           const y = ((rnd(i, 3) * H - t * speed) % H + H) % H;
           const r = 0.9 + rnd(i, 4) * 2.6;
           const tw = 0.5 + 0.5 * Math.sin(t * (0.6 + rnd(i, 5)) + i * 2.1);
-          ctx.globalAlpha = (0.14 + 0.38 * tw) * intensity;
+          ctx.globalAlpha = (0.14 + 0.38 * tw) * level;
           ctx.fillStyle = `rgb(${accent})`;
           ctx.beginPath();
           ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -185,7 +206,7 @@ export const AmbientLayer: React.FC = () => {
             const y = rnd(k, 7) * H;
             const r = 0.6 + band * 0.42 + rnd(k, 8) * 0.8;
             const tw = 0.55 + 0.45 * Math.sin(t * (0.8 + rnd(k, 9) * 1.6) + k);
-            ctx.globalAlpha = (0.14 + 0.40 * tw) * intensity;
+            ctx.globalAlpha = (0.14 + 0.40 * tw) * level;
             ctx.fillStyle = band === 2 ? `rgb(${accent})` : `rgb(${soft})`;
             ctx.beginPath();
             ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -199,7 +220,7 @@ export const AmbientLayer: React.FC = () => {
           const y = H * (0.2 + 0.6 * rnd(i, 11)) + Math.cos(t * 0.09 + i * 1.7) * 48;
           const r = 95 + rnd(i, 12) * 130 + Math.sin(t * 0.13 + i) * 19;
           const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-          g.addColorStop(0, `rgb(${accent} / ${0.15 * intensity})`);
+          g.addColorStop(0, `rgb(${accent} / ${0.15 * level})`);
           g.addColorStop(1, 'transparent');
           ctx.globalAlpha = 1;
           ctx.fillStyle = g;
@@ -225,7 +246,7 @@ export const AmbientLayer: React.FC = () => {
              the gradient's transparent tail, which is why samaa's cloud field
              painted literally zero pixels in every release that carried it. */
           const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
-          g.addColorStop(0, `rgb(${soft} / ${0.13 * intensity})`);
+          g.addColorStop(0, `rgb(${soft} / ${0.13 * level})`);
           g.addColorStop(1, 'transparent');
           ctx.fillStyle = g;
           ctx.beginPath();
