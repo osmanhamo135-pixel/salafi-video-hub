@@ -1516,14 +1516,13 @@
     position: relative;
     display: grid;
     place-items: center;
-    /* A band, not a screensaver. This was 52vh — 416px of a 764px frame at
-       1280x800, 54% of everything the user could see — carrying a wordmark, a
-       one-line description and two buttons. The Basmala stays honoured and
-       full size; what goes is the empty ground it was floating in. The work of
-       the page now belongs to the featured card directly below. */
-    min-height: 7.5rem;
-    height: 15vh;
-    max-height: 10rem;
+    /* A band with real presence — tall enough for the calligraphy to breathe
+       and for the ground to read as a lit room, still far from the 52vh
+       screensaver it once was. The work of the page stays with the featured
+       card directly below. */
+    min-height: 9.5rem;
+    height: 22vh;
+    max-height: 15rem;
     /* NOT overflow:hidden. This element is an ancestor of .hero-basmala, and
        Qur'anic text is never clipped — at this height a clip here would crop
        the calligraphy the moment the band tightened. The background layers do
@@ -1629,18 +1628,21 @@
       radial-gradient(
         118% 96% at 42% 30%,
         transparent 26%,
-        rgb(var(--bg-main-rgb) / 0.55) 72%,
-        rgb(var(--bg-main-rgb) / 0.92) 100%
+        rgb(var(--bg-main-rgb) / 0.45) 72%,
+        rgb(var(--bg-main-rgb) / 0.85) 100%
       ),
       /* key light: warm, high, left of centre, with a long soft falloff */
       radial-gradient(58% 46% at 34% 20%, rgb(var(--accent-gold-rgb) / 0.30), transparent 74%),
-      radial-gradient(90% 70% at 34% 20%, rgb(var(--accent-gold-rgb) / 0.12), transparent 78%),
-      /* the room itself, darkening downward */
+      radial-gradient(96% 76% at 34% 20%, rgb(var(--accent-gold-rgb) / 0.14), transparent 80%),
+      /* The room itself, darkening downward — TRANSLUCENT, so the page's own
+         ambient canvas field reads through the band instead of being replaced
+         by an opaque stripe. The hero sits over the ambient layer; letting it
+         show is what makes the band feel continuous with the page. */
       linear-gradient(
         168deg,
-        rgb(var(--bg-card-hover-rgb)) 0%,
-        rgb(var(--bg-card-rgb)) 34%,
-        rgb(var(--bg-main-rgb)) 82%
+        rgb(var(--bg-card-hover-rgb) / 0.66) 0%,
+        rgb(var(--bg-card-rgb) / 0.45) 34%,
+        rgb(var(--bg-main-rgb) / 0.10) 82%
       );
   }
 
@@ -1783,7 +1785,9 @@
     position: absolute;
     inset: -40px;
     z-index: 1;
-    opacity: 0.05;
+    /* Visible ornament, not a rumour of one — the khatam lattice is meant to
+       read as the band's fabric under the key light. */
+    opacity: 0.12;
     /* A real file, not a data: URI — img-src has no `data:` source, so the
        inline form was a blocked request in every packaged build. */
     background-image: url('./assets/marks/girih.svg');
@@ -1801,7 +1805,7 @@
     width: min(760px, 68%);
     aspect-ratio: 1 / 1.16;
     transform: translate(-50%, -62%);
-    border: 1px solid var(--hair);
+    border: 1px solid rgb(var(--hair-rgb) / 0.3);
     border-bottom: none;
     border-radius: 50% 50% 0 0 / 58% 58% 0 0;
     box-shadow: inset 0 40px 90px -50px rgb(var(--accent-gold-rgb) / 0.22);
@@ -1848,7 +1852,7 @@
   .hero-inner {
     position: relative;
     z-index: 3;
-    max-width: 62rem;
+    max-width: 68rem;
     padding: 0 var(--s6);
     text-align: center;
   }
@@ -1865,8 +1869,10 @@
      glyph, and the viewBox guarantees it scales without ever clipping. */
   .hero-basmala {
     display: block;
-    width: min(100%, 62rem);
-    margin: 0 auto var(--s6);
+    /* Larger now that the band gives it room. Width-driven, so the glyphs
+       scale as one piece and the viewBox guarantees nothing ever clips. */
+    width: min(100%, 68rem);
+    margin: 0 auto var(--s5);
   }
 
   .hero-basmala svg {
