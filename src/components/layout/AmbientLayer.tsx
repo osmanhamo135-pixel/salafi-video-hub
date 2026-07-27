@@ -41,9 +41,9 @@ const THEME_TIER: Record<string, Tier> = {
   samaa: 3,
   emerald: 3,
   maktabah: 3,
-  red: 2,
+  red: 3,
   onyx: 2,
-  'mushaf-gold': 1,
+  'mushaf-gold': 2,
   pearl: 1,
 };
 
@@ -54,6 +54,7 @@ const THEME_FIELD: Record<string, Field> = {
   samaa: 'clouds',
   emerald: 'motes',
   maktabah: 'motes',
+  red: 'motes',
 };
 
 export const MOTION_KEY = 'salafi-hub.background-motion';
@@ -230,6 +231,11 @@ export const AmbientLayer: React.FC = () => {
       aria-hidden="true"
     >
       <div className="ambient-wash" />
+      {/* The per-theme scene: the layer that stops the ground being a void.
+          Pure CSS, transform/opacity only; its recipe comes from
+          html[data-theme] so all ten themes carry their own weather. At tier 1
+          it stands still; at 0 it is absent. */}
+      {tier >= 1 && <div className="ambient-scene" />}
       {tier >= 2 && <div className="ambient-sweep" />}
       {tier >= 3 && <canvas ref={canvasRef} className="ambient-canvas" />}
     </div>

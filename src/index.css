@@ -880,17 +880,13 @@
      It stays off .quran-reading-surface and .quran-reading-frame. Those sit
      behind Qur'anic text, and a blur there would mean the mushaf was being
      read through a treated pane. The frame keeps its opaque plane. */
+  /* OPAQUE, deliberately, and this is a correction: at 0.78 alpha the ayat
+     scrolling beneath ghosted through the bar — Qur'anic text visibly behind
+     chrome, which the manhaj rules forbid outright. Glass everywhere else;
+     never over the mushaf. */
   .quran-toolbar {
-    background: rgb(var(--bg-main-rgb) / 0.78);
-    backdrop-filter: blur(16px) saturate(126%);
-    -webkit-backdrop-filter: blur(16px) saturate(126%);
+    background: rgb(var(--bg-main-rgb));
     border-bottom: 1px solid var(--hair);
-  }
-
-  @supports not (backdrop-filter: blur(1px)) {
-    .quran-toolbar {
-      background: rgb(var(--bg-main-rgb));
-    }
   }
 
   /* Mushaf-style Quranic script (Amiri Quran with graceful fallbacks). */
@@ -2362,14 +2358,115 @@
 
   /* Tier 0/1 — the token gradient. This is the whole ambient on reduced
      motion, Performance Mode, and the light theme, and it costs nothing. */
+  /* Alphas roughly tripled from the first cut. At 5-7% the wash was
+     indistinguishable from a flat fill — the owner's word for it was "void" —
+     and a depth system nobody can see is a fill with extra steps. */
   .ambient-wash {
     position: absolute;
     inset: 0;
     background:
-      radial-gradient(62% 46% at 78% -4%, rgb(var(--accent-gold-rgb) / 0.075), transparent 68%),
-      radial-gradient(54% 44% at 4% 98%, rgb(var(--quran-green-rgb) / 0.055), transparent 70%),
-      radial-gradient(86% 52% at 42% 0%, rgb(var(--accent-teal-rgb) / 0.05), transparent 62%),
+      radial-gradient(62% 46% at 78% -4%, rgb(var(--accent-gold-rgb) / 0.20), transparent 68%),
+      radial-gradient(54% 44% at 4% 98%, rgb(var(--quran-green-rgb) / 0.13), transparent 70%),
+      radial-gradient(86% 52% at 42% 0%, rgb(var(--accent-teal-rgb) / 0.12), transparent 62%),
       linear-gradient(180deg, var(--bg-sidebar) 0%, var(--bg-main) 26rem);
+  }
+
+  /* ── The per-theme scene ────────────────────────────────────────────────
+     The layer that stops the ground being a void. Two oversized gradient
+     plates on the pseudo-elements, drifting on transform only, plus a
+     per-theme recipe below. The element is 140% of the viewport so the drift
+     never exposes an edge. At tier 1 (data-tier='1') everything stands
+     still but stays VISIBLE — reduced-motion users lose the movement, not
+     the room. */
+  .ambient-scene {
+    position: absolute;
+    inset: -20%;
+    pointer-events: none;
+  }
+
+  .ambient-scene::before,
+  .ambient-scene::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    will-change: transform;
+  }
+
+  .ambient-scene::before {
+    background:
+      radial-gradient(42% 36% at 26% 30%, rgb(var(--accent-gold-rgb) / 0.16), transparent 70%),
+      radial-gradient(30% 26% at 72% 64%, rgb(var(--accent-turquoise-rgb) / 0.10), transparent 72%);
+    animation: scene-a 52s var(--ease-standard) infinite alternate;
+  }
+
+  .ambient-scene::after {
+    background:
+      radial-gradient(36% 30% at 70% 22%, rgb(var(--accent-teal-rgb) / 0.11), transparent 70%),
+      radial-gradient(26% 24% at 24% 78%, rgb(var(--accent-gold-rgb) / 0.09), transparent 74%);
+    animation: scene-b 76s var(--ease-standard) infinite alternate;
+  }
+
+  @keyframes scene-a {
+    from { transform: translate3d(-2.5%, -1.5%, 0) scale(1.02); }
+    to   { transform: translate3d(3%, 2.5%, 0) scale(1.1); }
+  }
+
+  @keyframes scene-b {
+    from { transform: translate3d(2.5%, 2%, 0) scale(1.08); }
+    to   { transform: translate3d(-3%, -2%, 0) scale(1.0); }
+  }
+
+  /* Per-theme weather. Same two plates, different recipe — the tokens carry
+     the colour, so these only shape WHERE the light lives. */
+  html[data-theme='blue'] .ambient-scene::before {
+    background:
+      radial-gradient(50% 40% at 30% 18%, rgb(var(--accent-gold-rgb) / 0.18), transparent 70%),
+      radial-gradient(34% 30% at 76% 70%, rgb(var(--accent-turquoise-rgb) / 0.12), transparent 72%);
+  }
+
+  html[data-theme='red'] .ambient-scene::before {
+    background:
+      radial-gradient(56% 44% at 30% 24%, rgb(var(--accent-gold-rgb) / 0.17), transparent 68%),
+      radial-gradient(40% 34% at 78% 76%, rgb(var(--accent-gold-rgb) / 0.10), transparent 74%);
+  }
+
+  html[data-theme='samaa'] .ambient-scene::before {
+    background:
+      radial-gradient(60% 34% at 30% 26%, rgb(var(--text-soft-rgb) / 0.10), transparent 70%),
+      radial-gradient(46% 28% at 72% 56%, rgb(var(--accent-gold-rgb) / 0.13), transparent 72%);
+  }
+
+  html[data-theme='mushaf-gold'] .ambient-scene::before,
+  html[data-theme='maktabah'] .ambient-scene::before {
+    background:
+      radial-gradient(52% 46% at 32% 30%, rgb(var(--accent-gold-rgb) / 0.20), transparent 66%),
+      radial-gradient(36% 30% at 74% 72%, rgb(var(--accent-gold-rgb) / 0.10), transparent 74%);
+  }
+
+  /* Pearl: light ground — the scene inverts to shade, softly, and stands
+     still even at higher tiers. Light themes never move. */
+  html[data-theme='pearl'] .ambient-scene::before {
+    background:
+      radial-gradient(58% 44% at 30% 22%, rgb(var(--shade-rgb) / 0.05), transparent 70%),
+      radial-gradient(40% 32% at 76% 74%, rgb(var(--accent-gold-rgb) / 0.07), transparent 74%);
+    animation: none;
+  }
+
+  html[data-theme='pearl'] .ambient-scene::after {
+    animation: none;
+  }
+
+  /* Tier 1: present, motionless. */
+  .ambient-layer[data-tier='1'] .ambient-scene::before,
+  .ambient-layer[data-tier='1'] .ambient-scene::after {
+    animation: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ambient-scene::before,
+    .ambient-scene::after {
+      animation: none;
+    }
   }
 
   /* Tier 2 — one slow light sweep. Compositor-only: transform and opacity,

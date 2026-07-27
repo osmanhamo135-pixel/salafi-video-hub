@@ -6,6 +6,7 @@ import { formatDuration } from '@/utils/formatTime';
 import { CONTENT_CATEGORIES } from '@/utils/constants';
 import { PlaylistMenu } from './PlaylistMenu';
 import { useI18n } from '@/i18n';
+import { Tilt } from '@/components/ui/Tilt';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Playlist presentation kit.
@@ -462,7 +463,8 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
 
   /* ── Poster card ────────────────────────────────────────────────────────── */
   return (
-    <article className="surface-2 surface-lift group relative flex flex-col overflow-hidden rounded-xl">
+    <Tilt max={5}>
+    <article className="surface-2 surface-lift glow-edge group relative flex flex-col overflow-hidden rounded-xl">
       <button
         type="button"
         onClick={() => onContinue(playlist)}
@@ -521,6 +523,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({
         </div>
       </div>
     </article>
+    </Tilt>
   );
 });
 
