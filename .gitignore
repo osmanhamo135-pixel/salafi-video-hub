@@ -27,3 +27,4 @@ design-audit/**/*.png
 design-audit/**/metrics.json
 !design-audit/before/metrics.json
 !design-audit/before-ar/metrics.json
+design-audit/scenes/

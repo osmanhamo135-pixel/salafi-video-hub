@@ -2623,170 +2623,11 @@
     background: radial-gradient(130% 90% at 50% 50%, transparent 52%, rgb(var(--shade-rgb) / 0.30));
   }
 
-  /* ── The section MOTIF ──────────────────────────────────────────────────
-     The light says where the lamp is; the motif says what room this is. A
-     drawn line-art scene per section — book spines for the library, a mihrab
-     arch for the mushaf, a broadcast mast for the radio — masked over a
-     token fill so every theme draws the same room in its own ink. All of
-     them objects and geometry, never beings. The dashboard deliberately has
-     none: its canvas field IS its scene. */
-  .ambient-motif {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    -webkit-mask-repeat: no-repeat;
-    mask-repeat: no-repeat;
-    will-change: transform;
-  }
-
-  @keyframes motif-drift {
-    from { transform: translate3d(0, 0, 0); }
-    to   { transform: translate3d(-1.2%, 0.8%, 0) scale(1.02); }
-  }
-
-  html[data-route='library'] .ambient-motif {
-    background-color: rgb(var(--accent-gold-rgb) / 0.30);
-    -webkit-mask-image: url('./assets/marks/motif-library.svg');
-    mask-image: url('./assets/marks/motif-library.svg');
-    -webkit-mask-size: 1200px auto;
-    mask-size: 1200px auto;
-    -webkit-mask-position: center bottom;
-    mask-position: center bottom;
-    -webkit-mask-repeat: repeat-x;
-    mask-repeat: repeat-x;
-    animation: motif-drift 110s ease-in-out infinite alternate;
-  }
-
-  html[data-route='quran'] .ambient-motif {
-    background-color: rgb(var(--accent-gold-rgb) / 0.16);
-    -webkit-mask-image: url('./assets/marks/motif-quran.svg');
-    mask-image: url('./assets/marks/motif-quran.svg');
-    -webkit-mask-size: 640px auto;
-    mask-size: 640px auto;
-    -webkit-mask-position: center top;
-    mask-position: center top;
-    /* Tier 1 on this route kills every ambient animation; stating it here
-       too keeps the guarantee even if the clamp ever regresses. */
-    animation: none;
-  }
-
-  html[data-route='radio'] .ambient-motif {
-    background-color: rgb(var(--accent-teal-rgb) / 0.32);
-    -webkit-mask-image: url('./assets/marks/motif-radio.svg');
-    mask-image: url('./assets/marks/motif-radio.svg');
-    -webkit-mask-size: 620px auto;
-    mask-size: 620px auto;
-    -webkit-mask-position: right -3rem top 4rem;
-    mask-position: right -3rem top 4rem;
-    animation: motif-drift 110s ease-in-out infinite alternate;
-  }
-
-  html[data-route='watch'] .ambient-motif {
-    background-color: rgb(var(--text-soft-rgb) / 0.26);
-    -webkit-mask-image: url('./assets/marks/motif-watch.svg');
-    mask-image: url('./assets/marks/motif-watch.svg');
-    -webkit-mask-size: 900px auto;
-    mask-size: 900px auto;
-    -webkit-mask-position: center top 2.5rem;
-    mask-position: center top 2.5rem;
-    animation: motif-drift 110s ease-in-out infinite alternate;
-  }
-
-  html[data-route='reminders'] .ambient-motif {
-    background-color: rgb(var(--accent-gold-rgb) / 0.32);
-    -webkit-mask-image: url('./assets/marks/motif-reminders.svg');
-    mask-image: url('./assets/marks/motif-reminders.svg');
-    -webkit-mask-size: 560px auto;
-    mask-size: 560px auto;
-    -webkit-mask-position: right 3rem top 2.5rem;
-    mask-position: right 3rem top 2.5rem;
-    animation: motif-drift 110s ease-in-out infinite alternate;
-  }
-
-  html[data-route='downloads'] .ambient-motif {
-    background-color: rgb(var(--accent-teal-rgb) / 0.30);
-    -webkit-mask-image: url('./assets/marks/motif-downloads.svg');
-    mask-image: url('./assets/marks/motif-downloads.svg');
-    -webkit-mask-size: 480px auto;
-    mask-size: 480px auto;
-    -webkit-mask-position: right 4rem bottom 2rem;
-    mask-position: right 4rem bottom 2rem;
-    animation: motif-drift 110s ease-in-out infinite alternate;
-  }
-
-  html[data-route='settings'] .ambient-motif {
-    background-color: rgb(var(--sheen-rgb) / 0.22);
-    -webkit-mask-image: url('./assets/marks/motif-settings.svg');
-    mask-image: url('./assets/marks/motif-settings.svg');
-    -webkit-mask-size: 520px auto;
-    mask-size: 520px auto;
-    -webkit-mask-position: right -5rem bottom -5rem;
-    mask-position: right -5rem bottom -5rem;
-    animation: motif-drift 110s ease-in-out infinite alternate;
-  }
-
-  /* Pearl draws every motif in quiet ink — accent fills at these alphas
-     read as grime on a light ground. */
-  html[data-theme='pearl'] .ambient-motif {
-    background-color: rgb(var(--shade-rgb) / 0.14) !important;
-  }
-
-  .ambient-layer[data-tier='1'] .ambient-motif {
-    animation: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .ambient-motif {
-      animation: none;
-    }
-  }
-
-  /* Pearl: light ground — the scene inverts to shade, softly, and stands
-     still even at higher tiers. Light themes never move. */
-  html[data-theme='pearl'] .ambient-scene::before {
-    background:
-      radial-gradient(58% 44% at 30% 22%, rgb(var(--shade-rgb) / 0.05), transparent 70%),
-      radial-gradient(40% 32% at 76% 74%, rgb(var(--accent-gold-rgb) / 0.07), transparent 74%);
-    animation: none;
-  }
-
-  html[data-theme='pearl'] .ambient-scene::after {
-    animation: none;
-  }
-
-  /* ── The girih lattice ──────────────────────────────────────────────────
-     Structure under the light. The gradient plates give each theme its
-     weather, but weather alone still reads as a wash; the khatam lattice
-     tiled across the ground at hairline opacity is what makes the room
-     unmistakably THIS app's room. Drawn as a mask over an accent fill so
-     every theme colours its own lattice — the SVG ships as a real file
-     because img-src has no data: source (Guard 0). Drift is transform-only
-     and dies at tier 1, with the other ambient motion. */
-  .ambient-lattice {
-    position: absolute;
-    inset: -20%;
-    background-color: rgb(var(--accent-gold-rgb) / 0.09);
-    -webkit-mask-image: url('./assets/marks/girih.svg');
-    mask-image: url('./assets/marks/girih.svg');
-    -webkit-mask-size: 21rem 21rem;
-    mask-size: 21rem 21rem;
-    -webkit-mask-repeat: repeat;
-    mask-repeat: repeat;
-    will-change: transform;
-    animation: lattice-drift 140s linear infinite alternate;
-  }
-
-  @keyframes lattice-drift {
-    from { transform: translate3d(0, 0, 0); }
-    to   { transform: translate3d(2.4%, 1.8%, 0); }
-  }
-
-  html[data-theme='pearl'] .ambient-lattice {
-    background-color: rgb(var(--shade-rgb) / 0.06);
-    animation: none;
-  }
-
-  /* Tier 1: present, motionless. */
+  /* Tier 1: present, motionless. Reduced motion, Performance Mode and the
+     "off" switch all resolve to this tier, and so does the Qur'an route —
+     where the rule is not a preference but a manhaj requirement. These three
+     lines were deleted with the old section-motif block and the guard caught
+     it immediately: every theme resumed drifting behind the mushaf. */
   .ambient-layer[data-tier='1'] .ambient-scene::before,
   .ambient-layer[data-tier='1'] .ambient-scene::after,
   .ambient-layer[data-tier='1'] .ambient-lattice {
@@ -2948,7 +2789,11 @@
     box-shadow:
       inset 0 1px 0 rgb(var(--sheen-rgb) / 0.07),
       inset 0 0 0 1px rgb(var(--hair-rgb) / 0.10),
-      0 1px 2px rgb(var(--shade-rgb) / 0.28);
+      0 1px 2px rgb(var(--shade-rgb) / 0.28),
+      /* The outward halo: glass over a painted scene must cast light back
+         onto it or the card reads as a hole cut in the room. */
+      0 0 0 1px rgb(var(--accent-gold-rgb) / 0.09),
+      0 12px 38px -16px rgb(var(--accent-gold-rgb) / 0.28);
   }
 
   /* The specular rim. A gradient hairline that is brightest where the key
@@ -3031,8 +2876,8 @@
   .glow-edge:hover {
     box-shadow:
       inset 0 1px 0 rgb(var(--sheen-rgb) / 0.10),
-      0 0 0 1px rgb(var(--accent-gold-rgb) / 0.10),
-      0 6px 26px -8px rgb(var(--accent-gold-rgb) / 0.30);
+      0 0 0 1px rgb(var(--accent-gold-rgb) / 0.22),
+      0 10px 40px -8px rgb(var(--accent-gold-rgb) / 0.52);
   }
 
   html[data-theme='pearl'] .glow-edge:hover {
@@ -3309,6 +3154,16 @@
 
   /* Pearl is the only light theme. Glass over a light ground needs a lighter
      fill and a shade rim rather than a sheen rim, or it reads as dirt. */
+  /* On the light theme an accent halo becomes a smudge, so Pearl keeps the
+     ring and drops the bloom. */
+  html[data-theme='pearl'] .surface-2,
+  html[data-theme='pearl'] .glass {
+    box-shadow:
+      var(--elev-2),
+      0 0 0 1px rgb(var(--accent-gold-rgb) / 0.16),
+      0 6px 18px -12px rgb(var(--shade-rgb) / 0.30);
+  }
+
   html[data-theme='pearl'] .glass {
     background:
       radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.05), transparent 56%),
