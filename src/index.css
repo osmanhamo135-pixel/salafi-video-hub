@@ -1013,6 +1013,14 @@
     animation: jadwal-in 620ms var(--ease-out) both;
   }
 
+  /* The featured card's frame carries more of the card's presence than the
+     mushaf page's does — it has no ruled pseudo-elements backing it up — so
+     it prints heavier. `.jadwal` is the featured card's name only; the mushaf
+     alias above keeps the printed page's quieter weight. */
+  .jadwal {
+    background: rgb(var(--mushaf-gold-rgb) / 0.55);
+  }
+
   /* The frame draws itself in; the text it frames does not. Qur'anic text is
      never faded in or animated, so the animation is confined to the ornament —
      the ayat are fully present from the first painted frame. */
@@ -2757,6 +2765,51 @@
     background-position: center;
     background-size: min(38%, 5.5rem);
     opacity: 0.13;
+  }
+
+  /* The featured card's un-thumbnailed art, upgraded from placeholder to
+     designed artwork: layered accent light, a large khatam lattice, and the
+     noor mark seated in the pool of light. Composed — a key at the top
+     corner, a cool answer at the far one, the ornament brightest where the
+     light is — so it reads as a made panel rather than an absence.
+
+     Doubled with .thumbnail-fallback for the same cascade reason as
+     .thumbnail-plate above: the fallback's own --fill-well must lose. */
+  .plate-rich,
+  .thumbnail-fallback.plate-rich {
+    position: relative;
+    background:
+      radial-gradient(88% 78% at 26% 8%, rgb(var(--accent-gold-rgb) / 0.24), transparent 62%),
+      radial-gradient(70% 84% at 84% 92%, rgb(var(--accent-emerald-rgb) / 0.12), transparent 70%),
+      radial-gradient(120% 100% at 50% 0%, rgb(var(--accent-gold-rgb) / 0.08), transparent 64%),
+      linear-gradient(160deg, rgb(var(--bg-card-hover-rgb)), rgb(var(--bg-panel-rgb)) 78%);
+    box-shadow: inset 0 1px 0 rgb(var(--sheen-rgb) / 0.06);
+  }
+
+  /* The khatam lattice, faded off toward the unlit corner so it sits IN the
+     light rather than tiling over it. */
+  .plate-rich::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url('./assets/marks/girih.svg');
+    background-size: 132px 132px;
+    opacity: 0.11;
+    -webkit-mask-image: radial-gradient(120% 110% at 30% 12%, black 30%, transparent 88%);
+    mask-image: radial-gradient(120% 110% at 30% 12%, black 30%, transparent 88%);
+    pointer-events: none;
+  }
+
+  .plate-rich::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url('./assets/marks/noor.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: min(36%, 6.5rem);
+    opacity: 0.2;
+    pointer-events: none;
   }
 
   .surface-well {
