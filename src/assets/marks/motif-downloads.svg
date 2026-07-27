@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="660" viewBox="0 0 800 660">
+  <!-- Section motif: descent chevrons over a tray.
+       Used as a CSS mask: strokes are white, the theme's token supplies the
+       colour. Real file, never a data: URI (CSP img-src has no data:). -->
+  <g fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="141 140, 200 192, 259 140"/>
+    <polyline points="146 248, 200 300, 254 248"/>
+    <polyline points="151 356, 200 408, 249 356"/>
+    <polyline points="156 464, 200 516, 244 464"/>
+    <polyline points="341 140, 400 192, 459 140"/>
+    <polyline points="346 248, 400 300, 454 248"/>
+    <polyline points="351 356, 400 408, 449 356"/>
+    <polyline points="356 464, 400 516, 444 464"/>
+    <polyline points="541 140, 600 192, 659 140"/>
+    <polyline points="546 248, 600 300, 654 248"/>
+    <polyline points="551 356, 600 408, 649 356"/>
+    <polyline points="556 464, 600 516, 644 464"/>
+    <path d="M 110 585 L 110 630 L 690 630 L 690 585" stroke-width="7"/>
+  </g>
+</svg>

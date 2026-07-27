@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="680" viewBox="0 0 900 680">
+  <!-- Section motif: a mihrab arch, geometric construction only. Ornament, not Quranic text.
+       Used as a CSS mask: strokes are white, the theme's token supplies the
+       colour. Real file, never a data: URI (CSP img-src has no data:). -->
+  <g fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 240 660 L 240 340 Q 240 200 450 130 Q 660 200 660 340 L 660 660" stroke-width="7"/>
+    <path d="M 272 660 L 272 352 Q 272 226 450 164 Q 628 226 628 352 L 628 660"/>
+    <line x1="214" y1="660" x2="266" y2="660" stroke-width="7"/>
+    <line x1="634" y1="660" x2="686" y2="660" stroke-width="7"/>
+    <line x1="285" y1="205" x2="242" y2="180"/>
+    <line x1="328" y1="154" x2="296" y2="116"/>
+    <line x1="385" y1="121" x2="368" y2="74"/>
+    <line x1="450" y1="110" x2="450" y2="60"/>
+    <line x1="515" y1="121" x2="532" y2="74"/>
+    <line x1="572" y1="154" x2="604" y2="116"/>
+    <line x1="615" y1="205" x2="658" y2="180"/>
+    <polygon points="450 224, 456 244, 474 234, 464 252, 484 258, 464 264, 474 282, 456 272, 450 292, 444 272, 426 282, 436 264, 416 258, 436 252, 426 234, 444 244"/>
+  </g>
+</svg>

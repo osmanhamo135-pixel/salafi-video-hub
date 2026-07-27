@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="520" viewBox="0 0 700 520">
+  <!-- Section motif: crescent, star and horizon - celestial geometry, no beings.
+       Used as a CSS mask: strokes are white, the theme's token supplies the
+       colour. Real file, never a data: URI (CSP img-src has no data:). -->
+  <g fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 500 80 A 115 115 0 1 0 615 235 A 92 92 0 0 1 500 80" stroke-width="7"/>
+    <polygon points="330 120, 335 138, 351 129, 342 145, 360 150, 342 155, 351 171, 335 162, 330 180, 325 162, 309 171, 318 155, 300 150, 318 145, 309 129, 325 138"/>
+    <path d="M 0 470 Q 350 400 700 470"/>
+    <path d="M 60 492 Q 350 434 640 492" stroke-dasharray="3 14"/>
+  </g>
+</svg>
