@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { BellOff } from 'lucide-react';
 import { Reminder } from '@/types';
 import { useAppStore } from '@/store/appStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { ContinueWatching, useEyebrowClass } from '@/components/dashboard/ContinueWatching';
 import { DashboardRails } from '@/components/dashboard/DashboardRails';
 import { QuickActions } from '@/components/dashboard/QuickActions';
@@ -13,6 +14,7 @@ import { StudyCharts } from '@/components/dashboard/StudyCharts';
 import { formatBytes } from '@/utils/formatBytes';
 import { formatDurationLong } from '@/utils/formatTime';
 import { useI18n } from '@/i18n';
+import { FirstRun } from '@/components/home/FirstRun';
 
 export const Dashboard: React.FC = () => {
   const { language, t } = useI18n();
@@ -53,6 +55,9 @@ export const Dashboard: React.FC = () => {
   }, []);
 
   const isLoading = !stats && playlistsLoading;
+  const importedFolders = useSettingsStore((state) => state.settings?.importedFolders ?? []);
+  const isFirstRun =
+    !!stats && stats.totalVideos === 0 && importedFolders.length === 0;
   const completionPercent = stats?.totalVideos
     ? Math.round((stats.completedVideos / stats.totalVideos) * 100)
     : 0;
@@ -90,6 +95,14 @@ export const Dashboard: React.FC = () => {
       <div className="content-max-width">
         <Hero />
 
+        {/* A brand-new install gets the import moment instead of a dashboard
+            of empty sections. The signal is settings-backed and cheap: no
+            videos AND no imported folders. Stats loading counts as "not
+            empty" so the panel cannot flash during the first fetch. */}
+        {isFirstRun ? (
+          <FirstRun />
+        ) : (
+          <>
         {/* The hero that does work. The masthead that used to sit here carried
             an <h1>Dashboard</h1> restating the highlighted sidebar item and a
             "PREMIUM VIDEO LIBRARY" badge that said nothing — between them they
@@ -214,6 +227,8 @@ export const Dashboard: React.FC = () => {
             t={t}
           />
         </div>
+          </>
+        )}
       </div>
     </div>
   );
