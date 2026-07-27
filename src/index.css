@@ -1504,9 +1504,11 @@
     background: rgb(var(--accent-gold-rgb));
   }
 
+  /* The same two-tone ring the rest of the app draws — its own accent
+     outline on top of the app-wide ring was a double ring. */
   .range-quiet:focus-visible {
-    outline: 2px solid rgb(var(--accent-gold-rgb));
-    outline-offset: 3px;
+    outline: none;
+    box-shadow: var(--ring-focus);
   }
 
   /* Text-only action. Was duplicated as the same long utility string across
@@ -2627,8 +2629,8 @@
   }
 
   .rail-track:focus-visible {
-    outline: 2px solid rgb(var(--accent-gold-rgb) / 0.9);
-    outline-offset: 3px;
+    outline: none;
+    box-shadow: var(--ring-focus);
     border-radius: var(--r-md);
   }
 
