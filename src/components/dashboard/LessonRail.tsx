@@ -4,7 +4,7 @@ import { Rail } from '@/components/ui/Rail';
 import { Tilt } from '@/components/ui/Tilt';
 import { LocalThumbnail } from '@/components/ui/LocalThumbnail';
 import { formatTime } from '@/utils/formatTime';
-import { useI18n } from '@/i18n';
+import { SectionHead } from '@/components/ui/SectionHead';
 
 /* The un-thumbnailed plate rather than a black rectangle. These appear in
    bulk in a rail, and a row of black boxes reads as broken images. */
@@ -28,24 +28,15 @@ interface LessonRailProps {
  * affordance, and it belongs in the overflow menu.
  */
 export const LessonRail: React.FC<LessonRailProps> = ({ title, videos, onOpen, meta }) => {
-  const { language } = useI18n();
   if (!videos.length) return null;
-
-  const eyebrow =
-    language === 'ar'
-      ? 'text-[11px] font-medium text-muted-text'
-      : 'text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-text';
 
   return (
     <section className="reveal mt-9">
-      <div className="mb-4 flex items-baseline justify-between gap-4 border-b border-border pb-3">
-        <h2 className={eyebrow}>{title}</h2>
-        {meta ?? (
-          <span className="text-[11px] tabular-nums text-text-faint">
-            <bdi>{videos.length}</bdi>
-          </span>
-        )}
-      </div>
+      <SectionHead
+        className="mb-4"
+        title={title}
+        meta={meta ?? <bdi>{videos.length}</bdi>}
+      />
 
       <Rail label={title}>
         {videos.map((video) => {

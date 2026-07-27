@@ -7,6 +7,7 @@ import { ContinueWatching, useEyebrowClass } from '@/components/dashboard/Contin
 import { DashboardRails } from '@/components/dashboard/DashboardRails';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { Hero } from '@/components/home/Hero';
+import { SectionHead } from '@/components/ui/SectionHead';
 import { HeroFeature } from '@/components/home/HeroFeature';
 import { StudyCharts } from '@/components/dashboard/StudyCharts';
 import { formatBytes } from '@/utils/formatBytes';
@@ -118,9 +119,7 @@ export const Dashboard: React.FC = () => {
 
         {/* One figure at display scale; everything else is caption. */}
         <section className="reveal mt-16">
-          <div className="mb-8 border-b border-border pb-3">
-            <h2 className={eyebrow}>{t('libraryAtAGlance')}</h2>
-          </div>
+          <SectionHead className="mb-8" title={t('libraryAtAGlance')} />
 
           {isLoading ? (
             <GlanceSkeleton />
@@ -212,7 +211,6 @@ export const Dashboard: React.FC = () => {
           <TodaysRemindersPanel
             reminders={reminders}
             loading={remindersLoading}
-            eyebrow={eyebrow}
             t={t}
           />
         </div>
@@ -265,18 +263,14 @@ const GlanceSkeleton: React.FC = () => (
 const TodaysRemindersPanel: React.FC<{
   reminders: Reminder[];
   loading: boolean;
-  eyebrow: string;
   t: (key: import('@/i18n').TranslationKey) => string;
-}> = ({ reminders, loading, eyebrow, t }) => (
+}> = ({ reminders, loading, t }) => (
   <section className="mt-20">
-    <div className="mb-2 flex items-baseline justify-between gap-4 border-b border-border pb-3">
-      <h2 className={eyebrow}>{t('todaysReminders')}</h2>
-      {!loading && reminders.length > 0 && (
-        <span className="text-[11px] tabular-nums text-text-faint">
-          <bdi>{reminders.length}</bdi>
-        </span>
-      )}
-    </div>
+    <SectionHead
+      className="mb-2"
+      title={t('todaysReminders')}
+      meta={!loading && reminders.length > 0 ? <bdi>{reminders.length}</bdi> : undefined}
+    />
     {loading ? (
       <div className="flex flex-col">
         {Array.from({ length: 3 }).map((_, i) => (

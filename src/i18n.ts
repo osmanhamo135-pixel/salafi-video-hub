@@ -122,7 +122,7 @@ const dictionaries = {
     languageDescription: 'Switch the app interface between English and Arabic.',
     english: 'English',
     arabic: 'Arabic',
-    arabicPreview: 'ذِكْرُ رَحْمَتِ رَبِّكَ',
+    arabicPreview: 'نصٌّ حكيمٌ له سرٌّ قاطعٌ وذو شأنٍ عظيم',
     appTheme: 'Premium theme',
     appThemeDescription: 'Choose the visual style for the whole app.',
     themeNoor: 'Noor Teal',
@@ -673,7 +673,7 @@ const dictionaries = {
     languageDescription: 'بدّل واجهة التطبيق بين الإنجليزية والعربية.',
     english: 'English',
     arabic: 'العربية',
-    arabicPreview: 'ذِكْرُ رَحْمَتِ رَبِّكَ',
+    arabicPreview: 'نصٌّ حكيمٌ له سرٌّ قاطعٌ وذو شأنٍ عظيم',
     appTheme: 'السمة المميزة',
     appThemeDescription: 'اختر الشكل البصري للتطبيق كله.',
     themeNoor: 'نور فيروزي',
@@ -1114,6 +1114,11 @@ export const languageOptions: Array<{ id: AppLanguage; labelKey: TranslationKey 
   { id: 'ar', labelKey: 'arabic' },
 ];
 
+/* Swatches are the specimen of the theme being offered, and they mirror the
+   theme blocks in src/index.css exactly: [canvas (--bg-main-rgb), accent
+   (--accent-gold-rgb), card (--bg-card-rgb)]. If a theme block is retuned,
+   these move with it — a swatch that lies about its theme is a bug. The three
+   hexes per theme must stay distinct: Settings keys the strips by colour. */
 export const themeOptions: Array<{
   id: AppTheme;
   labelKey: TranslationKey;
@@ -1124,49 +1129,49 @@ export const themeOptions: Array<{
     id: 'noor',
     labelKey: 'themeNoor',
     descriptionKey: 'themeNoorDescription',
-    swatches: ['#040608', '#0FB9B1', '#D6B56D'],
+    swatches: ['#030505', '#29C4B4', '#0C1313'],
   },
   {
     id: 'emerald',
     labelKey: 'themeEmerald',
     descriptionKey: 'themeEmeraldDescription',
-    swatches: ['#06100C', '#22C55E', '#B08D57'],
+    swatches: ['#050D0A', '#3FCB7C', '#0D221A'],
   },
   {
     id: 'pearl',
     labelKey: 'themePearl',
     descriptionKey: 'themePearlDescription',
-    swatches: ['#F5F7FA', '#0F766E', '#AF7B2D'],
+    swatches: ['#F3F6F7', '#0E6F68', '#FFFFFF'],
   },
   {
     id: 'mushaf',
     labelKey: 'themeMushaf',
     descriptionKey: 'themeMushafDescription',
-    swatches: ['#050706', '#65A30D', '#C8A45D'],
+    swatches: ['#050706', '#9BC94A', '#0F1612'],
   },
   {
     id: 'blue',
     labelKey: 'themeBlue',
     descriptionKey: 'themeBlueDescription',
-    swatches: ['#040912', '#3B82F6', '#E2C57A'],
+    swatches: ['#040912', '#5E9DF7', '#0C172C'],
   },
   {
     id: 'red',
     labelKey: 'themeRed',
     descriptionKey: 'themeRedDescription',
-    swatches: ['#0E0506', '#E5545C', '#E2C57A'],
+    swatches: ['#0E0506', '#E75E70', '#250D10'],
   },
   {
     id: 'onyx',
     labelKey: 'themeOnyx',
     descriptionKey: 'themeOnyxDescription',
-    swatches: ['#020203', '#D1AA54', '#E2BE68'],
+    swatches: ['#020203', '#E0BC6A', '#151519'],
   },
   {
     id: 'mushaf-gold',
     labelKey: 'themeMushafGold',
     descriptionKey: 'themeMushafGoldDescription',
-    swatches: ['#14100C', '#F0D296', '#221B13'],
+    swatches: ['#14100C', '#EFD199', '#221B13'],
   },
   {
     id: 'maktabah',
@@ -1178,7 +1183,7 @@ export const themeOptions: Array<{
     id: 'samaa',
     labelKey: 'themeSamaa',
     descriptionKey: 'themeSamaaDescription',
-    swatches: ['#1B2836', '#4FC3F7', '#28394B'],
+    swatches: ['#101A24', '#6CC9F0', '#212B35'],
   },
 ];
 

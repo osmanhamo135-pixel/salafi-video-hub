@@ -14,7 +14,7 @@ import { useI18n } from '@/i18n';
 /* The fallback has to go on LocalThumbnail's own element, not on the wrapper:
    it renders its fallback div INSIDE the box, so a plate on the parent is
    painted straight over and you get a black rectangle the size of a poster. */
-const QUIET_FALLBACK = 'thumbnail-fallback thumbnail-fallback-quiet thumbnail-plate';
+const QUIET_FALLBACK = 'thumbnail-fallback thumbnail-fallback-quiet thumbnail-plate plate-rich';
 
 /**
  * The Dashboard's working hero.
@@ -91,7 +91,13 @@ export const HeroFeature: React.FC = () => {
         <div className="jadwal" aria-hidden="true" />
         <div className="relative z-[1] flex flex-col items-start gap-4 py-6 sm:py-10">
           <p className="text-[11px] font-medium text-accent-gold">{t('heroFeatureEyebrowMushaf')}</p>
-          <h2 className="max-w-xl text-2xl font-semibold leading-tight text-text-primary sm:text-3xl">
+          <h2
+            className={`max-w-xl font-semibold text-text-primary ${
+              language === 'ar'
+                ? 'text-2xl leading-[1.4] sm:text-[2.1rem] sm:leading-[1.4]'
+                : 'font-display text-2xl leading-[1.16] sm:text-3xl'
+            }`}
+          >
             {lastSurahName ? `${lastSurahName} · ${t('quranAyah')} ${lastRead?.verseId}` : t('heroFeatureMushafTitle')}
           </h2>
           <p className="max-w-lg text-sm text-muted-text">{t('heroFeatureMushafBody')}</p>
@@ -139,13 +145,14 @@ export const HeroFeature: React.FC = () => {
             {playlist ? ` · ${playlist.name}` : ''}
           </p>
 
-          {/* Latin display tracking only — letter-spacing breaks the joins in
-              a cursive script, and this string is user content in either. */}
+          {/* Display size, and Plex Serif for Latin only — Arabic display
+              keeps its own sizing with generous leading, and letter-spacing
+              never touches it (it breaks the joins in a cursive script). */}
           <h2
             className={`mt-2 line-clamp-2 font-semibold text-text-primary ${
               language === 'ar'
-                ? 'text-2xl leading-[1.35] sm:text-[1.75rem]'
-                : 'text-2xl leading-[1.12] tracking-[-0.015em] sm:text-[2rem]'
+                ? 'text-2xl leading-[1.4] sm:text-[2.1rem] sm:leading-[1.4]'
+                : 'font-display text-2xl leading-[1.16] sm:text-3xl'
             }`}
           >
             {video.title}

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Loader2, Pause, Play, RadioTower, RefreshCw, Search, Star, Wifi } from 'lucide-react';
 import { RadioStation, useRadioStore } from '@/store/radioStore';
+import { SectionHead } from '@/components/ui/SectionHead';
 import { useI18n } from '@/i18n';
 
 /**
@@ -160,7 +161,7 @@ export const Radio: React.FC = () => {
         )}
 
         {loadError && !loading && (
-          <div className="py-10 text-center">
+          <div className="empty-panel px-6 py-12 text-center">
             <AlertTriangle className="mx-auto mb-2 h-7 w-7 text-warning-orange" />
             <p className="text-sm text-text-primary">{loadError}</p>
             <button
@@ -202,14 +203,11 @@ const StationSection: React.FC<{
 
   return (
     <section className="reveal mb-8">
-      <div className="rule-head mb-1">
-        <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
-        <span className="text-xs tabular-nums text-muted-text">
-          <bdi>{stations.length}</bdi>
-        </span>
-      </div>
+      <SectionHead className="mb-1" title={title} meta={<bdi>{stations.length}</bdi>} />
       {stations.length === 0 ? (
-        <p className="py-10 text-center text-sm text-muted-text">{emptyLabel}</p>
+        <div className="empty-panel mt-3 px-6 py-12 text-center">
+          <p className="text-sm text-muted-text">{emptyLabel}</p>
+        </div>
       ) : (
         // Two columns from `lg` up — no more. Three left a dangling hairline
         // under the last row wherever the station count is not a multiple of

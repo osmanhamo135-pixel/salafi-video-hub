@@ -6,7 +6,7 @@ import { useAppStore } from '@/store/appStore';
 import { usePlayerStore } from '@/store/playerStore';
 import { formatDuration } from '@/utils/formatTime';
 import { LocalThumbnail } from '@/components/ui/LocalThumbnail';
-import { useEyebrowClass } from '@/components/dashboard/ContinueWatching';
+import { SectionHead } from '@/components/ui/SectionHead';
 import { useI18n } from '@/i18n';
 
 /* .thumbnail-fallback bakes in an .icon-medallion (primary-blue border + fill)
@@ -16,7 +16,6 @@ const QUIET_FALLBACK = 'thumbnail-fallback thumbnail-fallback-quiet';
 
 export const RecentlyAdded: React.FC = () => {
   const { t } = useI18n();
-  const eyebrow = useEyebrowClass();
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const loadedRef = useRef(false);
@@ -88,14 +87,11 @@ export const RecentlyAdded: React.FC = () => {
 
   return (
     <section className="mt-20">
-      <div className="mb-2 flex items-baseline justify-between gap-4 border-b border-border pb-3">
-        <h2 className={eyebrow}>{t('recentlyAdded')}</h2>
-        {!loading && videos.length > 0 && (
-          <span className="text-[11px] tabular-nums text-text-faint">
-            <bdi>{videos.length}</bdi>
-          </span>
-        )}
-      </div>
+      <SectionHead
+        className="mb-2"
+        title={t('recentlyAdded')}
+        meta={!loading && videos.length > 0 ? <bdi>{videos.length}</bdi> : undefined}
+      />
 
       {loading ? (
         <div className="flex flex-col">

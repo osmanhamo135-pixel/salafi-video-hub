@@ -100,22 +100,43 @@
 }
 
 @layer base {
+  /* ── Theme blocks ─────────────────────────────────────────────────────
+     :root is Noor Teal, the default; each html[data-theme] overrides it.
+
+     --accent-gold-rgb is a LEGACY NAME for "the theme's accent": ~130 call
+     sites read accent-gold-* classes and every hairline, edge gradient and
+     wash derives from it, so each theme sets its REAL accent here rather
+     than renaming the slot. It is gold only on the themes whose accent is
+     actually gold (onyx, mushaf-gold). The medallion gold that must stay
+     warm in every theme is the separate --mushaf-gold-rgb below — never
+     point it at this slot.
+
+     The secondary slots keep one shape everywhere: --accent-teal-rgb is the
+     deep working variant (primary buttons, selected option, sidebar bar),
+     --accent-turquoise-rgb its light hover, --accent-emerald-rgb the
+     companion tint in the decorative washes, --accent-blue-rgb the far end
+     of the progress ramp (from-primary-blue to-accent-blue).
+
+     Contrast is measured, not eyeballed (scripts in the design plan, §6 of
+     docs/design-plan/04-*): body text >= 7:1 on every dark canvas, >= 4.5:1
+     on pearl; every accent >= 4.5:1 on its canvas AND its card. */
   :root {
-    --bg-main-rgb: 3 4 4;
-    --bg-sidebar-rgb: 6 9 8;
-    --bg-panel-rgb: 9 13 11;
-    --bg-card-rgb: 13 20 16;
-    --bg-card-hover-rgb: 18 28 23;
-    --border-subtle-rgb: 214 181 109;
-    --accent-teal-rgb: 219 177 83;
-    --accent-turquoise-rgb: 250 220 140;
-    --accent-emerald-rgb: 28 173 111;
-    --accent-blue-rgb: 57 199 162;
-    --accent-gold-rgb: 236 195 102;
-    --text-main-rgb: 247 248 250;
-    --text-soft-rgb: 215 221 232;
-    --text-muted-rgb: 126 138 161;
-    --text-faint-rgb: 83 96 120;
+    --bg-main-rgb: 3 5 5;
+    --bg-sidebar-rgb: 5 9 9;
+    --bg-panel-rgb: 8 13 13;
+    --bg-card-rgb: 12 19 19;
+    --bg-card-hover-rgb: 17 27 27;
+    --border-subtle-rgb: 41 196 180;
+    --accent-teal-rgb: 23 178 163;
+    --accent-turquoise-rgb: 125 226 214;
+    --accent-emerald-rgb: 52 199 123;
+    --accent-blue-rgb: 84 214 199;
+    /* Noor TEAL — the theme is named for this colour. #29C4B4. */
+    --accent-gold-rgb: 41 196 180;
+    --text-main-rgb: 245 249 248;
+    --text-soft-rgb: 210 223 221;
+    --text-muted-rgb: 122 144 142;
+    --text-faint-rgb: 80 101 99;
     --danger-rgb: 239 68 68;
     --warning-rgb: 214 181 109;
     --success-rgb: 16 185 129;
@@ -142,8 +163,8 @@
     --bg-panel: rgb(var(--bg-panel-rgb));
     --bg-card: rgb(var(--bg-card-rgb));
     --bg-card-hover: rgb(var(--bg-card-hover-rgb));
-    --border-subtle: rgba(214, 181, 109, 0.14);
-    --border-strong: rgba(236, 195, 102, 0.34);
+    --border-subtle: rgba(41, 196, 180, 0.14);
+    --border-strong: rgba(41, 196, 180, 0.34);
     --accent-teal: rgb(var(--accent-teal-rgb));
     --accent-turquoise: rgb(var(--accent-turquoise-rgb));
     --accent-emerald: rgb(var(--accent-emerald-rgb));
@@ -156,10 +177,10 @@
     --danger: rgb(var(--danger-rgb));
     --warning: rgb(var(--warning-rgb));
     --success: rgb(var(--success-rgb));
-    --teal-glass: rgba(28, 173, 111, 0.1);
-    --gold-glass: rgba(236, 195, 102, 0.12);
-    --surface-wash: linear-gradient(180deg, rgba(13, 18, 15, 0.98), rgba(5, 8, 7, 0.98));
-    --card-wash: linear-gradient(180deg, rgba(18, 28, 22, 0.96), rgba(8, 12, 10, 0.98));
+    --teal-glass: rgba(23, 178, 163, 0.1);
+    --gold-glass: rgba(41, 196, 180, 0.12);
+    --surface-wash: linear-gradient(180deg, rgba(12, 19, 19, 0.98), rgba(4, 7, 7, 0.98));
+    --card-wash: linear-gradient(180deg, rgba(16, 26, 26, 0.96), rgba(7, 11, 11, 0.98));
   }
 
   html[data-theme='emerald'] {
@@ -169,20 +190,21 @@
     --bg-panel-rgb: 9 24 18;
     --bg-card-rgb: 13 34 26;
     --bg-card-hover-rgb: 18 48 36;
-    --border-subtle-rgb: 52 211 153;
+    --border-subtle-rgb: 63 203 124;
     --accent-teal-rgb: 34 197 94;
     --accent-turquoise-rgb: 94 234 212;
     --accent-emerald-rgb: 74 222 128;
-    --accent-blue-rgb: 96 165 250;
-    --accent-gold-rgb: 176 141 87;
+    --accent-blue-rgb: 110 227 158;
+    /* Emerald GREEN, not a bronze on a green ground. #3FCB7C. */
+    --accent-gold-rgb: 63 203 124;
     --text-main-rgb: 246 250 247;
     --text-soft-rgb: 214 232 220;
     --text-muted-rgb: 132 162 145;
     --text-faint-rgb: 86 111 96;
-    --border-subtle: rgba(52, 211, 153, 0.13);
-    --border-strong: rgba(52, 211, 153, 0.31);
+    --border-subtle: rgba(63, 203, 124, 0.13);
+    --border-strong: rgba(63, 203, 124, 0.31);
     --teal-glass: rgba(34, 197, 94, 0.11);
-    --gold-glass: rgba(176, 141, 87, 0.1);
+    --gold-glass: rgba(63, 203, 124, 0.1);
     --surface-wash: linear-gradient(180deg, rgba(13, 34, 26, 0.98), rgba(6, 17, 13, 0.98));
     --card-wash: linear-gradient(180deg, rgba(16, 42, 31, 0.97), rgba(8, 22, 16, 0.98));
   }
@@ -213,20 +235,22 @@
     --bg-panel-rgb: 249 251 251;
     --bg-card-rgb: 255 255 255;
     --bg-card-hover-rgb: 238 245 245;
-    --border-subtle-rgb: 15 118 110;
+    --border-subtle-rgb: 14 111 104;
     --accent-teal-rgb: 15 118 110;
     --accent-turquoise-rgb: 13 148 136;
     --accent-emerald-rgb: 5 150 105;
-    --accent-blue-rgb: 37 99 235;
-    --accent-gold-rgb: 175 123 45;
+    --accent-blue-rgb: 13 148 136;
+    /* Deep sea-teal, dark enough to hold 4.5:1 on the paper ground — the one
+       theme whose accent must be DARKER than its canvas. #0E6F68. */
+    --accent-gold-rgb: 14 111 104;
     --text-main-rgb: 17 24 39;
     --text-soft-rgb: 55 65 81;
     --text-muted-rgb: 91 105 120;
     --text-faint-rgb: 122 137 151;
-    --border-subtle: rgba(15, 118, 110, 0.17);
-    --border-strong: rgba(15, 118, 110, 0.38);
-    --teal-glass: rgba(15, 118, 110, 0.1);
-    --gold-glass: rgba(175, 123, 45, 0.11);
+    --border-subtle: rgba(14, 111, 104, 0.17);
+    --border-strong: rgba(14, 111, 104, 0.38);
+    --teal-glass: rgba(14, 111, 104, 0.1);
+    --gold-glass: rgba(14, 111, 104, 0.11);
     --surface-wash: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 246, 246, 0.98));
     --card-wash: linear-gradient(180deg, rgba(250, 253, 253, 0.98), rgba(236, 244, 243, 0.98));
   }
@@ -238,20 +262,22 @@
     --bg-panel-rgb: 11 16 13;
     --bg-card-rgb: 15 22 18;
     --bg-card-hover-rgb: 22 33 27;
-    --border-subtle-rgb: 132 204 22;
+    --border-subtle-rgb: 155 201 74;
     --accent-teal-rgb: 101 163 13;
     --accent-turquoise-rgb: 190 242 100;
     --accent-emerald-rgb: 34 197 94;
-    --accent-blue-rgb: 125 211 252;
-    --accent-gold-rgb: 200 164 93;
+    --accent-blue-rgb: 180 218 105;
+    /* Manuscript GREEN — the leaf-green of illuminated margins, not another
+       gold. #9BC94A. */
+    --accent-gold-rgb: 155 201 74;
     --text-main-rgb: 246 248 241;
     --text-soft-rgb: 220 226 205;
     --text-muted-rgb: 145 154 127;
     --text-faint-rgb: 92 102 80;
-    --border-subtle: rgba(132, 204, 22, 0.14);
-    --border-strong: rgba(132, 204, 22, 0.34);
+    --border-subtle: rgba(155, 201, 74, 0.14);
+    --border-strong: rgba(155, 201, 74, 0.34);
     --teal-glass: rgba(101, 163, 13, 0.12);
-    --gold-glass: rgba(200, 164, 93, 0.12);
+    --gold-glass: rgba(155, 201, 74, 0.12);
     --surface-wash: linear-gradient(180deg, rgba(15, 22, 18, 0.98), rgba(7, 10, 8, 0.98));
     --card-wash: linear-gradient(180deg, rgba(19, 29, 23, 0.97), rgba(9, 14, 11, 0.98));
   }
@@ -263,20 +289,22 @@
     --bg-panel-rgb: 9 17 34;
     --bg-card-rgb: 12 23 44;
     --bg-card-hover-rgb: 18 32 60;
-    --border-subtle-rgb: 120 170 255;
+    --border-subtle-rgb: 94 157 247;
     --accent-teal-rgb: 59 130 246;
     --accent-turquoise-rgb: 125 185 255;
     --accent-emerald-rgb: 56 189 248;
     --accent-blue-rgb: 96 165 250;
-    --accent-gold-rgb: 226 197 122;
+    /* Sakinah BLUE is finally blue — it shipped for a year resolving to the
+       same gold as Yaqut Red, byte for byte. #5E9DF7. */
+    --accent-gold-rgb: 94 157 247;
     --text-main-rgb: 240 245 252;
     --text-soft-rgb: 205 216 233;
     --text-muted-rgb: 130 148 178;
     --text-faint-rgb: 84 102 132;
-    --border-subtle: rgba(120, 170, 255, 0.14);
-    --border-strong: rgba(120, 170, 255, 0.34);
+    --border-subtle: rgba(94, 157, 247, 0.14);
+    --border-strong: rgba(94, 157, 247, 0.34);
     --teal-glass: rgba(59, 130, 246, 0.12);
-    --gold-glass: rgba(226, 197, 122, 0.12);
+    --gold-glass: rgba(94, 157, 247, 0.12);
     --surface-wash: linear-gradient(180deg, rgba(12, 23, 44, 0.98), rgba(5, 10, 20, 0.98));
     --card-wash: linear-gradient(180deg, rgba(16, 30, 56, 0.97), rgba(8, 15, 30, 0.98));
   }
@@ -288,20 +316,23 @@
     --bg-panel-rgb: 27 9 12;
     --bg-card-rgb: 37 13 16;
     --bg-card-hover-rgb: 52 19 23;
-    --border-subtle-rgb: 224 130 120;
+    --border-subtle-rgb: 231 94 112;
     --accent-teal-rgb: 229 84 92;
     --accent-turquoise-rgb: 245 130 135;
     --accent-emerald-rgb: 214 90 96;
     --accent-blue-rgb: 232 120 110;
-    --accent-gold-rgb: 226 197 122;
+    /* Yaqut RUBY — a lit ruby, the most saturated red that clears 4.5:1 on
+       every surface rung over this garnet ground (a pigment ruby like
+       #C41E3A measures 3.45:1 and is not available). #E75E70. */
+    --accent-gold-rgb: 231 94 112;
     --text-main-rgb: 250 244 244;
     --text-soft-rgb: 233 214 214;
     --text-muted-rgb: 178 140 140;
     --text-faint-rgb: 132 100 100;
-    --border-subtle: rgba(224, 130, 120, 0.15);
-    --border-strong: rgba(226, 197, 122, 0.34);
+    --border-subtle: rgba(231, 94, 112, 0.15);
+    --border-strong: rgba(231, 94, 112, 0.34);
     --teal-glass: rgba(229, 84, 92, 0.12);
-    --gold-glass: rgba(226, 197, 122, 0.12);
+    --gold-glass: rgba(231, 94, 112, 0.12);
     --surface-wash: linear-gradient(180deg, rgba(37, 13, 16, 0.98), rgba(16, 6, 8, 0.98));
     --card-wash: linear-gradient(180deg, rgba(44, 16, 20, 0.97), rgba(20, 8, 10, 0.98));
   }
@@ -323,15 +354,17 @@
     --accent-turquoise-rgb: 240 214 150;
     --accent-emerald-rgb: 190 158 80;
     --accent-blue-rgb: 224 190 110;
-    --accent-gold-rgb: 226 190 104;
+    /* Onyx KEEPS gold — its discipline IS gold restraint on pure black.
+       #E0BC6A. */
+    --accent-gold-rgb: 224 188 106;
     --text-main-rgb: 248 247 244;
     --text-soft-rgb: 222 219 210;
     --text-muted-rgb: 148 143 130;
     --text-faint-rgb: 96 93 84;
     --border-subtle: rgba(212, 178, 90, 0.15);
-    --border-strong: rgba(226, 190, 104, 0.35);
+    --border-strong: rgba(224, 188, 106, 0.35);
     --teal-glass: rgba(209, 170, 84, 0.1);
-    --gold-glass: rgba(226, 190, 104, 0.12);
+    --gold-glass: rgba(224, 188, 106, 0.12);
     --surface-wash: linear-gradient(180deg, rgba(14, 14, 17, 0.98), rgba(4, 4, 5, 0.98));
     --card-wash: linear-gradient(180deg, rgba(20, 20, 24, 0.97), rgba(8, 8, 10, 0.98));
   }
@@ -347,20 +380,21 @@
     --bg-panel-rgb: 30 24 17;
     --bg-card-rgb: 34 27 19;
     --bg-card-hover-rgb: 44 35 25;
-    --border-subtle-rgb: 240 210 150;
+    --border-subtle-rgb: 239 209 153;
     --accent-teal-rgb: 216 184 122;
     --accent-turquoise-rgb: 246 226 182;
     --accent-emerald-rgb: 84 199 124;
     --accent-blue-rgb: 226 198 146;
-    --accent-gold-rgb: 240 210 150;
+    /* Plate A's warm harakat gold. #EFD199. */
+    --accent-gold-rgb: 239 209 153;
     --text-main-rgb: 242 237 230;
     --text-soft-rgb: 214 207 196;
     --text-muted-rgb: 134 126 113;
     --text-faint-rgb: 110 101 88;
-    --border-subtle: rgba(240, 210, 150, 0.14);
-    --border-strong: rgba(240, 210, 150, 0.34);
+    --border-subtle: rgba(239, 209, 153, 0.14);
+    --border-strong: rgba(239, 209, 153, 0.34);
     --teal-glass: rgba(216, 184, 122, 0.1);
-    --gold-glass: rgba(240, 210, 150, 0.12);
+    --gold-glass: rgba(239, 209, 153, 0.12);
     --surface-wash: linear-gradient(180deg, rgba(34, 27, 19, 0.98), rgba(18, 14, 10, 0.98));
     --card-wash: linear-gradient(180deg, rgba(40, 32, 23, 0.97), rgba(22, 18, 13, 0.98));
   }
@@ -392,27 +426,33 @@
 
   html[data-theme='samaa'] {
     --quran-green-rgb: 64 207 154;
-    --bg-main-rgb: 27 40 54;
-    --bg-sidebar-rgb: 32 47 62;
-    --bg-panel-rgb: 36 52 68;
-    --bg-card-rgb: 40 57 75;
-    --bg-card-hover-rgb: 52 72 93;
-    --border-subtle-rgb: 79 195 247;
+    /* Still the lightest dark ground in the app — night sky, not slate. The
+       plate's own #1B2836 stays in the surface ladder (it is now the card
+       hover), but as a TEXT ground it left --danger at 3.18:1 and the whole
+       muted ladder marginal, so the canvas steps down to #101A24 and the
+       ladder climbs back up through the plate colour. */
+    --bg-main-rgb: 16 26 36;
+    --bg-sidebar-rgb: 20 30 40;
+    --bg-panel-rgb: 23 33 43;
+    --bg-card-rgb: 33 43 53;
+    --bg-card-hover-rgb: 44 55 64;
+    --border-subtle-rgb: 108 201 240;
     --accent-teal-rgb: 79 195 247;
     --accent-turquoise-rgb: 141 216 250;
     --accent-emerald-rgb: 64 207 154;
     --accent-blue-rgb: 108 190 240;
-    --accent-gold-rgb: 79 195 247;
+    /* Plate B's pale sky cyan. #6CC9F0. */
+    --accent-gold-rgb: 108 201 240;
     --text-main-rgb: 237 242 246;
     --text-soft-rgb: 205 217 227;
     --text-muted-rgb: 122 147 163;
     --text-faint-rgb: 92 118 135;
-    --border-subtle: rgba(79, 195, 247, 0.14);
-    --border-strong: rgba(79, 195, 247, 0.34);
+    --border-subtle: rgba(108, 201, 240, 0.14);
+    --border-strong: rgba(108, 201, 240, 0.34);
     --teal-glass: rgba(79, 195, 247, 0.12);
-    --gold-glass: rgba(79, 195, 247, 0.1);
-    --surface-wash: linear-gradient(180deg, rgba(40, 57, 75, 0.98), rgba(22, 33, 45, 0.98));
-    --card-wash: linear-gradient(180deg, rgba(46, 65, 85, 0.97), rgba(26, 38, 51, 0.98));
+    --gold-glass: rgba(108, 201, 240, 0.1);
+    --surface-wash: linear-gradient(180deg, rgba(33, 43, 53, 0.98), rgba(14, 22, 31, 0.98));
+    --card-wash: linear-gradient(180deg, rgba(38, 50, 61, 0.97), rgba(20, 30, 40, 0.98));
   }
 
   /* ── Design tokens ──────────────────────────────────────────────────────
@@ -719,34 +759,63 @@
     color: var(--bg-main);
   }
 
-  /* Two-tone focus. The ground-coloured inner stroke is what makes this work
-     on the primary button, whose fill IS the accent: a single accent ring at
-     0.85 sat 2px outside a solid accent and was effectively invisible. */
+  /* Two-tone focus, app-wide: a ground-coloured inner stroke and an accent
+     outer one, exactly the --ring-focus the shared primitives already use.
+     The inner stroke is what makes this work on the primary button, whose
+     fill IS the accent — a single accent ring 2px outside a solid accent was
+     effectively invisible. Box-shadow rather than outline so the ring follows
+     border-radius on every rounded control. */
   button:focus-visible,
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible,
   a:focus-visible,
   [tabindex]:focus-visible {
-    outline: 2px solid rgb(var(--accent-gold-rgb));
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: var(--ring-focus);
+  }
+
+  /* Selection carries the accent. Low enough that the selected text itself —
+     including any Qur'anic text a reader copies — stays fully legible and
+     completely unaltered; a selection highlight is UA feedback, not styling. */
+  ::selection {
+    background: rgb(var(--accent-gold-rgb) / 0.3);
   }
   
+  /* App scrollbars: quiet sheen, not accent — a scrollbar is chrome, and an
+     accent-coloured one competed with every real accent on the page. */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
   }
-  
+
   ::-webkit-scrollbar-track {
     background: transparent;
   }
-  
+
   ::-webkit-scrollbar-thumb {
+    background: rgb(var(--sheen-rgb) / 0.14);
+    border-radius: 5px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--sheen-rgb) / 0.3);
+  }
+
+  /* The mushaf's reading viewport keeps exactly the treatment it always had —
+     these values reproduce the previous app-wide scrollbar so the reading
+     surface does not change underneath the reader. */
+  .quran-reading-viewport::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .quran-reading-viewport::-webkit-scrollbar-thumb {
     background: rgb(var(--accent-gold-rgb) / 0.18);
     border-radius: 4px;
   }
-  
-  ::-webkit-scrollbar-thumb:hover {
+
+  .quran-reading-viewport::-webkit-scrollbar-thumb:hover {
     background: rgb(var(--accent-gold-rgb) / 0.34);
   }
 }
@@ -971,6 +1040,14 @@
       40px 10px, 40px 10px, 10px 40px, 10px 40px,
       20px 20px, 20px 20px, 20px 20px, 20px 20px;
     animation: jadwal-in 620ms var(--ease-out) both;
+  }
+
+  /* The featured card's frame carries more of the card's presence than the
+     mushaf page's does — it has no ruled pseudo-elements backing it up — so
+     it prints heavier. `.jadwal` is the featured card's name only; the mushaf
+     alias above keeps the printed page's quieter weight. */
+  .jadwal {
+    background: rgb(var(--mushaf-gold-rgb) / 0.55);
   }
 
   /* The frame draws itself in; the text it frames does not. Qur'anic text is
@@ -1247,10 +1324,38 @@
       opacity var(--dur-fast) var(--ease-out);
   }
 
+  /* The active pill. Per-tab and transform-based: it springs up from the
+     baseline under the tab you chose, so selection reads as a surface
+     arriving rather than a colour blinking on. Per-tab scaling beats sliding
+     one shared indicator here — the labels are different widths in both
+     languages, so a shared indicator would need JS measurement to land. */
+  .segmented button::before {
+    content: '';
+    position: absolute;
+    inset: 0 -7px;
+    z-index: -1;
+    border-radius: 999px;
+    background: linear-gradient(
+      177deg,
+      rgb(var(--accent-gold-rgb) / 0.13),
+      rgb(var(--accent-gold-rgb) / 0.05)
+    );
+    box-shadow: inset 0 0 0 1px rgb(var(--accent-gold-rgb) / 0.14);
+    opacity: 0;
+    transform: scale(0.82, 0.55);
+    transform-origin: center bottom;
+    transition:
+      transform var(--dur-normal) var(--ease-spring),
+      opacity var(--dur-fast) var(--ease-out);
+  }
+
+  .segmented button[aria-pressed='true']::before {
+    opacity: 1;
+    transform: scale(1);
+  }
+
   /* The underline grows from the centre of the tab you chose rather than
-     blinking on. Scaling a per-tab rule beats sliding one shared indicator
-     here: the two labels are different widths in both languages, so a shared
-     indicator would have to be measured in JS to land correctly. */
+     blinking on. */
   .segmented button::after {
     content: '';
     position: absolute;
@@ -1310,7 +1415,10 @@
   .icon-btn:hover {
     color: rgb(var(--text-main-rgb));
     background: var(--wash-btn) padding-box, var(--edge-2) border-box;
-    box-shadow: var(--elev-1);
+    box-shadow:
+      var(--elev-1),
+      0 5px 14px -11px rgb(var(--accent-gold-rgb) / 0.45);
+    transform: translateY(-1px);
   }
 
   .icon-btn:active {
@@ -1396,9 +1504,11 @@
     background: rgb(var(--accent-gold-rgb));
   }
 
+  /* The same two-tone ring the rest of the app draws — its own accent
+     outline on top of the app-wide ring was a double ring. */
   .range-quiet:focus-visible {
-    outline: 2px solid rgb(var(--accent-gold-rgb));
-    outline-offset: 3px;
+    outline: none;
+    box-shadow: var(--ring-focus);
   }
 
   /* Text-only action. Was duplicated as the same long utility string across
@@ -1463,6 +1573,7 @@
 
     /* Motion is REMOVED, not shortened: the displacement itself goes, so a
        press does not jump the control by half a pixel with no tween. */
+    .icon-btn:hover,
     .icon-btn:active {
       transform: none;
     }
@@ -1476,14 +1587,13 @@
     position: relative;
     display: grid;
     place-items: center;
-    /* A band, not a screensaver. This was 52vh — 416px of a 764px frame at
-       1280x800, 54% of everything the user could see — carrying a wordmark, a
-       one-line description and two buttons. The Basmala stays honoured and
-       full size; what goes is the empty ground it was floating in. The work of
-       the page now belongs to the featured card directly below. */
-    min-height: 7.5rem;
-    height: 15vh;
-    max-height: 10rem;
+    /* A band with real presence — tall enough for the calligraphy to breathe
+       and for the ground to read as a lit room, still far from the 52vh
+       screensaver it once was. The work of the page stays with the featured
+       card directly below. */
+    min-height: 9.5rem;
+    height: 22vh;
+    max-height: 15rem;
     /* NOT overflow:hidden. This element is an ancestor of .hero-basmala, and
        Qur'anic text is never clipped — at this height a clip here would crop
        the calligraphy the moment the band tightened. The background layers do
@@ -1589,18 +1699,21 @@
       radial-gradient(
         118% 96% at 42% 30%,
         transparent 26%,
-        rgb(var(--bg-main-rgb) / 0.55) 72%,
-        rgb(var(--bg-main-rgb) / 0.92) 100%
+        rgb(var(--bg-main-rgb) / 0.45) 72%,
+        rgb(var(--bg-main-rgb) / 0.85) 100%
       ),
       /* key light: warm, high, left of centre, with a long soft falloff */
       radial-gradient(58% 46% at 34% 20%, rgb(var(--accent-gold-rgb) / 0.30), transparent 74%),
-      radial-gradient(90% 70% at 34% 20%, rgb(var(--accent-gold-rgb) / 0.12), transparent 78%),
-      /* the room itself, darkening downward */
+      radial-gradient(96% 76% at 34% 20%, rgb(var(--accent-gold-rgb) / 0.14), transparent 80%),
+      /* The room itself, darkening downward — TRANSLUCENT, so the page's own
+         ambient canvas field reads through the band instead of being replaced
+         by an opaque stripe. The hero sits over the ambient layer; letting it
+         show is what makes the band feel continuous with the page. */
       linear-gradient(
         168deg,
-        rgb(var(--bg-card-hover-rgb)) 0%,
-        rgb(var(--bg-card-rgb)) 34%,
-        rgb(var(--bg-main-rgb)) 82%
+        rgb(var(--bg-card-hover-rgb) / 0.66) 0%,
+        rgb(var(--bg-card-rgb) / 0.45) 34%,
+        rgb(var(--bg-main-rgb) / 0.10) 82%
       );
   }
 
@@ -1743,7 +1856,9 @@
     position: absolute;
     inset: -40px;
     z-index: 1;
-    opacity: 0.05;
+    /* Visible ornament, not a rumour of one — the khatam lattice is meant to
+       read as the band's fabric under the key light. */
+    opacity: 0.12;
     /* A real file, not a data: URI — img-src has no `data:` source, so the
        inline form was a blocked request in every packaged build. */
     background-image: url('./assets/marks/girih.svg');
@@ -1761,7 +1876,7 @@
     width: min(760px, 68%);
     aspect-ratio: 1 / 1.16;
     transform: translate(-50%, -62%);
-    border: 1px solid var(--hair);
+    border: 1px solid rgb(var(--hair-rgb) / 0.3);
     border-bottom: none;
     border-radius: 50% 50% 0 0 / 58% 58% 0 0;
     box-shadow: inset 0 40px 90px -50px rgb(var(--accent-gold-rgb) / 0.22);
@@ -1808,7 +1923,7 @@
   .hero-inner {
     position: relative;
     z-index: 3;
-    max-width: 62rem;
+    max-width: 68rem;
     padding: 0 var(--s6);
     text-align: center;
   }
@@ -1825,8 +1940,10 @@
      glyph, and the viewBox guarantees it scales without ever clipping. */
   .hero-basmala {
     display: block;
-    width: min(100%, 62rem);
-    margin: 0 auto var(--s6);
+    /* Larger now that the band gives it room. Width-driven, so the glyphs
+       scale as one piece and the viewBox guarantees nothing ever clips. */
+    width: min(100%, 68rem);
+    margin: 0 auto var(--s5);
   }
 
   .hero-basmala svg {
@@ -1932,6 +2049,75 @@
       );
   }
 
+  /* ── Section head ───────────────────────────────────────────────────────
+     A section that carries real content announces itself: a small accent
+     eyebrow (Latin only — Arabic has no small caps, and repeating the same
+     string twice in the same case reads as a bug, so Arabic gets the title
+     alone) over a display-weight title, closed by the same directional rule
+     as .rule-head. The eyebrow whisper used to be the WHOLE header. */
+  .section-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--s4);
+    padding-bottom: var(--s3);
+    background-image: linear-gradient(
+      90deg,
+      rgb(var(--hair-rgb) / 0.30) 0%,
+      rgb(var(--hair-rgb) / 0.13) 34%,
+      rgb(var(--hair-rgb) / 0.05) 100%
+    );
+    background-repeat: no-repeat;
+    background-position: bottom left;
+    background-size: 100% 1px;
+  }
+
+  [dir='rtl'] .section-head {
+    background-position: bottom right;
+    background-image: linear-gradient(
+      270deg,
+      rgb(var(--hair-rgb) / 0.30) 0%,
+      rgb(var(--hair-rgb) / 0.13) 34%,
+      rgb(var(--hair-rgb) / 0.05) 100%
+    );
+  }
+
+  .section-eyebrow {
+    display: block;
+    margin-bottom: 3px;
+    font-size: var(--fs-cap);
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgb(var(--accent-gold-rgb) / 0.85);
+  }
+
+  .section-title {
+    font-size: var(--fs-xl);
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: var(--tr-xl);
+    color: rgb(var(--text-main-rgb));
+  }
+
+  /* Latin display is Plex Serif; Arabic keeps the UI face at its own leading
+     and, by the global rule, zero tracking. */
+  .section-title-latin {
+    font-family: 'Plex Serif', Georgia, serif;
+  }
+
+  html[data-language='ar'] .section-title {
+    line-height: 1.5;
+  }
+
+  .section-meta {
+    flex: 0 0 auto;
+    padding-bottom: 0.3em;
+    font-size: var(--fs-cap);
+    color: rgb(var(--text-faint-rgb));
+    font-variant-numeric: tabular-nums;
+  }
+
   /* A row is a rule and a value step. Hover gives it a directional wash that
      falls away from the reading edge, and lights the top hairline of the row —
      so the pointer reads as light moving over a page rather than a cell
@@ -1945,17 +2131,29 @@
     transition:
       background var(--dur-fast) var(--ease-out),
       box-shadow var(--dur-fast) var(--ease-out),
-      border-color var(--dur-fast) var(--ease-out);
+      border-color var(--dur-fast) var(--ease-out),
+      transform 150ms var(--ease-out);
   }
 
+  /* Hover is three things at once: an inset accent marker arriving at the
+     reading edge, one background step, and the row easing 2px in the reading
+     direction — the row answers the pointer by leaning into the page's flow.
+     box-shadow and transform have no logical forms, so both flip for RTL. */
   .rule-row:hover {
     background: var(--wash-hover);
     border-bottom-color: var(--hair-strong);
-    box-shadow: inset 0 1px 0 rgb(var(--sheen-rgb) / 0.035);
+    box-shadow:
+      inset 2px 0 0 rgb(var(--accent-gold-rgb) / 0.55),
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.035);
+    transform: translateX(2px);
   }
 
   [dir='rtl'] .rule-row:hover {
     background: var(--wash-hover-rtl);
+    box-shadow:
+      inset -2px 0 0 rgb(var(--accent-gold-rgb) / 0.55),
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.035);
+    transform: translateX(-2px);
   }
 
   .rule-row:active {
@@ -1967,9 +2165,33 @@
     background: var(--wash-active-rtl);
   }
 
+  /* An active row keeps its full-strength marker under the pointer — the
+     hover rule above carries a weaker marker and must not dim this one.
+     After the hover rules by design: at equal specificity, source order is
+     what lets the active marker win. */
+  .rule-row-active:hover,
+  .rule-row:hover.rule-row-active {
+    box-shadow:
+      inset 2px 0 0 rgb(var(--accent-gold-rgb)),
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.05);
+  }
+
+  [dir='rtl'] .rule-row-active:hover,
+  [dir='rtl'] .rule-row:hover.rule-row-active {
+    box-shadow:
+      inset -2px 0 0 rgb(var(--accent-gold-rgb)),
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.05);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .rule-row {
       transition: none;
+    }
+
+    /* The displacement is REMOVED, not shortened. */
+    .rule-row:hover,
+    [dir='rtl'] .rule-row:hover {
+      transform: none;
     }
   }
 
@@ -2407,8 +2629,8 @@
   }
 
   .rail-track:focus-visible {
-    outline: 2px solid rgb(var(--accent-gold-rgb) / 0.9);
-    outline-offset: 3px;
+    outline: none;
+    box-shadow: var(--ring-focus);
     border-radius: var(--r-md);
   }
 
@@ -2674,8 +2896,40 @@
      re-opaque the panel. */
   .sidebar-glass {
     background: rgb(var(--bg-sidebar-rgb) / 0.62);
-    backdrop-filter: blur(22px) saturate(126%);
-    -webkit-backdrop-filter: blur(22px) saturate(126%);
+    backdrop-filter: blur(26px) saturate(140%);
+    -webkit-backdrop-filter: blur(26px) saturate(140%);
+  }
+
+  /* The footer brand block sits on its own quiet ground: the khatam lattice
+     at a whisper, faded upward so it seats the block against the window's
+     bottom edge without becoming wallpaper. */
+  .sidebar-foot {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sidebar-foot::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url('./assets/marks/girih.svg');
+    background-size: 96px 96px;
+    opacity: 0.06;
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 55%);
+    mask-image: linear-gradient(180deg, transparent 0%, black 55%);
+    pointer-events: none;
+  }
+
+  /* The tile's strokes are white; on Pearl's light ground they would vanish,
+     so the lattice inverts to ink there. Ornament, not Qur'anic text — the
+     no-restyling rule is not in play. */
+  html[data-theme='pearl'] .sidebar-foot::before {
+    filter: invert(1);
+    opacity: 0.08;
+  }
+
+  .sidebar-foot > * {
+    position: relative;
   }
 
   /* No backdrop-filter support, or a compositor that refuses it: fall back to
@@ -2711,6 +2965,91 @@
     background-position: center;
     background-size: min(38%, 5.5rem);
     opacity: 0.13;
+  }
+
+  /* The featured card's un-thumbnailed art, upgraded from placeholder to
+     designed artwork: layered accent light, a large khatam lattice, and the
+     noor mark seated in the pool of light. Composed — a key at the top
+     corner, a cool answer at the far one, the ornament brightest where the
+     light is — so it reads as a made panel rather than an absence.
+
+     Doubled with .thumbnail-fallback for the same cascade reason as
+     .thumbnail-plate above: the fallback's own --fill-well must lose. */
+  .plate-rich,
+  .thumbnail-fallback.plate-rich {
+    position: relative;
+    background:
+      radial-gradient(88% 78% at 26% 8%, rgb(var(--accent-gold-rgb) / 0.24), transparent 62%),
+      radial-gradient(70% 84% at 84% 92%, rgb(var(--accent-emerald-rgb) / 0.12), transparent 70%),
+      radial-gradient(120% 100% at 50% 0%, rgb(var(--accent-gold-rgb) / 0.08), transparent 64%),
+      linear-gradient(160deg, rgb(var(--bg-card-hover-rgb)), rgb(var(--bg-panel-rgb)) 78%);
+    box-shadow: inset 0 1px 0 rgb(var(--sheen-rgb) / 0.06);
+  }
+
+  /* The khatam lattice, faded off toward the unlit corner so it sits IN the
+     light rather than tiling over it. */
+  .plate-rich::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url('./assets/marks/girih.svg');
+    background-size: 132px 132px;
+    opacity: 0.11;
+    -webkit-mask-image: radial-gradient(120% 110% at 30% 12%, black 30%, transparent 88%);
+    mask-image: radial-gradient(120% 110% at 30% 12%, black 30%, transparent 88%);
+    pointer-events: none;
+  }
+
+  .plate-rich::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url('./assets/marks/noor.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: min(36%, 6.5rem);
+    opacity: 0.2;
+    pointer-events: none;
+  }
+
+  /* An empty state is a designed room, not a lone icon in a void: the same
+     generated-panel grammar as the featured card's art — an accent key light
+     high at the reading corner, a cool answer at the far one, the khatam
+     lattice faded off the light — at section scale, behind whatever icon and
+     copy the state already carries. */
+  .empty-panel {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: var(--r-lg);
+    background:
+      radial-gradient(70% 64% at 24% 0%, rgb(var(--accent-gold-rgb) / 0.13), transparent 64%),
+      radial-gradient(60% 70% at 86% 100%, rgb(var(--accent-emerald-rgb) / 0.07), transparent 70%),
+      linear-gradient(168deg, rgb(var(--bg-panel-rgb) / 0.85), rgb(var(--bg-main-rgb) / 0.4));
+    box-shadow: inset 0 1px 0 rgb(var(--sheen-rgb) / 0.05);
+  }
+
+  .empty-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-image: url('./assets/marks/girih.svg');
+    background-size: 150px 150px;
+    opacity: 0.07;
+    -webkit-mask-image: radial-gradient(110% 100% at 30% 0%, black 24%, transparent 86%);
+    mask-image: radial-gradient(110% 100% at 30% 0%, black 24%, transparent 86%);
+    pointer-events: none;
+  }
+
+  html[data-theme='pearl'] .empty-panel::before {
+    filter: invert(1);
+    opacity: 0.09;
+  }
+
+  .empty-panel > * {
+    position: relative;
+    z-index: 1;
   }
 
   .surface-well {
@@ -2839,6 +3178,7 @@
       inset 0 1px 0 rgb(var(--sheen-rgb) / 0.34),
       0 2px 3px -2px rgb(var(--shade-rgb) / 0.34),
       0 12px 24px -14px rgb(var(--accent-gold-rgb) / 0.95);
+    transform: translateY(-1px);
   }
 
   .btn-primary:active:not(:disabled) {
@@ -2863,7 +3203,10 @@
 
   .btn-secondary:hover:not(:disabled) {
     background: var(--fill-3) padding-box, var(--edge-3) border-box;
-    box-shadow: var(--elev-2);
+    box-shadow:
+      var(--elev-2),
+      0 8px 20px -14px rgb(var(--accent-gold-rgb) / 0.5);
+    transform: translateY(-1px);
   }
 
   .btn-secondary:active:not(:disabled) {
@@ -2884,7 +3227,10 @@
   .btn-ghost:hover:not(:disabled) {
     color: rgb(var(--text-main-rgb));
     background: var(--wash-btn) padding-box, var(--edge-2) border-box;
-    box-shadow: var(--elev-1);
+    box-shadow:
+      var(--elev-1),
+      0 6px 16px -12px rgb(var(--accent-gold-rgb) / 0.45);
+    transform: translateY(-1px);
   }
 
   .btn-ghost:active:not(:disabled) {
@@ -2910,8 +3256,11 @@
     /* Removed, not shortened. */
     .premium-card-hover:hover,
     .premium-card-hover:active,
+    .btn-primary:hover:not(:disabled),
     .btn-primary:active:not(:disabled),
+    .btn-secondary:hover:not(:disabled),
     .btn-secondary:active:not(:disabled),
+    .btn-ghost:hover:not(:disabled),
     .btn-ghost:active:not(:disabled) {
       transform: none;
     }
@@ -3103,6 +3452,41 @@
     box-shadow:
       inset 0 1px 0 rgb(var(--sheen-rgb) / 0.04),
       -8px 0 20px -14px rgb(var(--shade-rgb) / 0.95);
+  }
+
+  /* The nav rows speak the same hover language as .rule-row: an inset accent
+     marker at the reading edge, one background step, and a 2px ease in the
+     reading direction. The active item's own utility classes carry a stronger
+     marker and win on specificity where they apply. */
+  .app-sidebar nav a {
+    transition:
+      color 150ms var(--ease-out),
+      background-color 150ms var(--ease-out),
+      box-shadow 150ms var(--ease-out),
+      transform 150ms var(--ease-out);
+  }
+
+  .app-sidebar nav a:hover {
+    background: var(--wash-hover);
+    box-shadow: inset 2px 0 0 rgb(var(--accent-gold-rgb) / 0.45);
+    transform: translateX(2px);
+  }
+
+  [dir='rtl'] .app-sidebar nav a:hover {
+    background: var(--wash-hover-rtl);
+    box-shadow: inset -2px 0 0 rgb(var(--accent-gold-rgb) / 0.45);
+    transform: translateX(-2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .app-sidebar nav a {
+      transition: none;
+    }
+
+    .app-sidebar nav a:hover,
+    [dir='rtl'] .app-sidebar nav a:hover {
+      transform: none;
+    }
   }
 }
 

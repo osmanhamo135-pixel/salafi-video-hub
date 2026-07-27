@@ -223,7 +223,7 @@ const WatchPlaceholder: React.FC<{
   suggestions?: boolean;
 }> = ({ icon: Icon, title, hint, note, suggestions }) => {
   return (
-    <div className="mx-auto flex max-w-xl flex-col items-center px-6 py-16 text-center">
+    <div className="empty-panel mx-auto flex max-w-xl flex-col items-center px-6 py-16 text-center">
       <span
         aria-hidden="true"
         className="mb-6 flex h-16 w-16 items-center justify-center border border-accent-gold/25"
