@@ -243,6 +243,49 @@ for (const theme of THEMES) {
   await ctx.close();
 }
 
+/* ── Guard 5 ────────────────────────────────────────────────────────────────
+   Every theme paints a scene. Three themes (onyx, mushaf-gold, pearl) were
+   capped below the canvas tier, so when the painted worlds landed those three
+   would silently have had none — the exact class of bug where the code is
+   right and one lookup table quietly opts out of it. Asserted as painted
+   pixels, at full motion, because "the module exists" proves nothing about
+   whether anything reached the screen. */
+for (const theme of THEMES) {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'no-preference' });
+  await ctx.addInitScript({ content: `window.__HARNESS_FIXTURES__ = ${JSON.stringify(fixtures)};` });
+  await ctx.addInitScript({ content: `window.__HARNESS_SETTINGS__ = ${JSON.stringify({ theme, language: 'en' })};` });
+  await ctx.addInitScript({ content: `try { localStorage.setItem('salafi-hub.background-motion', 'full'); } catch (e) {}` });
+  await ctx.addInitScript({ path: join(here, 'stub-tauri.js') });
+  const page = await ctx.newPage();
+  await page.goto(base, { waitUntil: 'networkidle' });
+  await page.waitForSelector('nav a', { timeout: 15_000 });
+  for (let i = 0; i < 5; i += 1) {
+    const quiet = await page.evaluate(() => {
+      const o = document.querySelector('div.fixed.inset-0.z-50');
+      if (!o) return true;
+      o.querySelector('button')?.click();
+      return false;
+    });
+    if (quiet) break;
+    await page.waitForTimeout(250);
+  }
+  await page.waitForTimeout(1600);
+  const r = await page.evaluate(() => {
+    const c = document.querySelector('.ambient-canvas');
+    if (!c) return { canvas: false, coverage: 0 };
+    const g = c.getContext('2d');
+    const px = g.getImageData(0, 0, c.width, c.height).data;
+    let painted = 0;
+    for (let i = 3; i < px.length; i += 4) if (px[i] > 6) painted += 1;
+    return { canvas: true, coverage: painted / (px.length / 4) };
+  });
+  check(`scene-canvas-present[${theme}]`, r.canvas, 'no ambient canvas — theme is capped below tier 3');
+  if (r.canvas) {
+    check(`scene-paints[${theme}]`, r.coverage > 0.02, `only ${(r.coverage * 100).toFixed(1)}% of the scene is painted`);
+  }
+  await ctx.close();
+}
+
 await browser.close();
 server.close();
 

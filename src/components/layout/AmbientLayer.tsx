@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSettingsStore } from '@/store/settingsStore';
+import { compositionFor, painterFor, readPalette } from './scenes';
+import { rnd, SceneComposition, ScenePalette } from './scenes/types';
 
 /**
  * The per-theme ambient ground — the drama pass.
@@ -32,8 +34,15 @@ import { useSettingsStore } from '@/store/settingsStore';
 
 type Tier = 0 | 1 | 2 | 3;
 type Motion = 'off' | 'subtle' | 'full';
-type Field = 'motes' | 'stars' | 'ink' | 'clouds';
 
+/* Every theme now reaches tier 3, and that is a change of principle rather
+   than of numbers. The tier used to encode "this theme is too restrained for
+   a canvas" — onyx and mushaf-gold sat at 2, pearl at 1 — which meant three
+   of the ten themes could never paint a scene at all. Restraint now lives in
+   the PAINTER: onyx paints a quiet night, pearl paints laid paper that barely
+   moves. A theme's character belongs in its own world, not in a cap that
+   denies it one. The ceiling below still drops everything to a still tier 1
+   for reduced motion, Performance Mode and the off switch. */
 const THEME_TIER: Record<string, Tier> = {
   noor: 3,
   mushaf: 3,
@@ -42,19 +51,9 @@ const THEME_TIER: Record<string, Tier> = {
   emerald: 3,
   maktabah: 3,
   red: 3,
-  onyx: 2,
-  'mushaf-gold': 2,
-  pearl: 1,
-};
-
-const THEME_FIELD: Record<string, Field> = {
-  noor: 'motes',
-  blue: 'stars',
-  mushaf: 'ink',
-  samaa: 'clouds',
-  emerald: 'motes',
-  maktabah: 'motes',
-  red: 'motes',
+  onyx: 3,
+  'mushaf-gold': 3,
+  pearl: 3,
 };
 
 export const MOTION_KEY = 'salafi-hub.background-motion';
@@ -77,12 +76,6 @@ const ROUTE_FIELD_DIM: Record<string, number> = {
 const prefersReducedMotion = () =>
   typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* Deterministic per-index pseudo-random so a re-mount draws the same field. */
-const rnd = (i: number, salt: number) => {
-  const x = Math.sin(i * 127.1 + salt * 311.7) * 43758.5453;
-  return x - Math.floor(x);
-};
-
 export const AmbientLayer: React.FC = () => {
   const theme = useSettingsStore((s) => s.settings?.theme ?? 'noor');
   const performanceMode = useSettingsStore((s) => s.settings?.performanceMode ?? false);
@@ -104,6 +97,11 @@ export const AmbientLayer: React.FC = () => {
     location.pathname === '/' ? 'dashboard' : location.pathname.replace(/^\//, '').split('/')[0];
   const fieldDimRef = useRef(1);
   fieldDimRef.current = ROUTE_FIELD_DIM[routeSlug] ?? 0.8;
+
+  /* Read per frame, never in the effect's dependency list: a route change must
+     re-frame the scene, not restart it. */
+  const compRef = useRef<SceneComposition>(compositionFor(theme, routeSlug));
+  compRef.current = compositionFor(theme, routeSlug);
 
   useEffect(() => {
     const sleep = () => setAwake(false);
@@ -154,7 +152,24 @@ export const AmbientLayer: React.FC = () => {
     const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
-    const field: Field = THEME_FIELD[theme] ?? 'motes';
+    /* The theme picks the world; the section only shapes it. So the painter is
+       bound once here, while the composition is read from a ref every frame —
+       navigating re-frames the same sky rather than tearing it down and
+       building a new one.
+
+       The PALETTE, though, cannot be read here, and that is not a style
+       preference — it is an effect-ordering bug that cost a whole review
+       cycle. This component is a child of App, and React runs child effects
+       BEFORE parent effects, so at this point App has not yet written the new
+       value to html[data-theme]: getComputedStyle would hand back the
+       OUTGOING theme's tokens. Sakinah Blue painted a teal sky for exactly
+       this reason. So the palette is resolved on the first animation frame
+       (rAF runs after style application) and re-resolved whenever the
+       document's theme attribute changes underneath us. */
+    const paint = painterFor(theme);
+    let palette: ScenePalette | null = null;
+    let paletteTheme = '';
+
     let raf = 0;
     let last = 0;
     let t = 0;
@@ -163,16 +178,12 @@ export const AmbientLayer: React.FC = () => {
     /* 768x448, up from 480x280. At 480 wide the upscale to a 2560px window
        was ~5.3x — every mote smeared into a faint blur, which is why the
        fields "worked" in the 1280px harness and vanished on the owner's real
-       display. ~3.3x keeps the particles readable at desktop sizes while the
+       display. ~3.3x keeps the scene readable at desktop sizes while the
        draw loop stays trivially cheap. */
     const W = 768;
     const H = 448;
     canvas.width = W;
     canvas.height = H;
-
-    const root = getComputedStyle(document.documentElement);
-    const accent = root.getPropertyValue('--accent-gold-rgb').trim() || '236 195 102';
-    const soft = root.getPropertyValue('--text-soft-rgb').trim() || '215 221 232';
 
     const draw = (now: number) => {
       if (stopped) return;
@@ -180,82 +191,30 @@ export const AmbientLayer: React.FC = () => {
       if (now - last < 33) return; // 30fps cap
       last = now;
       t += 0.016;
-      const level = intensity * fieldDimRef.current;
+
+      const domTheme = document.documentElement.dataset.theme || '';
+      if (!palette || domTheme !== paletteTheme) {
+        palette = readPalette();
+        paletteTheme = domTheme;
+      }
 
       ctx.clearRect(0, 0, W, H);
-
-      if (field === 'motes') {
-        for (let i = 0; i < 110; i += 1) {
-          const speed = 6 + rnd(i, 1) * 14;
-          const x = rnd(i, 2) * W + Math.sin(t * 0.3 + i) * 10;
-          const y = ((rnd(i, 3) * H - t * speed) % H + H) % H;
-          const r = 0.9 + rnd(i, 4) * 2.6;
-          const tw = 0.5 + 0.5 * Math.sin(t * (0.6 + rnd(i, 5)) + i * 2.1);
-          ctx.globalAlpha = (0.14 + 0.38 * tw) * level;
-          ctx.fillStyle = `rgb(${accent})`;
-          ctx.beginPath();
-          ctx.arc(x, y, r, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      } else if (field === 'stars') {
-        for (let band = 0; band < 3; band += 1) {
-          const drift = (band + 1) * 1.7;
-          for (let i = 0; i < 60; i += 1) {
-            const k = band * 60 + i;
-            const x = ((rnd(k, 6) * W + t * drift) % W + W) % W;
-            const y = rnd(k, 7) * H;
-            const r = 0.6 + band * 0.42 + rnd(k, 8) * 0.8;
-            const tw = 0.55 + 0.45 * Math.sin(t * (0.8 + rnd(k, 9) * 1.6) + k);
-            ctx.globalAlpha = (0.14 + 0.40 * tw) * level;
-            ctx.fillStyle = band === 2 ? `rgb(${accent})` : `rgb(${soft})`;
-            ctx.beginPath();
-            ctx.arc(x, y, r, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
-      } else if (field === 'ink') {
-        ctx.globalCompositeOperation = 'lighter';
-        for (let i = 0; i < 7; i += 1) {
-          const x = W * (0.15 + 0.7 * rnd(i, 10)) + Math.sin(t * 0.11 + i * 2.2) * 74;
-          const y = H * (0.2 + 0.6 * rnd(i, 11)) + Math.cos(t * 0.09 + i * 1.7) * 48;
-          const r = 95 + rnd(i, 12) * 130 + Math.sin(t * 0.13 + i) * 19;
-          const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-          g.addColorStop(0, `rgb(${accent} / ${0.15 * level})`);
-          g.addColorStop(1, 'transparent');
-          ctx.globalAlpha = 1;
-          ctx.fillStyle = g;
-          ctx.beginPath();
-          ctx.arc(x, y, r, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.globalCompositeOperation = 'source-over';
-      } else {
-        // clouds — big soft ellipses in the text-soft tone, drifting slowly
-        for (let i = 0; i < 9; i += 1) {
-          const x = ((rnd(i, 13) * (W + 320) + t * (3.2 + rnd(i, 14) * 3.8)) % (W + 320)) - 160;
-          const y = H * (0.12 + 0.7 * rnd(i, 15));
-          const rx = 110 + rnd(i, 16) * 145;
-          const ry = rx * 0.34;
-          ctx.globalAlpha = 1;
-          ctx.save();
-          ctx.translate(x, y);
-          ctx.scale(1, ry / rx);
-          /* The gradient is built AFTER the translate, centred on the origin
-             of the transformed space. Built at (x, y) before the transform it
-             lands at (2x, 2y) in device space — the circle then samples only
-             the gradient's transparent tail, which is why samaa's cloud field
-             painted literally zero pixels in every release that carried it. */
-          const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
-          g.addColorStop(0, `rgb(${soft} / ${0.13 * level})`);
-          g.addColorStop(1, 'transparent');
-          ctx.fillStyle = g;
-          ctx.beginPath();
-          ctx.arc(0, 0, rx, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-        }
-      }
       ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+      paint({
+        ctx,
+        W,
+        H,
+        t,
+        level: intensity * fieldDimRef.current,
+        palette,
+        comp: compRef.current,
+        rnd,
+      });
+      /* A painter that forgot to reset state must not corrupt the next frame
+         or the next scene. Cheap insurance, once per frame. */
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
     };
 
     raf = requestAnimationFrame(draw);
@@ -269,7 +228,6 @@ export const AmbientLayer: React.FC = () => {
     <div
       className="ambient-layer"
       data-tier={tier}
-      data-theme-field={THEME_FIELD[theme] ?? ''}
       aria-hidden="true"
     >
       <div className="ambient-wash" />
@@ -279,10 +237,6 @@ export const AmbientLayer: React.FC = () => {
           it stands still; at 0 it is absent. The lattice is the geometric
           structure under the light — same tier rules. */}
       {tier >= 1 && <div className="ambient-lattice" />}
-      {/* The section's own drawn scene — a mask per route, coloured by the
-          theme's tokens. Which motif shows is pure CSS (html[data-route]);
-          this element is just the canvas it lands on. */}
-      {tier >= 1 && <div className="ambient-motif" />}
       {tier >= 1 && <div className="ambient-scene" />}
       {tier >= 2 && <div className="ambient-sweep" />}
       {tier >= 3 && <canvas ref={canvasRef} className="ambient-canvas" />}
