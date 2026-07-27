@@ -20,3 +20,10 @@ dist-before/
 # committing ~20MB of PNGs per phase would dwarf the source tree.
 # The measurements next to them (metrics.json, probe.json) are tracked.
 design-audit/**/*.png
+
+# Every ad-hoc harness run also drops a metrics.json beside its renders, so a
+# throwaway `--out design-audit/tmp` left untracked files behind. Only the
+# named baselines are tracked; the rest is scratch.
+design-audit/**/metrics.json
+!design-audit/before/metrics.json
+!design-audit/before-ar/metrics.json
