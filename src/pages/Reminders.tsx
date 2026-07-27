@@ -7,6 +7,7 @@ import { ReminderForm, ReminderFormData } from '@/components/reminders/ReminderF
 import { Bell, Plus, Clock, AlertTriangle } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { formatReminderDueLabel, getNextReminderOccurrence } from '@/utils/reminderSchedule';
+import { SectionHead } from '@/components/ui/SectionHead';
 
 export const Reminders: React.FC = () => {
   const { language, t } = useI18n();
@@ -142,12 +143,39 @@ export const Reminders: React.FC = () => {
     return reminders.filter((r) => !targetMap.has(r.targetId));
   }, [reminders, targetMap, targetsHydrated]);
 
-  const sortedReminders = useMemo(() => {
-    return [...reminders].sort((a, b) => {
-      // Sort by enabled first, then by time
-      if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
-      return a.time.localeCompare(b.time);
-    });
+  /* Today / Upcoming / Paused, because "when does the next one fire" is the
+     only question this page is ever opened to answer. Within a group the sort
+     is by next occurrence, not by wall-clock string — an 06:00 daily reminder
+     read after 06:00 belongs to tomorrow, and localeCompare on "06:00" put it
+     ahead of a 22:00 one that still fires tonight. */
+  const grouped = useMemo(() => {
+    const now = new Date();
+    const endOfToday = new Date(now);
+    endOfToday.setHours(23, 59, 59, 999);
+
+    const today: Reminder[] = [];
+    const upcoming: Reminder[] = [];
+    const paused: Reminder[] = [];
+    const nextAt = new Map<string, number>();
+
+    for (const r of reminders) {
+      if (!r.enabled) {
+        paused.push(r);
+        continue;
+      }
+      const due = getNextReminderOccurrence(r);
+      nextAt.set(r.id, due ? due.getTime() : Number.MAX_SAFE_INTEGER);
+      if (due && due <= endOfToday) today.push(r);
+      else upcoming.push(r);
+    }
+
+    const byDue = (a: Reminder, b: Reminder) =>
+      (nextAt.get(a.id) ?? 0) - (nextAt.get(b.id) ?? 0);
+    today.sort(byDue);
+    upcoming.sort(byDue);
+    paused.sort((a, b) => a.time.localeCompare(b.time));
+
+    return { today, upcoming, paused };
   }, [reminders]);
 
   const activeCount = useMemo(() => reminders.filter((reminder) => reminder.enabled).length, [reminders]);
@@ -226,19 +254,40 @@ export const Reminders: React.FC = () => {
           </div>
         )}
 
-        {/* Reminders List */}
+        {/* Today first and heaviest; Upcoming next; Paused recedes to the
+            bottom. The next-due card carries the accent through
+            ReminderCard's own active treatment. */}
         {!showInitialLoading && reminders.length > 0 && (
-          <div className="reveal rule-list">
-            {sortedReminders.map((reminder) => (
-              <ReminderCard
-                key={reminder.id}
-                reminder={reminder}
-                targetName={getTargetName(reminder)}
-                onToggle={handleToggle}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            ))}
+          <div className="reveal space-y-8">
+            {(
+              [
+                ['remindersToday', grouped.today],
+                ['remindersUpcoming', grouped.upcoming],
+                ['remindersPaused', grouped.paused],
+              ] as const
+            ).map(([labelKey, list]) =>
+              list.length === 0 ? null : (
+                <section key={labelKey}>
+                  <SectionHead
+                    className="mb-1"
+                    title={t(labelKey)}
+                    meta={<bdi>{list.length}</bdi>}
+                  />
+                  <div className={`rule-list ${labelKey === 'remindersPaused' ? 'opacity-70' : ''}`}>
+                    {list.map((reminder) => (
+                      <ReminderCard
+                        key={reminder.id}
+                        reminder={reminder}
+                        targetName={getTargetName(reminder)}
+                        onToggle={handleToggle}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ),
+            )}
           </div>
         )}
 
