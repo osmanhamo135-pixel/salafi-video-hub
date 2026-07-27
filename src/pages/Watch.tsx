@@ -324,7 +324,7 @@ const WatchPlayer: React.FC = () => {
   };
 
   return (
-    <section className="glass mb-5 overflow-hidden rounded-lg">
+    <section className="reveal glass mb-5 overflow-hidden rounded-lg">
       {/* A player letterbox is black on every theme — that is what a video
           frame is, not a themed surface. */}
       <div className="aspect-video w-full bg-black">
@@ -410,7 +410,7 @@ const WatchHistoryRow: React.FC = () => {
   if (visible.length === 0) return null;
 
   return (
-    <section className="mb-5">
+    <section className="reveal mb-5">
       <div className="rule-head">
         <h2 className="flex items-center gap-2 text-xs font-semibold text-text-primary">
           <History className="h-3.5 w-3.5 text-muted-text" />

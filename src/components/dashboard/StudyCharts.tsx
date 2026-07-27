@@ -117,7 +117,7 @@ export const StudyCharts: React.FC = () => {
   if (videos === null) return <ChartsSkeleton />;
 
   return (
-    <section className="mt-9">
+    <section className="reveal mt-9">
       <div className="mb-5 flex items-baseline justify-between gap-4 border-b border-border pb-3">
         <h2
           className={
@@ -250,7 +250,7 @@ export const StudyCharts: React.FC = () => {
 };
 
 const ChartsSkeleton: React.FC = () => (
-  <section className="mt-9">
+  <section className="reveal mt-9">
     <div className="mb-5 h-3 w-32 rounded bg-panel-hover motion-safe:animate-pulse" />
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,17rem)]">
       <div className="glass h-56 motion-safe:animate-pulse" />

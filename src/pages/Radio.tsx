@@ -201,7 +201,7 @@ const StationSection: React.FC<{
   if (stations.length === 0 && !emptyLabel) return null;
 
   return (
-    <section className="mb-8">
+    <section className="reveal mb-8">
       <div className="rule-head mb-1">
         <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
         <span className="text-xs tabular-nums text-muted-text">

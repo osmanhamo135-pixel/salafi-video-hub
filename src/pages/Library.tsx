@@ -622,7 +622,7 @@ export const Library: React.FC = () => {
         )}
 
         {showCategoryRail && (
-          <section className="mt-10">
+          <section className="reveal mt-10">
             <SectionRule label={t('allCategories')} count={categoryCounts.length} className="mb-4" />
             <div className="flex flex-wrap gap-2">
               {categoryCounts.map(([category, count]) => {

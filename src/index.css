@@ -2144,7 +2144,7 @@
     height: 160%;
     background: radial-gradient(
       closest-side,
-      rgb(var(--accent-gold-rgb) / 0.07),
+      rgb(var(--accent-gold-rgb) / 0.13),
       transparent 72%
     );
     will-change: transform;
@@ -2178,8 +2178,8 @@
     z-index: 0;
     pointer-events: none;
     background:
-      radial-gradient(38% 46% at 22% 38%, rgb(var(--accent-gold-rgb) / 0.20), transparent 68%),
-      radial-gradient(32% 40% at 74% 62%, rgb(var(--quran-green-rgb) / 0.13), transparent 70%);
+      radial-gradient(38% 46% at 22% 38%, rgb(var(--accent-gold-rgb) / 0.34), transparent 68%),
+      radial-gradient(32% 40% at 74% 62%, rgb(var(--quran-green-rgb) / 0.22), transparent 70%);
     /* Cleared through the middle band so nothing drifts behind the glyphs. */
     -webkit-mask: radial-gradient(58% 62% at 50% 50%, transparent 42%, #000 78%);
     mask: radial-gradient(58% 62% at 50% 50%, transparent 42%, #000 78%);
@@ -2190,8 +2190,8 @@
   .hero-aurora-b {
     inset: -34%;
     background:
-      radial-gradient(34% 42% at 68% 30%, rgb(var(--accent-turquoise-rgb) / 0.11), transparent 72%),
-      radial-gradient(30% 38% at 28% 72%, rgb(var(--accent-gold-rgb) / 0.13), transparent 74%);
+      radial-gradient(34% 42% at 68% 30%, rgb(var(--accent-turquoise-rgb) / 0.19), transparent 72%),
+      radial-gradient(30% 38% at 28% 72%, rgb(var(--accent-gold-rgb) / 0.22), transparent 74%);
     animation: hero-aurora-b 88s var(--ease-standard) infinite alternate;
   }
 
@@ -2226,7 +2226,10 @@
     inset: 0;
     width: 100%;
     height: 100%;
-    opacity: 0.5;
+    /* Was 0.5 — the fields were technically present and visually absent. The
+       generators keep their own per-particle alpha discipline; the layer no
+       longer halves it again on top. */
+    opacity: 0.9;
   }
 
   /* The one non-negotiable. Motion behind Qur'anic text is forbidden in every
@@ -2327,11 +2330,11 @@
     padding: 1px;
     background: conic-gradient(
       from 140deg,
-      rgb(var(--accent-gold-rgb) / 0.34),
-      rgb(var(--accent-gold-rgb) / 0.04) 28%,
+      rgb(var(--accent-gold-rgb) / 0.55),
+      rgb(var(--accent-gold-rgb) / 0.08) 28%,
       transparent 46%,
-      rgb(var(--accent-gold-rgb) / 0.10) 72%,
-      rgb(var(--accent-gold-rgb) / 0.30)
+      rgb(var(--accent-gold-rgb) / 0.18) 72%,
+      rgb(var(--accent-gold-rgb) / 0.50)
     );
     -webkit-mask:
       linear-gradient(#000 0 0) content-box,
@@ -2526,6 +2529,96 @@
     display: block;
     height: 100%;
     background: rgb(var(--accent-gold-rgb));
+  }
+
+  /* ── 3D tilt ────────────────────────────────────────────────────────────
+     The card answers the pointer in three dimensions. All state lives in two
+     custom properties written directly from pointermove — no React re-render,
+     no rAF loop — and the transform is composite-only, so a glass card's
+     backdrop blur never re-resolves during the move.
+
+     The perspective sits on the WRAPPER: on the element itself it would be
+     flattened by the same transform it is supposed to give depth to. */
+  .tilt {
+    perspective: 900px;
+  }
+
+  .tilt-inner {
+    position: relative;
+    transform: rotateX(var(--tilt-rx, 0deg)) rotateY(var(--tilt-ry, 0deg));
+    transform-style: preserve-3d;
+    transition: transform 180ms var(--ease-out);
+    will-change: transform;
+  }
+
+  .tilt:hover .tilt-inner {
+    transition: transform 60ms linear;
+  }
+
+  /* The pointer-following sheen. Painted over the card, under nothing —
+     it is aria-hidden and pointer-events:none, pure light. */
+  .tilt-shine {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(
+      34rem circle at var(--shine-x, 50%) var(--shine-y, 50%),
+      rgb(var(--sheen-rgb) / 0.10),
+      transparent 42%
+    );
+    transition: opacity var(--dur-normal) var(--ease-out);
+  }
+
+  .tilt:hover .tilt-shine {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tilt-inner {
+      transform: none !important;
+      transition: none;
+    }
+    .tilt-shine {
+      display: none;
+    }
+  }
+
+  /* ── Scroll-driven reveals ──────────────────────────────────────────────
+     Sections rise as they enter the viewport — the platform version, zero JS.
+     animation-timeline: view() is native in current Chromium/WebView2. The
+     range ends at entry 55% so content is fully present well before the
+     reading line. Never applied on the Quran route: the reading surface and
+     everything near it stays static by rule, enforced by the route attribute
+     rather than by every call site remembering. */
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: reveal-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+
+    html[data-route='quran'] .reveal {
+      animation: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal {
+        animation: none;
+      }
+    }
+  }
+
+  @keyframes reveal-rise {
+    from {
+      opacity: 0.18;
+      transform: translateY(26px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 
   .glass-hover {

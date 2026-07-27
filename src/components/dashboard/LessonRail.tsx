@@ -1,7 +1,7 @@
 import React from 'react';
 import { Video } from '@/types';
 import { Rail } from '@/components/ui/Rail';
-import { LiftCard } from '@/components/ui/Spring';
+import { Tilt } from '@/components/ui/Tilt';
 import { LocalThumbnail } from '@/components/ui/LocalThumbnail';
 import { formatTime } from '@/utils/formatTime';
 import { useI18n } from '@/i18n';
@@ -37,7 +37,7 @@ export const LessonRail: React.FC<LessonRailProps> = ({ title, videos, onOpen, m
       : 'text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-text';
 
   return (
-    <section className="mt-9">
+    <section className="reveal mt-9">
       <div className="mb-4 flex items-baseline justify-between gap-4 border-b border-border pb-3">
         <h2 className={eyebrow}>{title}</h2>
         {meta ?? (
@@ -53,7 +53,7 @@ export const LessonRail: React.FC<LessonRailProps> = ({ title, videos, onOpen, m
             ? Math.min(100, (video.progressSeconds / video.durationSeconds) * 100)
             : 0;
           return (
-            <LiftCard key={video.id} className="poster">
+            <Tilt key={video.id} className="poster">
               <button
                 type="button"
                 onClick={() => onOpen(video)}
@@ -91,7 +91,7 @@ export const LessonRail: React.FC<LessonRailProps> = ({ title, videos, onOpen, m
                   </p>
                 </div>
               </button>
-            </LiftCard>
+            </Tilt>
           );
         })}
       </Rail>
