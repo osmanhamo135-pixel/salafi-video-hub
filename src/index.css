@@ -759,17 +759,27 @@
     color: var(--bg-main);
   }
 
-  /* Two-tone focus. The ground-coloured inner stroke is what makes this work
-     on the primary button, whose fill IS the accent: a single accent ring at
-     0.85 sat 2px outside a solid accent and was effectively invisible. */
+  /* Two-tone focus, app-wide: a ground-coloured inner stroke and an accent
+     outer one, exactly the --ring-focus the shared primitives already use.
+     The inner stroke is what makes this work on the primary button, whose
+     fill IS the accent — a single accent ring 2px outside a solid accent was
+     effectively invisible. Box-shadow rather than outline so the ring follows
+     border-radius on every rounded control. */
   button:focus-visible,
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible,
   a:focus-visible,
   [tabindex]:focus-visible {
-    outline: 2px solid rgb(var(--accent-gold-rgb));
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: var(--ring-focus);
+  }
+
+  /* Selection carries the accent. Low enough that the selected text itself —
+     including any Qur'anic text a reader copies — stays fully legible and
+     completely unaltered; a selection highlight is UA feedback, not styling. */
+  ::selection {
+    background: rgb(var(--accent-gold-rgb) / 0.3);
   }
   
   /* App scrollbars: quiet sheen, not accent — a scrollbar is chrome, and an
@@ -1314,10 +1324,38 @@
       opacity var(--dur-fast) var(--ease-out);
   }
 
+  /* The active pill. Per-tab and transform-based: it springs up from the
+     baseline under the tab you chose, so selection reads as a surface
+     arriving rather than a colour blinking on. Per-tab scaling beats sliding
+     one shared indicator here — the labels are different widths in both
+     languages, so a shared indicator would need JS measurement to land. */
+  .segmented button::before {
+    content: '';
+    position: absolute;
+    inset: 0 -7px;
+    z-index: -1;
+    border-radius: 999px;
+    background: linear-gradient(
+      177deg,
+      rgb(var(--accent-gold-rgb) / 0.13),
+      rgb(var(--accent-gold-rgb) / 0.05)
+    );
+    box-shadow: inset 0 0 0 1px rgb(var(--accent-gold-rgb) / 0.14);
+    opacity: 0;
+    transform: scale(0.82, 0.55);
+    transform-origin: center bottom;
+    transition:
+      transform var(--dur-normal) var(--ease-spring),
+      opacity var(--dur-fast) var(--ease-out);
+  }
+
+  .segmented button[aria-pressed='true']::before {
+    opacity: 1;
+    transform: scale(1);
+  }
+
   /* The underline grows from the centre of the tab you chose rather than
-     blinking on. Scaling a per-tab rule beats sliding one shared indicator
-     here: the two labels are different widths in both languages, so a shared
-     indicator would have to be measured in JS to land correctly. */
+     blinking on. */
   .segmented button::after {
     content: '';
     position: absolute;
