@@ -526,42 +526,53 @@ export const paintPaper: ScenePainter = (f) => {
   }
 
   // -------------------------------------------------------------------------
-  // PASS 3.5 — SIGNATURE: the gilded arabesque.
+  // PASS 3.5 — SIGNATURE: the gilded arabesque border.
   //
-  // From the end-edge of the frame a border of gold floral ornament grows
-  // inward: scrolling stems carrying flat medallion rosettes, split-palmette
-  // leaves and small buds — dense against the edge, thinning as it reaches
-  // toward the open sheet, and never past the outer quarter. It is drawn
-  // entirely in the accent triple at gilding weight: strong enough to read as
-  // metal laid into the stone, far too faint to compete with ink. Every
-  // element is placed and jittered by rnd(), every petal is a filled bezier
-  // with its gradient deeper at the base, and every stem is two passes of
-  // decreasing width — nothing here is a hairline, because a hairline smears
-  // under the upscale. The outermost elements are slightly stronger, exactly
-  // as leaf gilding wears: brightest where the border is densest. Static by
-  // design — gilding is the one part of this world that could never move.
+  // The outer fifth of the sheet on the end side is a BORDER, not a sprinkle:
+  // gold floral ornament filling the band top to bottom, densest against the
+  // very edge — where leaves and blossoms overlap into a nearly continuous
+  // gilt texture — and thinning in a clear gradient toward its inner
+  // boundary, where the last few sprigs reach out into the open sheet. It is
+  // two layers deep, because gilding has depth: a back layer of large, faint
+  // ornament under a front layer of smaller, brighter work. Everything hangs
+  // off a serpentine spine — one long S-curve swinging down the band — with
+  // rosette medallions at the curve's beats, split-palmette leaves leaning
+  // off the runs between, buds and tendrils filling the gaps, every position
+  // jittered by rnd() so the design stays organic without ever scattering.
+  //
+  // Built from FILLED forms, never hairlines: every petal, leaf and bud is a
+  // filled bezier with its gradient deepest at the base, and every stem is
+  // overlaid tapered passes wide enough to survive the upscale. The fills sit
+  // around 0.10-0.18 after the house multiplier — on a near-white ground
+  // anything much fainter goes grey and stops reading as metal, and gold that
+  // cannot be seen is not gold. Drawn entirely in the accent triple. Static
+  // by design: gilding is the one part of this world that could never move.
   // -------------------------------------------------------------------------
-  const bandX = W * 0.73;
-  const edgeOf = (x: number): number => clamp01((x - bandX) / (W - bandX));
+  const bandX = W * 0.78;
+  const bandW = W - bandX;
+  const edgeOf = (x: number): number => clamp01((x - bandX) / bandW);
 
-  // A faint warmth under the whole band, so the ornament sits IN a gilded
-  // margin rather than floating as separate stickers on bare stone.
-  const gild = ctx.createLinearGradient(bandX, 0, W, 0);
+  // The gilded margin itself: a warmth rising smoothly to the edge, so the
+  // ornament sits IN a gold band rather than floating as stickers on stone.
+  const gildX0 = bandX - bandW * 0.4;
+  const gild = ctx.createLinearGradient(gildX0, 0, W, 0);
   gild.addColorStop(0, rgba(p.accent, 0));
-  gild.addColorStop(0.6, rgba(p.accent, a(0.012)));
-  gild.addColorStop(1, rgba(p.accent, a(0.026)));
+  gild.addColorStop(0.4, rgba(p.accent, a(0.013)));
+  gild.addColorStop(0.75, rgba(p.accent, a(0.03)));
+  gild.addColorStop(1, rgba(p.accent, a(0.047)));
   ctx.fillStyle = gild;
-  ctx.fillRect(bandX, 0, W - bandX, H);
+  ctx.fillRect(gildX0, 0, W - gildX0, H);
 
-  /** Two-pass gilt stem: a wide soft underlay and a narrower brighter core. */
+  /** Branch stem: two overlaid passes, a wide soft underlay under a narrower
+   *  brighter core, so the run has gilt body at this scale, never wiriness. */
   const gStem = (
     x0: number, y0: number, qx: number, qy: number,
-    x1: number, y1: number, al: number,
+    x1: number, y1: number, al: number, w: number,
   ): void => {
     ctx.lineCap = 'round';
     for (let pass = 0; pass < 2; pass++) {
-      ctx.strokeStyle = rgba(p.accent, a(al * (pass === 0 ? 0.45 : 0.85)));
-      ctx.lineWidth = pass === 0 ? 1.9 : 0.95;
+      ctx.strokeStyle = rgba(p.accent, a(al * (pass === 0 ? 0.5 : 0.9)));
+      ctx.lineWidth = pass === 0 ? w : w * 0.5;
       ctx.beginPath();
       ctx.moveTo(x0, y0);
       ctx.quadraticCurveTo(qx, qy, x1, y1);
@@ -569,168 +580,225 @@ export const paintPaper: ScenePainter = (f) => {
     }
   };
 
-  /** A rosette: 6-8 filled bezier petals around a soft core, each petal's
-   *  length and angle jittered so no two blossoms are the same medallion. */
+  /** A rosette medallion: 6-8 plump filled bezier petals radiating from a
+   *  small OPEN core (a soft gilt ring, not a filled heart), each petal's
+   *  length and angle jittered so no two blossoms are the same medallion.
+   *  The petal gradient is deepest at the base — where laid gold pools. */
   const gRosette = (cx: number, cy: number, r: number, al: number, seed: number): void => {
     const petals = 6 + Math.floor(f.rnd(seed, 71) * 3);
     const rot = f.rnd(seed, 72) * TAU;
     for (let k = 0; k < petals; k++) {
-      const ang = rot + (k / petals) * TAU + (f.rnd(seed * 31 + k, 73) - 0.5) * 0.14;
-      const len = r * (0.84 + f.rnd(seed * 31 + k, 74) * 0.3);
-      const wid = len * (0.36 + f.rnd(seed * 31 + k, 75) * 0.12);
+      const ang = rot + (k / petals) * TAU + (f.rnd(seed * 31 + k, 73) - 0.5) * 0.12;
+      const len = r * (0.86 + f.rnd(seed * 31 + k, 74) * 0.26);
+      const wid = len * (0.26 + f.rnd(seed * 31 + k, 75) * 0.1);
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(ang);
-      const gp = ctx.createLinearGradient(0, 0, len, 0);
-      gp.addColorStop(0, rgba(p.accent, a(al)));
-      gp.addColorStop(0.55, rgba(p.accent, a(al * 0.8)));
-      gp.addColorStop(1, rgba(p.accent, a(al * 0.4)));
+      const gp = ctx.createLinearGradient(len * 0.3, 0, len, 0);
+      gp.addColorStop(0, rgba(p.accent, a(al * 1.05)));
+      gp.addColorStop(0.6, rgba(p.accent, a(al * 0.85)));
+      gp.addColorStop(1, rgba(p.accent, a(al * 0.5)));
       ctx.fillStyle = gp;
       ctx.beginPath();
-      ctx.moveTo(len * 0.14, 0);
-      ctx.bezierCurveTo(len * 0.34, -wid, len * 0.9, -wid * 0.6, len, 0);
-      ctx.bezierCurveTo(len * 0.9, wid * 0.6, len * 0.34, wid, len * 0.14, 0);
+      ctx.moveTo(len * 0.3, 0);
+      ctx.bezierCurveTo(len * 0.42, -wid, len * 0.88, -wid * 0.72, len, 0);
+      ctx.bezierCurveTo(len * 0.88, wid * 0.72, len * 0.42, wid, len * 0.3, 0);
       ctx.fill();
       ctx.restore();
     }
-    const heart = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.32);
-    heart.addColorStop(0, rgba(p.accent, a(al * 1.1)));
-    heart.addColorStop(0.55, rgba(p.accent, a(al * 0.5)));
-    heart.addColorStop(1, rgba(p.accent, 0));
-    ctx.fillStyle = heart;
+    const ring = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.34);
+    ring.addColorStop(0.5, rgba(p.accent, 0));
+    ring.addColorStop(0.78, rgba(p.accent, a(al * 0.9)));
+    ring.addColorStop(1, rgba(p.accent, 0));
+    ctx.fillStyle = ring;
     ctx.beginPath();
-    ctx.arc(cx, cy, r * 0.32, 0, TAU);
+    ctx.arc(cx, cy, r * 0.34, 0, TAU);
     ctx.fill();
   };
 
-  /** A split palmette: two mirrored crescent lobes parting at the tip. */
+  /** A split palmette: two mirrored filled lobes parting at a notched tip. */
   const gPalmette = (
     cx: number, cy: number, ang: number, len: number, al: number, seed: number,
   ): void => {
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(ang);
-    const w = len * (0.34 + f.rnd(seed, 81) * 0.14);
+    const w = len * (0.4 + f.rnd(seed, 81) * 0.16);
     const gl = ctx.createLinearGradient(0, 0, len, 0);
     gl.addColorStop(0, rgba(p.accent, a(al)));
-    gl.addColorStop(1, rgba(p.accent, a(al * 0.38)));
+    gl.addColorStop(0.62, rgba(p.accent, a(al * 0.82)));
+    gl.addColorStop(1, rgba(p.accent, a(al * 0.48)));
     ctx.fillStyle = gl;
     for (const s of [-1, 1]) {
       ctx.beginPath();
       ctx.moveTo(0, 0);
-      ctx.bezierCurveTo(len * 0.3, -w * s, len * 0.85, -w * 0.8 * s, len, -w * 0.1 * s);
-      ctx.bezierCurveTo(len * 0.62, -w * 0.3 * s, len * 0.24, -w * 0.2 * s, 0, 0);
+      ctx.bezierCurveTo(len * 0.28, -w * s, len * 0.85, -w * 0.85 * s, len, -w * 0.12 * s);
+      ctx.bezierCurveTo(len * 0.6, -w * 0.34 * s, len * 0.22, -w * 0.22 * s, 0, 0);
       ctx.fill();
     }
     ctx.restore();
   };
 
-  /** A closed bud: one small filled teardrop on the end of its stemlet. */
+  /** A closed bud: one plump filled teardrop, gradient deepest at its base. */
   const gBud = (cx: number, cy: number, ang: number, len: number, al: number): void => {
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(ang);
-    const w = len * 0.42;
+    const w = len * 0.46;
     const gb = ctx.createLinearGradient(0, 0, len, 0);
     gb.addColorStop(0, rgba(p.accent, a(al)));
-    gb.addColorStop(1, rgba(p.accent, a(al * 0.45)));
+    gb.addColorStop(1, rgba(p.accent, a(al * 0.5)));
     ctx.fillStyle = gb;
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    ctx.bezierCurveTo(len * 0.35, -w, len * 0.82, -w * 0.5, len, 0);
-    ctx.bezierCurveTo(len * 0.82, w * 0.5, len * 0.35, w, 0, 0);
+    ctx.bezierCurveTo(len * 0.35, -w, len * 0.85, -w * 0.55, len, 0);
+    ctx.bezierCurveTo(len * 0.85, w * 0.55, len * 0.35, w, 0, 0);
     ctx.fill();
     ctx.restore();
   };
 
-  // The spines: long undulating stems running the height of the border, the
-  // trellis everything else hangs from. Smooth S-curves with vertical
-  // tangents, overhung past both frame edges so they never visibly end.
-  for (let i = 0; i < 3; i++) {
-    const sx = W - 7 - i * 10 - f.rnd(i, 76) * 6;
-    const alS = 0.1 + edgeOf(sx) * 0.07;
-    for (let pass = 0; pass < 2; pass++) {
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = rgba(p.accent, a(alS * (pass === 0 ? 0.45 : 0.8)));
-      ctx.lineWidth = pass === 0 ? 2.0 : 1.0;
-      ctx.beginPath();
-      let px0 = sx + (f.rnd(i * 7, 77) - 0.5) * 16;
-      ctx.moveTo(px0, -12);
-      for (let seg = 1; seg <= 4; seg++) {
-        const py1 = -12 + ((H + 24) * seg) / 4;
-        const px1 = sx + (f.rnd(i * 7 + seg, 77) - 0.5) * 16;
-        ctx.bezierCurveTo(px0, py1 - H * 0.12, px1, py1 - H * 0.12, px1, py1);
-        px0 = px1;
-      }
+  /** Serpentine spine nodes: alternating outer/inner beats down the band,
+   *  overhung past both frame edges so the curve never visibly ends. `outer`
+   *  and `inner` are depths into the band as fractions of its width. */
+  const spineNodes = (
+    n: number, outer: number, inner: number, salt: number,
+  ): Array<[number, number]> => {
+    const pts: Array<[number, number]> = [];
+    for (let k = 0; k < n; k++) {
+      const y = H * (-0.06 + (k / (n - 1)) * 1.12) + (f.rnd(k, salt) - 0.5) * H * 0.05;
+      const frac = (k % 2 === 0 ? outer : inner) + (f.rnd(k, salt + 1) - 0.5) * 0.1;
+      pts.push([W - bandW * frac, y]);
+    }
+    return pts;
+  };
+
+  /** One smooth run through the nodes: quadratics through the midpoints, so
+   *  the S-curve turns at every beat without a visible joint. */
+  const spinePath = (pts: Array<[number, number]>): void => {
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let k = 1; k < pts.length - 1; k++) {
+      const mx = (pts[k][0] + pts[k + 1][0]) * 0.5;
+      const my = (pts[k][1] + pts[k + 1][1]) * 0.5;
+      ctx.quadraticCurveTo(pts[k][0], pts[k][1], mx, my);
+    }
+    ctx.lineTo(pts[pts.length - 1][0], pts[pts.length - 1][1]);
+  };
+
+  /** The spine itself: three overlaid passes, wide-and-faint down to
+   *  narrow-and-bright — how a gilt stem gets body without becoming a wire. */
+  const spineStroke = (pts: Array<[number, number]>, al: number, w: number): void => {
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const passes: Array<[number, number]> = [[w, 0.4], [w * 0.6, 0.7], [w * 0.32, 1]];
+    for (const [lw, m] of passes) {
+      spinePath(pts);
+      ctx.strokeStyle = rgba(p.accent, a(al * m));
+      ctx.lineWidth = lw;
       ctx.stroke();
+    }
+  };
+
+  // BACK LAYER — large, faint, hugging the edge: the depth under the gilding.
+  // Its spine weaves in the outer half of the band only, and its rosettes and
+  // palmettes are half again the size of the front work at half the weight.
+  const bPts = spineNodes(6, 0.1, 0.42, 141);
+  spineStroke(bPts, 0.07, 4.6);
+  for (let i = 0; i < 5; i++) {
+    const mx = (bPts[i][0] + bPts[i + 1][0]) * 0.5;
+    const my = (bPts[i][1] + bPts[i + 1][1]) * 0.5;
+    const segA = Math.atan2(bPts[i + 1][1] - bPts[i][1], bPts[i + 1][0] - bPts[i][0]);
+    const lean = (i % 2 === 0 ? 1 : -1) * (0.7 + f.rnd(i, 148) * 0.5);
+    gPalmette(mx, my, segA + lean, 22 + f.rnd(i, 149) * 10,
+      0.068 + f.rnd(i, 150) * 0.018, 40 + i);
+  }
+  for (let i = 1; i <= 4; i++) {
+    gRosette(bPts[i][0], bPts[i][1], 15 + f.rnd(i, 143) * 8,
+      0.07 + edgeOf(bPts[i][0]) * 0.02, 50 + i);
+  }
+
+  // FRONT LAYER — the designed border: the serpentine trellis with blossoms
+  // at its beats, leaves on its runs, buds in its gaps.
+  const FN = 8;
+  const fPts = spineNodes(FN, 0.16, 0.62, 145);
+  spineStroke(fPts, 0.095, 3.4);
+
+  // Split-palmette leaves leaning off each run of the spine, two per run on
+  // alternating sides, scaled and brightened toward the edge.
+  for (let i = 0; i < FN - 1; i++) {
+    const segA = Math.atan2(fPts[i + 1][1] - fPts[i][1], fPts[i + 1][0] - fPts[i][0]);
+    for (let s = 0; s < 2; s++) {
+      const j = i * 2 + s;
+      const u = 0.3 + s * 0.4 + (f.rnd(j, 151) - 0.5) * 0.14;
+      const lx = fPts[i][0] + (fPts[i + 1][0] - fPts[i][0]) * u;
+      const ly = fPts[i][1] + (fPts[i + 1][1] - fPts[i][1]) * u;
+      const e = edgeOf(lx);
+      const lean = (s === 0 ? 1 : -1) * (0.55 + f.rnd(j, 152) * 0.6);
+      gPalmette(lx, ly, segA + lean, (13 + f.rnd(j, 153) * 9) * (0.7 + e * 0.45),
+        0.1 + e * 0.05 + f.rnd(j, 154) * 0.012, 60 + j);
     }
   }
 
-  // The rosettes, each grown in from the edge on its own branch. Depth is
-  // biased hard toward the edge (pow > 1), which is what makes the border
-  // dense against the frame and sparse at its inner reach; scale and alpha
-  // both follow the same falloff so the far members are smaller and dimmer.
-  const rosN = 9 + Math.round(2 * D);
-  for (let i = 0; i < rosN; i++) {
-    const depth = Math.pow(f.rnd(i, 83), 1.7);
-    const rx = W - 10 - depth * (W - bandX - 14);
-    const ry = H * ((i + f.rnd(i, 84)) / rosN);
-    const e = edgeOf(rx);
-    const rr = (7.5 + f.rnd(i, 85) * 6) * (0.7 + e * 0.5);
-    const alR = 0.095 + e * 0.085 + f.rnd(i, 86) * 0.012;
-    gStem(
-      W + 4, ry + (f.rnd(i, 87) - 0.5) * H * 0.16,
-      (rx + W) * 0.5 + (f.rnd(i, 88) - 0.5) * 24, ry + (f.rnd(i, 89) - 0.5) * 30,
-      rx, ry, alR * 0.8,
-    );
-    gRosette(rx, ry, rr, alR, i);
+  // Buds on short stemlets at the runs' midpoints, alternating sides.
+  for (let i = 0; i < FN - 1; i++) {
+    const dx = fPts[i + 1][0] - fPts[i][0];
+    const dy = fPts[i + 1][1] - fPts[i][1];
+    const dd = Math.hypot(dx, dy) || 1;
+    const side = i % 2 === 0 ? 1 : -1;
+    const mx = fPts[i][0] + dx * (0.42 + f.rnd(i, 157) * 0.16);
+    const my = fPts[i][1] + dy * (0.42 + f.rnd(i, 157) * 0.16);
+    const nx = (-dy / dd) * side;
+    const ny = (dx / dd) * side;
+    const reach = 9 + f.rnd(i, 158) * 7;
+    const tx = mx + nx * reach;
+    const ty = my + ny * reach;
+    const e = edgeOf(tx);
+    const alB = 0.105 + e * 0.05;
+    gStem(mx, my,
+      mx + nx * reach * 0.5 + (f.rnd(i, 159) - 0.5) * 5,
+      my + ny * reach * 0.5 + (f.rnd(i, 159) - 0.5) * 5,
+      tx, ty, alB * 0.85, 2.2);
+    gBud(tx, ty, Math.atan2(ny, nx), (7 + f.rnd(i, 160) * 4.5) * (0.75 + e * 0.35), alB);
   }
 
-  // The palmettes, angled loosely inward the way leaves lean off a scroll.
-  const palmN = 10 + Math.round(2 * D);
-  for (let i = 0; i < palmN; i++) {
-    const depth = Math.pow(f.rnd(i, 91), 1.5);
-    const px = W - 6 - depth * (W - bandX - 10);
-    const py = H * ((i + f.rnd(i, 92)) / palmN);
-    const e = edgeOf(px);
-    const angP = Math.PI + (f.rnd(i, 93) - 0.5) * 1.5;
-    const lenP = (10 + f.rnd(i, 94) * 9) * (0.7 + e * 0.45);
-    gPalmette(px, py, angP, lenP, 0.085 + e * 0.075 + f.rnd(i, 96) * 0.012, i);
+  // The rosette medallions at the spine's beats — outer beats larger and
+  // brighter, inner beats smaller and dimmer, which is the border's density
+  // gradient made visible by a single rule.
+  for (let i = 0; i < FN; i++) {
+    const e = edgeOf(fPts[i][0]);
+    gRosette(fPts[i][0], fPts[i][1], (9 + f.rnd(i, 147) * 5) * (0.55 + e * 0.6),
+      0.11 + e * 0.055 + f.rnd(i, 144) * 0.012, i);
   }
 
-  // The buds, on short stemlets, filling the gaps the blossoms leave.
-  for (let i = 0; i < 8; i++) {
-    const depth = Math.pow(f.rnd(i, 97), 1.3);
-    const bux = W - 8 - depth * (W - bandX - 6);
-    const buy = H * ((i + f.rnd(i, 98)) / 8);
-    const e = edgeOf(bux);
-    const angB = Math.PI + (f.rnd(i, 99) - 0.5) * 2.2;
-    const lenB = 5 + f.rnd(i, 102) * 4.5;
-    const alB = 0.1 + e * 0.08;
-    const sxx = bux - Math.cos(angB) * lenB * 1.6;
-    const syy = buy - Math.sin(angB) * lenB * 1.6;
-    gStem(
-      sxx, syy,
-      (sxx + bux) * 0.5 + (f.rnd(i, 103) - 0.5) * 6,
-      (syy + buy) * 0.5 + (f.rnd(i, 104) - 0.5) * 6,
-      bux, buy, alB * 0.7,
-    );
-    gBud(bux, buy, angB, lenB, alB);
+  // A fourth, smallest rosette size scattered mid-band, filling gaps.
+  for (let i = 0; i < 3; i++) {
+    const tx = W - bandW * (0.2 + f.rnd(i, 166) * 0.5);
+    const ty = H * (0.14 + i * 0.33 + (f.rnd(i, 167) - 0.5) * 0.16);
+    gRosette(tx, ty, 4.5 + f.rnd(i, 168) * 2, 0.1 + edgeOf(tx) * 0.04, 80 + i);
   }
 
-  // A few bare tendril curls — the scrollwork between the flowers, drawn with
-  // the same two-pass weight as every other stem so nothing reads as a wire.
+  // The nearly continuous texture at the very edge: a close run of small
+  // leaves overlapping down the whole height — the densest gilding here.
+  const edgeN = 22 + Math.round(8 * D);
+  for (let i = 0; i < edgeN; i++) {
+    const ey = H * ((i + 0.5) / edgeN) + (f.rnd(i, 161) - 0.5) * H * 0.04;
+    const ex = W - 1 - f.rnd(i, 162) * 10;
+    const angE = Math.PI * (0.62 + f.rnd(i, 163) * 0.76);
+    gBud(ex, ey, angE, 9 + f.rnd(i, 164) * 6, 0.12 + f.rnd(i, 165) * 0.05);
+  }
+
+  // Tendril curls in the remaining gaps — the scrollwork between flowers,
+  // the same two-pass weight as every stem so nothing reads as a wire.
   for (let i = 0; i < 6; i++) {
-    const depth = Math.pow(f.rnd(i, 106), 1.4);
-    const cxx = W - 12 - depth * (W - bandX - 12);
-    const cyy = H * ((i + f.rnd(i, 107)) / 6);
-    const sC = 6 + f.rnd(i, 108) * 7;
-    const alC = 0.09 + edgeOf(cxx) * 0.06;
-    const dir = f.rnd(i, 109) < 0.5 ? 1 : -1;
+    const cxx = W - bandW * (0.18 + Math.pow(f.rnd(i, 171), 1.4) * 0.65);
+    const cyy = H * ((i + f.rnd(i, 172)) / 6);
+    const sC = 7 + f.rnd(i, 173) * 7;
+    const alC = 0.09 + edgeOf(cxx) * 0.045;
+    const dir = f.rnd(i, 174) < 0.5 ? 1 : -1;
+    ctx.lineCap = 'round';
     for (let pass = 0; pass < 2; pass++) {
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = rgba(p.accent, a(alC * (pass === 0 ? 0.5 : 0.85)));
-      ctx.lineWidth = pass === 0 ? 1.7 : 0.9;
+      ctx.strokeStyle = rgba(p.accent, a(alC * (pass === 0 ? 0.5 : 0.9)));
+      ctx.lineWidth = pass === 0 ? 2.2 : 1.1;
       ctx.beginPath();
       ctx.moveTo(cxx + sC, cyy + dir * sC * 0.2);
       ctx.bezierCurveTo(
@@ -740,6 +808,21 @@ export const paintPaper: ScenePainter = (f) => {
       );
       ctx.stroke();
     }
+  }
+
+  // The last reach: a few sprigs leaving the band's inner boundary for the
+  // open sheet, fainter as they go — the border thinning to nothing rather
+  // than stopping at a rule.
+  for (let s = 0; s < 3; s++) {
+    const nd = fPts[1 + s * 2];
+    const ex = nd[0] - bandW * (0.5 + f.rnd(s, 176) * 0.45);
+    const ey = nd[1] + (f.rnd(s, 177) - 0.5) * H * 0.14;
+    const qx = (nd[0] + ex) * 0.5;
+    const qy = (nd[1] + ey) * 0.5 + (f.rnd(s, 179) - 0.5) * 30;
+    const alS = 0.08 + f.rnd(s, 178) * 0.02;
+    gStem(nd[0], nd[1], qx, qy, ex, ey, alS, 2.4);
+    gPalmette(ex, ey, Math.atan2(ey - qy, ex - qx), 11 + f.rnd(s, 180) * 5,
+      alS * 1.15, 90 + s);
   }
 
   // -------------------------------------------------------------------------

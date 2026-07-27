@@ -15,6 +15,8 @@ import {
   Plus,
   Repeat,
   Search,
+  SkipBack,
+  SkipForward,
   Type,
 } from 'lucide-react';
 import {
@@ -1077,6 +1079,23 @@ const SurahReader: React.FC = () => {
     }
   };
 
+  /* Step one ayah in either direction. Anchored on the ayah being recited
+     when there is one, else the reader's last-read ayah — so the very first
+     press after starting playback goes where the reader expects rather than
+     to ayah 2 of a surah they are forty ayat into. */
+  const stepAyah = (delta: 1 | -1) => {
+    if (!syncActive || !synced) return;
+    const anchor =
+      activeAyah ?? (lastRead?.surahId === surah.id ? lastRead.verseId : 1);
+    const target = Math.min(Math.max(anchor + delta, 1), surah.total_verses);
+    const segment = synced.ayahTimings.find((timing) => timing.ayah === target);
+    if (segment) {
+      seekToTimingMs(segment.startMs);
+      setFollowPaused(false);
+      setLastRead({ surahId: surah.id, verseId: target });
+    }
+  };
+
   const handleRepeatMode = (mode: QuranRepeatMode) => {
     const preferredAyah = clampAyah(
       activeAyah ?? (lastRead?.surahId === surah.id ? lastRead.verseId : repeatStart),
@@ -1184,6 +1203,31 @@ const SurahReader: React.FC = () => {
                   <span>{preparingAudio ? t('quranPreparingAudio') : t('quranPlaySurah')}</span>
                 )}
               </button>
+
+              {/* Ayah stepping — only while our station is live, because a
+                  seek needs the timings AND the element to be ours. */}
+              {syncActive && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => stepAyah(-1)}
+                    title={t('quranPrevAyah')}
+                    aria-label={t('quranPrevAyah')}
+                    className="icon-btn h-7 w-7"
+                  >
+                    <SkipBack className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => stepAyah(1)}
+                    title={t('quranNextAyah')}
+                    aria-label={t('quranNextAyah')}
+                    className="icon-btn h-7 w-7"
+                  >
+                    <SkipForward className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              )}
 
               {/* Repeat lives with the play control. It stays available before
                   playback too: setting a start ayah here is what seeds the
