@@ -2091,7 +2091,14 @@
      custom title bar has to stay above it either way. */
   .ambient-layer {
     position: fixed;
-    inset: 0;
+    /* Starts BELOW the 2.25rem title bar rather than at inset:0. The title bar
+       also raises itself above this layer, and both are deliberate: one of
+       them failing should not cost the user the close button. This shipped
+       once as inset:0 and made the window unclosable. */
+    top: 2.25rem;
+    right: 0;
+    bottom: 0;
+    left: 0;
     z-index: 0;
     pointer-events: none;
     overflow: hidden;
