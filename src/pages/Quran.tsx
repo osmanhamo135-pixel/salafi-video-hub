@@ -28,6 +28,7 @@ import {
 import { audioElementHolder, useRadioStore } from '@/store/radioStore';
 import { TranslationKey, useI18n } from '@/i18n';
 import { juzFor } from '@/utils/juz';
+import { SplitGrid } from '@/components/ui/SplitGrid';
 
 const BASMALA_TEXT = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
 const BASMALA_LIGATURE = '﷽';
@@ -233,8 +234,16 @@ const ReadTab: React.FC = () => {
   }, [currentSurah?.id, filtered.length]);
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-      <aside className="flex max-h-[70vh] flex-col overflow-hidden border-border pb-1 xl:border-e xl:pe-5">
+    /* The surah list column is resizable and remembered. The reading pane's
+       subtree is untouched by this — SplitGrid adds no wrappers around it,
+       which matters because .quran-reading-surface must not gain positioned
+       or scrolling ancestors (the word-cue coordinate invariant). */
+    <SplitGrid
+      storageKey="salafi-hub.quran-split.v1"
+      label={t('quranSplitLabel')}
+      className="grid gap-5 xl:grid-cols-[var(--split,320px)_11px_minmax(0,1fr)]"
+    >
+      <aside className="flex max-h-[70vh] flex-col overflow-hidden border-border pb-1 xl:pe-2">
         <div className="shrink-0">
           <div className="rule-head">
             <span className="text-xs font-semibold tracking-wide text-text-primary" dir="auto">
@@ -310,7 +319,7 @@ const ReadTab: React.FC = () => {
         {!loadingSurah && !currentSurah && <ReaderPlaceholder />}
         {!loadingSurah && currentSurah && <SurahReader />}
       </section>
-    </div>
+    </SplitGrid>
   );
 };
 

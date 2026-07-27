@@ -4058,3 +4058,48 @@
     color: rgb(var(--text-faint-rgb));
   }
 }
+
+@layer components {
+  /* ── Split handle ───────────────────────────────────────────────────────
+     The Quran split's divider: an 11px hit area drawing a 1px line, widening
+     to 3px in the accent under the pointer or focus. Present only at xl,
+     where the split itself exists. */
+  .split-handle {
+    display: none;
+  }
+
+  @media (min-width: 1280px) {
+    .split-handle {
+      display: block;
+      position: relative;
+      width: 11px;
+      margin-inline: -4px;
+      cursor: col-resize;
+      touch-action: none;
+    }
+
+    .split-handle::before {
+      content: '';
+      position: absolute;
+      inset-block: 0;
+      inset-inline-start: 5px;
+      width: 1px;
+      background: var(--hair);
+      transition: background-color var(--dur-fast) var(--ease-out), width var(--dur-fast) var(--ease-out);
+    }
+
+    .split-handle:hover::before,
+    .split-handle:focus-visible::before {
+      width: 3px;
+      background: rgb(var(--accent-gold-rgb) / 0.6);
+    }
+
+    .split-handle:focus-visible {
+      outline: none; /* the thickened accent line IS the focus indicator */
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .split-handle::before { transition: none; }
+  }
+}
