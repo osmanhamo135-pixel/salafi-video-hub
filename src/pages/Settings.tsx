@@ -460,7 +460,45 @@ export const Settings: React.FC = () => {
           </div>
         )}
 
-        <Section title={t('experience')}>
+        {/* Eight sections behind 2600px of scroll needed a map. A quiet
+            side rail: sticky, scrollspy-free (anchors are enough — a spy
+            would need scroll listeners for a page visited twice a month),
+            hidden below xl where the page is narrow enough to scan. */}
+        <div className="xl:grid xl:grid-cols-[11rem_minmax(0,1fr)] xl:gap-10">
+          <nav aria-label={t('settingsTitle')} className="mb-6 hidden xl:block">
+            <ul className="sticky top-6 space-y-0.5 text-[13px]">
+              {(
+                [
+                  ['experience', 'experience'],
+                  ['library', 'library'],
+                  ['thumbnails', 'thumbnails'],
+                  ['performance', 'performance'],
+                  ['reminderDefaults', 'reminder-defaults'],
+                  ['data', 'data'],
+                  ['updates', 'updates'],
+                  ['diagnostics', 'diagnostics'],
+                ] as const
+              ).map(([key, anchor]) => (
+                <li key={anchor}>
+                  <a
+                    href={`#settings-${anchor}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      document
+                        .getElementById(`settings-${anchor}`)
+                        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className="block rounded-[4px] px-3 py-1.5 text-muted-text transition-colors hover:bg-panel-hover hover:text-text-primary"
+                  >
+                    {t(key)}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <div className="min-w-0">
+        <Section id="settings-experience" title={t('experience')}>
           <SettingRow label={t('language')} description={t('languageDescription')}>
             <div className="segmented" role="group" aria-label={t('language')}>
               {languageOptions.map((option) => (
@@ -525,7 +563,7 @@ export const Settings: React.FC = () => {
           </div>
         </Section>
 
-        <Section title={t('library')}>
+        <Section id="settings-library" title={t('library')}>
           <div className="rule-head">
             <h3 className="text-sm text-text-primary">{t('importedFolders')}</h3>
             <span className="text-[11px] tabular-nums text-muted-text">
@@ -564,7 +602,7 @@ export const Settings: React.FC = () => {
           </ActionBar>
         </Section>
 
-        <Section title={t('thumbnails')}>
+        <Section id="settings-thumbnails" title={t('thumbnails')}>
           <SettingRow label={t('ffmpegStatus')}>
             <div className="flex items-center gap-1">
               {ffmpegBadge}
@@ -635,7 +673,7 @@ export const Settings: React.FC = () => {
           )}
         </Section>
 
-        <Section title={t('performance')}>
+        <Section id="settings-performance" title={t('performance')}>
           <SettingRow label={t('performanceMode')} description={t('performanceModeDescription')}>
             <Toggle checked={settings.performanceMode} onChange={(checked) => updateSettings({ performanceMode: checked })} />
           </SettingRow>
@@ -661,7 +699,7 @@ export const Settings: React.FC = () => {
           </SettingRow>
         </Section>
 
-        <Section title={t('reminderDefaults')}>
+        <Section id="settings-reminder-defaults" title={t('reminderDefaults')}>
           <SettingRow label={t('defaultReminderSound')} flush>
             <div className="flex w-full max-w-2xl items-center gap-2">
               <DraftInput
@@ -698,7 +736,7 @@ export const Settings: React.FC = () => {
           </ActionBar>
         </Section>
 
-        <Section title={t('data')}>
+        <Section id="settings-data" title={t('data')}>
           <ActionBar>
             <ActionButton icon={Download} loading={exporting} label={t('exportBackup')} loadingLabel={t('exporting')} onClick={handleExportBackup} />
             <ActionButton icon={Upload} loading={importing} label={t('importBackup')} loadingLabel={t('importing')} onClick={handleImportBackup} />
@@ -706,7 +744,7 @@ export const Settings: React.FC = () => {
           </ActionBar>
         </Section>
 
-        <Section title={t('updates')}>
+        <Section id="settings-updates" title={t('updates')}>
           <SettingRow label={t('appVersion')}>
             <span className="text-sm tabular-nums text-text-primary">
               <bdi>{appVersion || '—'}</bdi>
@@ -731,7 +769,7 @@ export const Settings: React.FC = () => {
           </ActionBar>
         </Section>
 
-        <Section title={t('diagnostics')}>
+        <Section id="settings-diagnostics" title={t('diagnostics')}>
           {diagnostics && (
             <div className="grid gap-x-10 sm:grid-cols-2">
               <DiagRow label={t('appVersion')} value={diagnostics.appVersion} />
@@ -773,6 +811,8 @@ export const Settings: React.FC = () => {
             />
           </ActionBar>
         </Section>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -795,8 +835,9 @@ const DiagRow: React.FC<{ label: string; value: string; ok?: boolean }> = ({ lab
 const Section: React.FC<{
   title: string;
   children: React.ReactNode;
-}> = ({ title, children }) => (
-  <section className="mb-9">
+  id?: string;
+}> = ({ title, children, id }) => (
+  <section id={id} className="mb-9 scroll-mt-6">
     {/* No letter-spacing: index.css pins Arabic to `letter-spacing: 0` because
         tracking breaks the joins between Arabic letters. */}
     <h2 className="mb-3 border-b border-border pb-2 text-xs font-semibold uppercase text-muted-text">

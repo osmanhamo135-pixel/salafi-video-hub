@@ -1,6 +1,6 @@
 {
   "productName": "Salafi Video Hub",
-  "version": "1.31.0",
+  "version": "1.32.0",
   "identifier": "com.salafivideohub.app",
   "build": {
     "frontendDist": "../dist",
