@@ -7,6 +7,7 @@ import { usePlayerStore } from '@/store/playerStore';
 import { useAppStore } from '@/store/appStore';
 import { formatTime } from '@/utils/formatTime';
 import { LocalThumbnail } from '@/components/ui/LocalThumbnail';
+import { SectionHead } from '@/components/ui/SectionHead';
 import { useI18n } from '@/i18n';
 
 /* .thumbnail-fallback bakes in an .icon-medallion (primary-blue border + fill)
@@ -97,14 +98,11 @@ export const ContinueWatching: React.FC = () => {
        masthead and the only place below the hero that carries an image at
        size. Everything under it is deliberately quieter. */
     <section className="reveal mt-9">
-      <div className="mb-5 flex items-baseline justify-between gap-4 border-b border-border pb-3">
-        <h2 className={eyebrow}>{t('continueWatching')}</h2>
-        {!loading && items.length > 0 && (
-          <span className="text-[11px] tabular-nums text-text-faint">
-            <bdi>{items.length}</bdi>
-          </span>
-        )}
-      </div>
+      <SectionHead
+        className="mb-5"
+        title={t('continueWatching')}
+        meta={!loading && items.length > 0 ? <bdi>{items.length}</bdi> : undefined}
+      />
 
       {loading ? (
         <FeatureSkeleton />

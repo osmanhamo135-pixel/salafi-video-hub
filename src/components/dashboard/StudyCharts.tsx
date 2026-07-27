@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { Video } from '@/types';
 import { useAppStore } from '@/store/appStore';
+import { SectionHead } from '@/components/ui/SectionHead';
 import { useI18n } from '@/i18n';
 
 /**
@@ -118,20 +119,15 @@ export const StudyCharts: React.FC = () => {
 
   return (
     <section className="reveal mt-9">
-      <div className="mb-5 flex items-baseline justify-between gap-4 border-b border-border pb-3">
-        <h2
-          className={
-            language === 'ar'
-              ? 'text-[11px] font-medium text-muted-text'
-              : 'text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-text'
-          }
-        >
-          {t('studyActivity')}
-        </h2>
-        <span className="text-[11px] tabular-nums text-text-faint">
-          <bdi>{DAYS}</bdi> {t('lastNDays')}
-        </span>
-      </div>
+      <SectionHead
+        className="mb-5"
+        title={t('studyActivity')}
+        meta={
+          <>
+            <bdi>{DAYS}</bdi> {t('lastNDays')}
+          </>
+        }
+      />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,17rem)]">
         <div className="glass glow-edge p-5">

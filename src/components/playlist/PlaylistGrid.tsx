@@ -93,27 +93,35 @@ export const PlaylistGrid: React.FC<PlaylistGridProps> = ({
 };
 
 /* ── Section rule ───────────────────────────────────────────────────────────
-   The one section header shape for this page: a small tracked label, a count,
-   and a hairline. Deliberately far below the page title in weight so the eye
-   lands on the title first and uses these as waypoints. */
+   The section header shape for this page, upgraded from a whisper: a small
+   accent eyebrow (Latin only) over a display-weight title, sharing the app's
+   .section-head grammar. Counts and actions sit at the far end of the rule. */
 export const SectionRule: React.FC<{
   label: string;
   count?: number;
   action?: React.ReactNode;
   className?: string;
-}> = ({ label, count, action, className = '' }) => (
-  <div className={`flex items-baseline justify-between gap-4 border-b border-border pb-2.5 ${className}`}>
-    <h2 className="flex items-baseline gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-text">
-      {label}
-      {count !== undefined && (
-        <span className="text-[11px] font-normal tabular-nums text-text-faint">
-          <bdi>{count}</bdi>
-        </span>
-      )}
-    </h2>
-    {action}
-  </div>
-);
+}> = ({ label, count, action, className = '' }) => {
+  const { language } = useI18n();
+  const isArabic = language === 'ar';
+
+  return (
+    <div className={`section-head ${className}`}>
+      <div className="min-w-0">
+        {!isArabic && (
+          <p aria-hidden="true" className="section-eyebrow">
+            {label}
+          </p>
+        )}
+        <h2 className={`section-title ${isArabic ? '' : 'section-title-latin'} truncate`}>{label}</h2>
+      </div>
+      <div className="section-meta flex items-center gap-3">
+        {count !== undefined && <bdi>{count}</bdi>}
+        {action}
+      </div>
+    </div>
+  );
+};
 
 /* ── Empty state ────────────────────────────────────────────────────────────
    A designed opening screen rather than a failure notice: the same generated
