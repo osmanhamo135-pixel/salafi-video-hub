@@ -42,7 +42,7 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({
 
       {/* Modal — a hairline and a value step, no drop shadow. */}
       <div
-        className="premium-surface relative w-full max-w-lg overflow-hidden rounded-xl"
+        className="glass relative w-full max-w-lg overflow-hidden rounded-xl"
         style={{ background: 'rgb(var(--bg-panel-rgb))' }}
         onClick={(e) => e.stopPropagation()}
       >

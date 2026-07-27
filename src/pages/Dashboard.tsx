@@ -4,10 +4,11 @@ import { BellOff } from 'lucide-react';
 import { Reminder } from '@/types';
 import { useAppStore } from '@/store/appStore';
 import { ContinueWatching, useEyebrowClass } from '@/components/dashboard/ContinueWatching';
-import { RecentlyAdded } from '@/components/dashboard/RecentlyAdded';
+import { DashboardRails } from '@/components/dashboard/DashboardRails';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { Hero } from '@/components/home/Hero';
 import { HeroFeature } from '@/components/home/HeroFeature';
+import { StudyCharts } from '@/components/dashboard/StudyCharts';
 import { formatBytes } from '@/utils/formatBytes';
 import { formatDurationLong } from '@/utils/formatTime';
 import { useI18n } from '@/i18n';
@@ -110,6 +111,8 @@ export const Dashboard: React.FC = () => {
           </div>
         </header>
 
+        <StudyCharts />
+
         {/* The lesson you were part-way through, first and largest. */}
         <ContinueWatching />
 
@@ -199,8 +202,13 @@ export const Dashboard: React.FC = () => {
           )}
         </section>
 
-        <div className="grid gap-x-16 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <RecentlyAdded />
+        {/* Rails run the full measure. They were sharing a two-column grid
+            with the reminders panel, which halved every card row and defeated
+            the point of a rail. Reminders keep their column below. */}
+        <DashboardRails />
+
+        <div className="mt-9 grid gap-x-16 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div />
           <TodaysRemindersPanel
             reminders={reminders}
             loading={remindersLoading}

@@ -1,7 +1,7 @@
 {
   "name": "salafi-video-hub",
   "private": true,
-  "version": "1.22.1",
+  "version": "1.23.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri-dev": "tauri dev",
-    "tauri-build": "tauri build"
+    "tauri-build": "tauri build",
+    "sweep": "npm run build && node scripts/harness/shoot.mjs --out design-audit/sweep --themes noor,emerald,pearl,mushaf,blue,red,onyx,mushaf-gold,maktabah,samaa --langs en,ar",
+    "guards": "npm run build && node scripts/harness/guards.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "2.10.1",
@@ -20,10 +22,14 @@
     "@tauri-apps/plugin-process": "2.3.1",
     "@tauri-apps/plugin-shell": "2.3.5",
     "@tauri-apps/plugin-updater": "^2.10.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.15.0",
     "lucide-react": "^0.436.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.0",
+    "recharts": "^3.10.1",
+    "tailwind-merge": "^3.6.0",
     "zustand": "^4.5.5"
   },
   "devDependencies": {
