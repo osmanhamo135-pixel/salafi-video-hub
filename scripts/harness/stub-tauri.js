@@ -59,6 +59,21 @@
       return F.surahPayloads[id] || F.surahPayloads[1];
     },
     get_quran_reciters: function () { return F.reciters; },
+    youtube_channel_catalog: function (a) {
+      var vids = [];
+      for (var i = 1; i <= 12; i += 1) {
+        vids.push({
+          id: 'ch-' + i,
+          title: 'شرح كتاب التوحيد — الدرس ' + i,
+          channel: 'قناة الشيخ',
+          durationSeconds: 1800 + i * 60,
+          thumbnail: 'asset://localhost/thumb-' + i,
+          url: 'https://www.youtube.com/watch?v=ch-' + i,
+          viewCount: 1000 + i,
+        });
+      }
+      return { channel: 'قناة الشيخ صالح', channelUrl: (a && a.channelUrl) || '', videos: vids };
+    },
     /* One synced reciter, so the Read tab's whole transport cluster — play,
        repeat, times, speed — actually renders in the harness. It returned []
        for months, which silently excluded every one of those controls from
