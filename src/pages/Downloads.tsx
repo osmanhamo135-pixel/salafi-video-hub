@@ -184,6 +184,7 @@ export const Downloads: React.FC = () => {
                   label={t('downloadCookies')}
                   value={cookieMode}
                   onChange={(v: string) => setCookieMode(v as CookieMode)}
+                  className="select-block ps-6"
                   options={cookieModeOptions.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
                 />
               </Field>
@@ -218,6 +219,7 @@ export const Downloads: React.FC = () => {
                   value={quality}
                   onChange={(v: string) => setQuality(v as DownloadQuality)}
                   disabled={audioOnly}
+                  className="select-block ps-6"
                   options={qualityOptions.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
                 />
               </Field>
