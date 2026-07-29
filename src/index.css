@@ -4136,6 +4136,21 @@
     display: inline-flex;
   }
 
+  /* Block variant: the select fills its container and long option labels
+     TRUNCATE instead of stretching it. The default inline select sizes to
+     its content, which inside a grid cell (min-width:auto) let one long
+     lesson title push the whole Create Reminder modal into horizontal
+     scroll. Fields in forms use this; compact chrome keeps the inline form. */
+  .select-block {
+    display: flex;
+    width: 100%;
+  }
+
+  .select-block .select-trigger {
+    flex: 1;
+    width: 100%;
+  }
+
   .select-trigger {
     display: flex;
     align-items: center;
@@ -4166,6 +4181,12 @@
     overflow-y: auto;
     padding: var(--s1);
     border-radius: var(--r-md);
+    /* OPAQUE, overriding the .glass alpha it also carries. A dropdown is a
+       reading surface floated over other text; on GPUs where backdrop-filter
+       does not composite, translucent glass let the page bleed straight
+       through the options. Chrome must never gamble on the compositor. */
+    background: rgb(var(--bg-main-rgb));
+    border: 1px solid rgb(var(--hair-rgb) / 0.4);
     /* Floating, transient, light-dismiss — the sanctioned shadow case. */
     box-shadow:
       inset 0 1px 0 rgb(var(--sheen-rgb) / 0.08),

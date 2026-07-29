@@ -229,7 +229,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       </div>
 
       {/* Target Type & Selector */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 [&>div]:min-w-0">
         <div>
           <label className="block text-xs font-medium text-muted-text mb-1.5">
             {t('targetType')}
@@ -269,7 +269,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
             label={t('choose')}
             value={form.targetId}
             onChange={(v: string) => updateField('targetId', v)}
-            className={errors.targetId ? 'text-danger-red' : ''}
+            className={`select-block ${errors.targetId ? 'text-danger-red' : ''}`}
             options={[
               { value: '', label: t('choose') },
               ...targetOptions.map((opt) => ({ value: opt.value, label: opt.label })),
@@ -285,7 +285,7 @@ export const ReminderForm: React.FC<ReminderFormProps> = ({
       </div>
 
       {/* Time & Repeat */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 [&>div]:min-w-0">
         <div>
           <div className="mb-1.5 flex items-center justify-between gap-2">
             <label className="text-xs font-medium text-muted-text">

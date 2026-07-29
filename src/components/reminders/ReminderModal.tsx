@@ -62,7 +62,7 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="px-5 py-4 max-h-[70vh] overflow-y-auto">
+        <div className="px-5 py-4 max-h-[70vh] overflow-y-auto overflow-x-hidden">
           {children}
         </div>
       </div>
