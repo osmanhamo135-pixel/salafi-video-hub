@@ -123,60 +123,15 @@ jobs:
           prerelease: false
           uploadUpdaterJson: true
 
-  # Mirrors the finished release into the PUBLIC releases repository. This is
-  # what makes the source repo's future privacy safe: clients from 1.45.0
-  # onward poll the public repo's latest.json FIRST, so once this job runs on
-  # a release, flipping the source repo private cannot strand anyone.
-  #
-  # The one subtlety: latest.json's platform URLs point at the SOURCE repo's
-  # assets. Mirrored verbatim, they would 404 the moment the source goes
-  # private — so they are rewritten to the public repo's paths before upload.
-  # The signatures do not change: they sign the artifact bytes, not the URL.
+  # Mirrors the finished release into the PUBLIC releases repository — the
+  # repo installed apps poll first, and the only one that survives the source
+  # repo going private. The actual work lives in mirror.yml so a broken
+  # mirror can be repaired by hand-dispatching that workflow with the tag,
+  # without rebuilding anything.
   mirror-public:
-    permissions:
-      contents: read
     needs: publish-linux
-    runs-on: ubuntu-22.04
     if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.draft == true) }}
-    steps:
-      - name: Mirror release assets to the public repository
-        env:
-          SOURCE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
-          TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
-          SOURCE_REPO: ${{ github.repository }}
-          PUBLIC_REPO: osmanhamo135-pixel/salafi-video-hub-releases
-        run: |
-          set -euo pipefail
-          mkdir assets
-          cd assets
-          GH_TOKEN="$SOURCE_TOKEN" gh release download "$TAG" --repo "$SOURCE_REPO"
-          if [ -f latest.json ]; then
-            python3 - <<'PY'
-          import json
-          import os
-          with open('latest.json') as f:
-              data = json.load(f)
-          src = os.environ['SOURCE_REPO']
-          pub = os.environ['PUBLIC_REPO']
-          for platform in data.get('platforms', {}).values():
-              if 'url' in platform:
-                  platform['url'] = platform['url'].replace(f'/{src}/', f'/{pub}/')
-          with open('latest.json', 'w') as f:
-              json.dump(data, f, indent=2)
-          PY
-          fi
-          # Draft -> upload -> publish, in that order, deliberately. A release
-          # created live becomes /releases/latest IMMEDIATELY, while its
-          # latest.json is still uploading — and every client that checks for
-          # updates inside that window gets a raw 404. The owner hit exactly
-          # this. A draft is invisible to /latest until the flip, which is
-          # atomic: the new version appears only when every asset is already
-          # in place.
-          if ! gh release view "$TAG" --repo "$PUBLIC_REPO" >/dev/null 2>&1; then
-            gh release create "$TAG" --repo "$PUBLIC_REPO" --draft \
-              --title "Salafi Video Hub $TAG" \
-              --notes "Official signed build. The application source is proprietary — see the licence shipped with the app."
-          fi
-          gh release upload "$TAG" ./* --repo "$PUBLIC_REPO" --clobber
-          gh release edit "$TAG" --repo "$PUBLIC_REPO" --draft=false
+    uses: ./.github/workflows/mirror.yml
+    with:
+      tag: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+    secrets: inherit
