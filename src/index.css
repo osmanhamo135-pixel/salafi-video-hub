@@ -2654,11 +2654,16 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
+    /* Strengthened after the owner's second round of screenshots: the first
+       cut kept the top 22rem light for the hero, but content pages put their
+       H1 and field labels exactly there — the "light zone" was lighting the
+       text that most needed protecting. The ramp now starts firmer and hits
+       full strength within the first screenful. */
     background: linear-gradient(
       180deg,
-      rgb(var(--bg-main-rgb) / 0.18) 0%,
-      rgb(var(--bg-main-rgb) / 0.52) 22rem,
-      rgb(var(--bg-main-rgb) / 0.62) 100%
+      rgb(var(--bg-main-rgb) / 0.34) 0%,
+      rgb(var(--bg-main-rgb) / 0.58) 14rem,
+      rgb(var(--bg-main-rgb) / 0.66) 100%
     );
   }
 
