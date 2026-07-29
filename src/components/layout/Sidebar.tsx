@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Bell,
+  GraduationCap,
   BookOpen,
   ChevronsLeft,
   ChevronsRight,
@@ -18,6 +19,7 @@ import { APP_NAME, APP_STAGE } from '@/utils/constants';
 import { TranslationKey, useI18n } from '@/i18n';
 import { useRemindersStore } from '@/store/remindersStore';
 import { useDownloadStore } from '@/store/downloadStore';
+import { useShuyukhStore } from '@/store/shuyukhStore';
 import { getNextReminderOccurrence } from '@/utils/reminderSchedule';
 
 /**
@@ -42,6 +44,7 @@ const navGroups = [
       { path: '/quran', labelKey: 'navQuran', icon: BookOpen },
       { path: '/library', labelKey: 'navLibrary', icon: Library },
       { path: '/watch', labelKey: 'navWatch', icon: MonitorPlay },
+      { path: '/shuyukh', labelKey: 'navShuyukh', icon: GraduationCap },
       { path: '/radio', labelKey: 'navRadio', icon: RadioTower },
     ],
   },
@@ -80,6 +83,9 @@ export const Sidebar: React.FC = () => {
 
   const reminders = useRemindersStore((s) => s.reminders);
   const activeJobId = useDownloadStore((s) => s.activeJobId);
+  const shuyukhNew = useShuyukhStore((s) =>
+    s.profiles.reduce((sum, p) => sum + p.newCount, 0),
+  );
 
   /* Reminders due before this day ends. Memoised on the list, not the clock:
      the count only needs to be right when the sidebar renders, and it renders
@@ -97,6 +103,7 @@ export const Sidebar: React.FC = () => {
   const badgeFor = (path: string): { count?: number; pulse?: boolean } | null => {
     if (path === '/reminders' && dueTodayCount > 0) return { count: dueTodayCount };
     if (path === '/downloads' && activeJobId) return { pulse: true };
+    if (path === '/shuyukh' && shuyukhNew > 0) return { count: shuyukhNew };
     return null;
   };
 

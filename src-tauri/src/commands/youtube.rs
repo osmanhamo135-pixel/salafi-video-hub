@@ -144,6 +144,121 @@ fn best_thumbnail(entry: &serde_json::Value) -> Option<String> {
         .map(|(_, url)| url)
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChannelCatalog {
+    pub channel: String,
+    pub channel_url: String,
+    pub videos: Vec<YoutubeSearchItem>,
+}
+
+/// Fetches a channel's uploads for the Shuyukh profiles — newest first, the
+/// order the /videos tab serves them in, which is what makes "everything
+/// before the last-seen id is new" a correct client-side computation.
+#[tauri::command]
+pub async fn youtube_channel_catalog(
+    app_handle: AppHandle,
+    channel_url: String,
+    limit: Option<u32>,
+) -> Result<ChannelCatalog, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        channel_catalog_blocking(&app_handle, &channel_url, limit.unwrap_or(90))
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+fn channel_catalog_blocking(
+    app_handle: &AppHandle,
+    channel_url: &str,
+    limit: u32,
+) -> Result<ChannelCatalog, String> {
+    let raw = channel_url.trim();
+    if raw.is_empty() {
+        return Err("Channel link is empty.".to_string());
+    }
+    if !raw.starts_with("http://") && !raw.starts_with("https://") {
+        return Err("Enter the channel's full link.".to_string());
+    }
+
+    /* A bare channel URL makes yt-dlp enumerate every TAB (videos, shorts,
+       live, playlists) as nested playlists — slow, and the entries are tabs,
+       not videos. Pinning /videos gets the uploads, newest first. URLs that
+       already point at a tab or a playlist pass through untouched. */
+    let target = normalize_channel_url(raw);
+
+    let ytdlp = ensure_ytdlp(app_handle, None)?;
+    let output = hidden_command(&ytdlp)
+        .args([
+            "--no-warnings",
+            "--flat-playlist",
+            "--dump-single-json",
+            "--playlist-end",
+            &limit.to_string(),
+            "--socket-timeout",
+            "20",
+            &target,
+        ])
+        .output()
+        .map_err(|error| format!("Could not start the channel helper: {}", error))?;
+
+    if !output.status.success() {
+        return Err(compact_yt_error(
+            &output.stderr,
+            "Could not load this channel.",
+        ));
+    }
+
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout)
+        .map_err(|error| format!("Could not read the channel: {}", error))?;
+
+    let channel = json
+        .get("channel")
+        .or_else(|| json.get("uploader"))
+        .or_else(|| json.get("title"))
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .to_string();
+
+    let videos = json
+        .get("entries")
+        .and_then(|value| value.as_array())
+        .map(|entries| {
+            entries
+                .iter()
+                .filter_map(entry_to_search_item)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    if videos.is_empty() {
+        return Err("No videos found on this channel.".to_string());
+    }
+
+    Ok(ChannelCatalog {
+        channel,
+        channel_url: raw.to_string(),
+        videos,
+    })
+}
+
+fn normalize_channel_url(url: &str) -> String {
+    let trimmed = url.trim_end_matches('/');
+    let is_channel_root = (trimmed.contains("youtube.com/@")
+        || trimmed.contains("youtube.com/channel/")
+        || trimmed.contains("youtube.com/c/")
+        || trimmed.contains("youtube.com/user/"))
+        && !trimmed.ends_with("/videos")
+        && !trimmed.ends_with("/streams")
+        && !trimmed.ends_with("/shorts")
+        && !trimmed.contains("/playlist");
+    if is_channel_root {
+        format!("{}/videos", trimmed)
+    } else {
+        trimmed.to_string()
+    }
+}
+
 /// Resolves an ad-free direct video stream for a YouTube video. The returned URL
 /// is the raw media stream, so playback in the app's own player has no ads,
 /// overlays, or trackers at all.

@@ -1,6 +1,6 @@
 {
   "productName": "Salafi Video Hub",
-  "version": "1.44.0",
+  "version": "1.45.0",
   "identifier": "com.salafivideohub.app",
   "build": {
     "frontendDist": "../dist",
@@ -72,6 +72,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZDNDZGOEFBNDA1MjJDMDUKUldRRkxGSkFxdmhHL0k3VTM2TTAxNm9mWU9tWVBCQm9jWklMb2VsbFFLYTE4RFpTc1RHOU85SzgK",
       "endpoints": [
+        "https://github.com/osmanhamo135-pixel/salafi-video-hub-releases/releases/latest/download/latest.json",
         "https://github.com/osmanhamo135-pixel/salafi-video-hub/releases/latest/download/latest.json"
       ],
       "windows": {

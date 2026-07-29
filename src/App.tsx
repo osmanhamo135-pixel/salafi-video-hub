@@ -7,6 +7,7 @@ import { PlayerPage } from './pages/PlayerPage';
 import { Reminders } from './pages/Reminders';
 import { Downloads } from './pages/Downloads';
 import { Watch } from './pages/Watch';
+import { Shuyukh } from './pages/Shuyukh';
 import { Radio } from './pages/Radio';
 import { Quran } from './pages/Quran';
 import { Settings } from './pages/Settings';
@@ -80,6 +81,7 @@ export default function App() {
             <Route path="/reminders" element={<Reminders />} />
             <Route path="/downloads" element={<Downloads />} />
             <Route path="/watch" element={<Watch />} />
+            <Route path="/shuyukh" element={<Shuyukh />} />
             <Route path="/radio" element={<Radio />} />
             <Route path="/quran" element={<Quran />} />
             <Route path="/settings" element={<Settings />} />
