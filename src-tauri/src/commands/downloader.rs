@@ -15,10 +15,23 @@ use crate::db::DbState;
 use crate::services::scanner;
 use crate::utils::ffmpeg_finder;
 use crate::utils::paths::get_app_data_dir;
-use crate::utils::process::{hidden_command, ps_single_quote};
+use crate::utils::process::hidden_command;
+#[cfg(windows)]
+use crate::utils::process::ps_single_quote;
 
+/* The standalone builds: self-contained on both platforms. The Linux one is
+   the PyInstaller binary (`yt-dlp_linux`), not the Python zip — the zip needs
+   a system Python and this app must not. Stored locally under one neutral
+   name so every other path in this file stays platform-blind. */
+#[cfg(windows)]
 const YT_DLP_URL: &str = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe";
-const YT_DLP_RESOURCE_NAME: &str = "yt-dlp.exe";
+#[cfg(not(windows))]
+const YT_DLP_URL: &str =
+    "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux";
+pub(crate) const YT_DLP_RESOURCE_NAME: &str = if cfg!(windows) { "yt-dlp.exe" } else { "yt-dlp" };
+/* On Windows, plain `curl` can shadow to a PowerShell alias; pin the real
+   binary there. Unix has no such trap. */
+const CURL_BIN: &str = if cfg!(windows) { "curl.exe" } else { "curl" };
 const AUDIO_EXTENSIONS: &[&str] = &["mp3", "m4a", "opus", "ogg", "webm", "wav", "aac", "flac"];
 const HELPER_REFRESH_AFTER: Duration = Duration::from_secs(60 * 60 * 24 * 5);
 
@@ -241,7 +254,7 @@ fn copy_helper(source: &Path, target: &Path) -> Result<(), String> {
 }
 
 fn download_ytdlp(target: &Path) -> Result<(), String> {
-    let temp_path = target.with_extension("exe.download");
+    let temp_path = target.with_extension("download");
     let _ = fs::remove_file(&temp_path);
 
     let mut errors = Vec::new();
@@ -250,7 +263,7 @@ fn download_ytdlp(target: &Path) -> Result<(), String> {
         Err(error) => errors.push(error),
     }
 
-    match download_ytdlp_with_powershell(&temp_path) {
+    match download_ytdlp_with_fallback(&temp_path) {
         Ok(()) => return finalize_downloaded_helper(&temp_path, target),
         Err(error) => errors.push(error),
     }
@@ -258,7 +271,34 @@ fn download_ytdlp(target: &Path) -> Result<(), String> {
     Err(errors.join(" | "))
 }
 
+#[cfg(windows)]
+fn download_ytdlp_with_fallback(temp_path: &Path) -> Result<(), String> {
+    download_ytdlp_with_powershell(temp_path)
+}
+
+#[cfg(not(windows))]
+fn download_ytdlp_with_fallback(temp_path: &Path) -> Result<(), String> {
+    let temp_string = temp_path.to_string_lossy().to_string();
+    let output = hidden_command("wget")
+        .args(["-q", "--tries=3", "--timeout=30", "-O", &temp_string, YT_DLP_URL])
+        .output()
+        .map_err(|e| format!("wget unavailable: {}", e))?;
+
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(format_process_error("wget download failed", &output.stderr))
+    }
+}
+
 fn finalize_downloaded_helper(temp_path: &Path, target: &Path) -> Result<(), String> {
+    // The bit must be set BEFORE validation — validate runs the binary.
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = fs::set_permissions(temp_path, fs::Permissions::from_mode(0o755));
+    }
+
     if !validate_ytdlp(temp_path) {
         let _ = fs::remove_file(temp_path);
         return Err("Downloaded helper could not be validated.".to_string());
@@ -270,7 +310,7 @@ fn finalize_downloaded_helper(temp_path: &Path, target: &Path) -> Result<(), Str
 
 fn download_ytdlp_with_curl(temp_path: &Path) -> Result<(), String> {
     let temp_string = temp_path.to_string_lossy().to_string();
-    let output = hidden_command("curl.exe")
+    let output = hidden_command(CURL_BIN)
         .args([
             "-L",
             "--fail",
@@ -294,6 +334,7 @@ fn download_ytdlp_with_curl(temp_path: &Path) -> Result<(), String> {
     }
 }
 
+#[cfg(windows)]
 fn download_ytdlp_with_powershell(temp_path: &Path) -> Result<(), String> {
     // Inline the URL and destination directly into the script. PowerShell does NOT
     // populate `$args` in `-Command` mode, so relying on `$args[0]`/`$args[1]` left

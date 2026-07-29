@@ -54,3 +54,49 @@ jobs:
           prerelease: false
           uploadUpdaterJson: true
           updaterJsonPreferNsis: true
+
+  # Linux runs AFTER Windows, deliberately: both jobs upload latest.json to
+  # the same release, and tauri-action merges platform entries into whatever
+  # is already there — sequencing removes the race where two concurrent jobs
+  # each upload a json that only knows its own platform. If this job fails,
+  # the Windows release is already complete and untouched; Linux users just
+  # wait for the next tag.
+  publish-linux:
+    permissions:
+      contents: write
+    needs: publish-windows
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build and publish signed Linux update
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        with:
+          tagName: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+          releaseName: ${{ github.event_name == 'workflow_dispatch' && format('Salafi Video Hub Beta v{0}', inputs.version) || format('Salafi Video Hub Beta {0}', github.ref_name) }}
+          releaseBody: 'Signed beta build with in-app updater metadata.'
+          releaseDraft: ${{ github.event_name == 'workflow_dispatch' && inputs.draft || false }}
+          prerelease: false
+          uploadUpdaterJson: true
