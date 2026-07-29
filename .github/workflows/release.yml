@@ -166,9 +166,17 @@ jobs:
               json.dump(data, f, indent=2)
           PY
           fi
+          # Draft -> upload -> publish, in that order, deliberately. A release
+          # created live becomes /releases/latest IMMEDIATELY, while its
+          # latest.json is still uploading — and every client that checks for
+          # updates inside that window gets a raw 404. The owner hit exactly
+          # this. A draft is invisible to /latest until the flip, which is
+          # atomic: the new version appears only when every asset is already
+          # in place.
           if ! gh release view "$TAG" --repo "$PUBLIC_REPO" >/dev/null 2>&1; then
-            gh release create "$TAG" --repo "$PUBLIC_REPO" \
+            gh release create "$TAG" --repo "$PUBLIC_REPO" --draft \
               --title "Salafi Video Hub $TAG" \
               --notes "Official signed build. The application source is proprietary — see the licence shipped with the app."
           fi
           gh release upload "$TAG" ./* --repo "$PUBLIC_REPO" --clobber
+          gh release edit "$TAG" --repo "$PUBLIC_REPO" --draft=false

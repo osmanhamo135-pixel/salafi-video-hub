@@ -46,10 +46,15 @@ export const UpdateManager: React.FC = () => {
       ? t('updateCheckFailed')
       : t('updateAvailable');
 
+  /* A 404 from the update endpoint is almost always the publish window: a
+     new release exists for a few moments before its metadata file finishes
+     uploading. Raw "status: 404" reads as broken; the truth is "try again
+     shortly". */
+  const errorBody = error && /404/.test(error) ? t('updatePublishing') : error;
   const body = phase === 'installed'
     ? t('updateReadyBody')
     : phase === 'error'
-      ? error ?? t('updateServerNotReady')
+      ? errorBody ?? t('updateServerNotReady')
       : t('updateAvailableBody');
 
   const releaseNotes = phase === 'available' ? cleanReleaseNotes(update?.body) : null;
