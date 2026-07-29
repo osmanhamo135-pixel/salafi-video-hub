@@ -2642,6 +2642,26 @@
     }
   }
 
+  /* ── The readability veil ───────────────────────────────────────────────
+     The owner's Samaa screenshots showed the failure: a bright daytime sky
+     behind light UI text left labels barely visible. A painted world may
+     never outshine the page. The veil pulls the scene back toward the
+     page's own ground colour — translucent bg-main, so it self-adapts to
+     every theme, dark or light — light at the very top where the hero
+     lives, firm over the content zone. The scene stays visible as
+     atmosphere; the text gets its contrast back unconditionally. */
+  .ambient-veil {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      rgb(var(--bg-main-rgb) / 0.18) 0%,
+      rgb(var(--bg-main-rgb) / 0.52) 22rem,
+      rgb(var(--bg-main-rgb) / 0.62) 100%
+    );
+  }
+
   /* Tier 2 — one slow light sweep. Compositor-only: transform and opacity,
      never a layout or paint property, and never a filter on a large animated
      element. 48s because atmosphere the eye can time is decoration. */
@@ -2909,25 +2929,6 @@
     scroll-snap-type: x proximity;
     scroll-padding-inline: var(--s1);
     padding-block-end: var(--s2);
-    /* Edge fade: cards dissolve at the rail's ends rather than being
-       guillotined by the container edge. A mask applies to the whole
-       subtree, which here is exactly right — the fade IS the affordance
-       that more cards exist beyond the fold. Kept narrow (2rem) so the
-       first card loses only its outer sliver at rest. */
-    -webkit-mask-image: linear-gradient(
-      90deg,
-      transparent,
-      black 2rem,
-      black calc(100% - 2rem),
-      transparent
-    );
-    mask-image: linear-gradient(
-      90deg,
-      transparent,
-      black 2rem,
-      black calc(100% - 2rem),
-      transparent
-    );
     /* Overlay scrollbars: a rail that reserves 15px of layout for a scrollbar
        loses a card edge at every breakpoint. */
     scrollbar-width: none;
