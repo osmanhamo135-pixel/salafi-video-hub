@@ -2667,6 +2667,42 @@
     );
   }
 
+  /* ── Indeterminate progress ─────────────────────────────────────────────
+     Real work with no measurable percent — helper installs, format merging,
+     MP3 conversion. The old panel showed a frozen bar (0% or a dishonest
+     100%) through all of it; a sliding pulse says "working, unmeasured"
+     without lying about a number. Falls back to a static half-fill under
+     reduced motion. */
+  .progress-indeterminate {
+    position: relative;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgb(var(--accent-gold-rgb) / 0.18);
+  }
+
+  .progress-indeterminate::after {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    width: 34%;
+    border-radius: 999px;
+    background: rgb(var(--accent-gold-rgb));
+    animation: progress-slide 1.4s var(--ease-standard) infinite;
+  }
+
+  @keyframes progress-slide {
+    from { inset-inline-start: -34%; }
+    to   { inset-inline-start: 100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .progress-indeterminate::after {
+      animation: none;
+      inset-inline-start: 0;
+      width: 50%;
+    }
+  }
+
   /* Tier 2 — one slow light sweep. Compositor-only: transform and opacity,
      never a layout or paint property, and never a filter on a large animated
      element. 48s because atmosphere the eye can time is decoration. */

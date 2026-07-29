@@ -28,6 +28,42 @@ const YT_DLP_URL: &str = "https://github.com/yt-dlp/yt-dlp/releases/latest/downl
 #[cfg(not(windows))]
 const YT_DLP_URL: &str =
     "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux";
+/// Sentinel error for a user-cancelled job. Checked by every retry layer so
+/// a cancel is never "retried", and by the frontend so it renders as a quiet
+/// return to idle rather than as a failure.
+pub const CANCELLED_MARKER: &str = "__download_cancelled__";
+
+static CANCELLED_JOBS: std::sync::OnceLock<std::sync::Mutex<std::collections::HashSet<String>>> =
+    std::sync::OnceLock::new();
+
+fn cancelled_jobs() -> &'static std::sync::Mutex<std::collections::HashSet<String>> {
+    CANCELLED_JOBS.get_or_init(|| std::sync::Mutex::new(std::collections::HashSet::new()))
+}
+
+fn is_cancelled(job_id: &str) -> bool {
+    cancelled_jobs()
+        .lock()
+        .map(|jobs| jobs.contains(job_id))
+        .unwrap_or(false)
+}
+
+fn clear_cancelled(job_id: &str) {
+    if let Ok(mut jobs) = cancelled_jobs().lock() {
+        jobs.remove(job_id);
+    }
+}
+
+/// The user pressed Cancel. The running job's poll loop kills the child on
+/// its next pass (within ~100ms) and unwinds with CANCELLED_MARKER.
+#[tauri::command]
+pub fn cancel_download(job_id: String) -> Result<(), String> {
+    cancelled_jobs()
+        .lock()
+        .map_err(|_| "cancel lock".to_string())?
+        .insert(job_id);
+    Ok(())
+}
+
 pub(crate) const YT_DLP_RESOURCE_NAME: &str = if cfg!(windows) { "yt-dlp.exe" } else { "yt-dlp" };
 /* On Windows, plain `curl` can shadow to a PowerShell alias; pin the real
    binary there. Unix has no such trap. */
@@ -77,6 +113,12 @@ pub struct YoutubeDownloadProgress {
     pub stage: String,
     pub message: String,
     pub percent: Option<f64>,
+    /// Human-readable rate ("3.2MiB/s"), parsed from yt-dlp's own line.
+    pub speed: Option<String>,
+    /// Time remaining ("04:23"), same source.
+    pub eta: Option<String>,
+    /// Position in a batch ("3/25"), when yt-dlp reports one.
+    pub detail: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -124,20 +166,31 @@ fn download_youtube_video_blocking(
         None,
     );
 
+    // A stale cancel flag from a previous job with a reused id must not kill
+    // this one before it starts.
+    clear_cancelled(&request.job_id);
+
     let ytdlp = ensure_ytdlp(&app_handle, Some(&request.job_id))?;
     let downloaded_files =
-        run_ytdlp_with_update_retry(&app_handle, &request, &ytdlp, &output_dir)?;
+        run_ytdlp_with_update_retry(&app_handle, &request, &ytdlp, &output_dir)
+            .map_err(|error| {
+                clear_cancelled(&request.job_id);
+                error
+            })?;
     let preview_thumbnail_path = create_download_preview_thumbnail(&app_handle, &downloaded_files);
 
-    emit_progress(
-        &app_handle,
-        &request.job_id,
-        "importing",
-        "Adding downloaded media to the local library...",
-        Some(100.0),
-    );
+    let will_import = request.import_after_download && !request.audio_only;
+    if will_import {
+        emit_progress(
+            &app_handle,
+            &request.job_id,
+            "importing",
+            "Adding downloaded media to the local library...",
+            Some(100.0),
+        );
+    }
 
-    let import_result = if request.import_after_download && !request.audio_only {
+    let import_result = if will_import {
         import_downloads(&app_handle, &db, &output_dir, &downloaded_files)?
     } else {
         None
@@ -179,14 +232,18 @@ pub(crate) fn ensure_ytdlp(
     let ytdlp_path = tools_dir.join(YT_DLP_RESOURCE_NAME);
 
     if ytdlp_path.exists() && validate_ytdlp(&ytdlp_path) {
-        refresh_ytdlp_if_stale(&ytdlp_path, false);
+        refresh_ytdlp_if_stale(
+            &ytdlp_path,
+            false,
+            job_id.map(|id| (app_handle, id)),
+        );
         return Ok(ytdlp_path);
     }
 
     if let Some(bundled_path) = bundled_ytdlp_path(app_handle) {
         if validate_ytdlp(&bundled_path) {
             if copy_helper(&bundled_path, &ytdlp_path).is_ok() && validate_ytdlp(&ytdlp_path) {
-                refresh_ytdlp_if_stale(&ytdlp_path, true);
+                refresh_ytdlp_if_stale(&ytdlp_path, true, job_id.map(|id| (app_handle, id)));
                 return Ok(ytdlp_path);
             }
             return Ok(bundled_path);
@@ -383,7 +440,7 @@ fn validate_ytdlp(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-fn refresh_ytdlp_if_stale(path: &Path, force: bool) {
+fn refresh_ytdlp_if_stale(path: &Path, force: bool, notify: Option<(&AppHandle, &str)>) {
     let should_refresh = force
         || fs::metadata(path)
             .and_then(|metadata| metadata.modified())
@@ -394,6 +451,20 @@ fn refresh_ytdlp_if_stale(path: &Path, force: bool) {
 
     if !should_refresh {
         return;
+    }
+
+    /* Every ~5 days this quietly re-downloads a ~30MB helper — during which
+       the panel used to sit at "Preparing downloader..." looking hung. Only
+       the Downloads job announces it: the quiet callers (search, Watch,
+       channel listing) pass None and must never touch the Downloads UI. */
+    if let Some((app_handle, job_id)) = notify {
+        emit_progress(
+            app_handle,
+            job_id,
+            "installing",
+            "Updating the download helper...",
+            None,
+        );
     }
 
     let _ = download_ytdlp(path);
@@ -420,7 +491,7 @@ fn run_ytdlp_with_update_retry(
                 &request.job_id,
                 "downloading",
                 "Updating the downloader to the latest version and trying once more...",
-                Some(0.0),
+                None,
             );
 
             // Prefer yt-dlp's own self-update; fall back to a fresh download.
@@ -448,6 +519,9 @@ fn update_ytdlp_self(ytdlp: &Path) -> Result<(), String> {
 /// Whether a failed download is worth retrying after refreshing yt-dlp. Terminal
 /// problems (private, removed, not found, copyright, needs an account) are not.
 fn should_retry_after_update(error: &str) -> bool {
+    if error == CANCELLED_MARKER {
+        return false;
+    }
     let lower = error.to_lowercase();
     if lower.contains("private")
         || lower.contains("account access")
@@ -515,7 +589,7 @@ fn run_ytdlp(
                     "Signing in with your {} cookies to unlock this download...",
                     pretty_browser(name)
                 ),
-                Some(0.0),
+                None,
             );
         }
 
@@ -558,7 +632,7 @@ fn run_ytdlp_strategies(
             &request.job_id,
             "downloading",
             strategy.start_message(),
-            Some(0.0),
+            None,
         );
 
         match run_ytdlp_once(app_handle, request, ytdlp, output_dir, strategy, cookie) {
@@ -580,7 +654,7 @@ fn run_ytdlp_strategies(
                     &request.job_id,
                     "downloading",
                     "The platform returned a broken chunk. Retrying with stable small chunks...",
-                    Some(0.0),
+                    None,
                 );
             }
         }
@@ -888,6 +962,21 @@ fn run_ytdlp_once(
         }
     }
 
+    // A first non-fast download may trigger a ~100MB FFmpeg install below,
+    // which used to happen in total silence at "0%" — indistinguishable from
+    // a hang. Say so first when it is about to happen.
+    if request.audio_only || request.quality != "fast" {
+        let (_, _, status, _) = ffmpeg_finder::detect_ffmpeg_for_app(app_handle);
+        if status == "missing" {
+            emit_progress(
+                app_handle,
+                &request.job_id,
+                "installing",
+                "Setting up the media converter (one-time download)...",
+                None,
+            );
+        }
+    }
     let (ffmpeg_path, _, ffmpeg_status, _) = if request.audio_only || request.quality != "fast" {
         ffmpeg_finder::ensure_ffmpeg_for_app(app_handle)
             .map(|(ffmpeg, ffprobe, status, version)| {
@@ -907,6 +996,7 @@ fn run_ytdlp_once(
         command.arg("--no-playlist");
     }
 
+    let mut expected_streams: u32 = 1;
     if request.audio_only {
         if ffmpeg_status == "missing" {
             command.args(["-f", "ba[ext=m4a]/ba/bestaudio/b"]);
@@ -933,6 +1023,7 @@ fn run_ytdlp_once(
                 }
             }
         } else {
+            expected_streams = 2;
             command.args(["--merge-output-format", "mp4"]);
             match request.quality.as_str() {
                 "1080" => {
@@ -958,7 +1049,7 @@ fn run_ytdlp_once(
         &request.job_id,
         "downloading",
         "Starting download...",
-        Some(0.0),
+        None,
     );
 
     // Recorded before the child starts so the fallback file discovery below can
@@ -982,17 +1073,24 @@ fn run_ytdlp_once(
     }
     drop(sender);
 
-    let percent_regex = Regex::new(r"(?i)(\d+(?:\.\d+)?)%").unwrap();
     let mut downloaded_files = Vec::new();
     let mut recent_lines = Vec::new();
-    let mut progress_emitter = ProgressEmitter::new(app_handle, &request.job_id);
+    let mut tracker = ProgressTracker::new(app_handle, &request.job_id, expected_streams);
 
     loop {
+        // Cancellation is polled here because this loop is the only place
+        // that owns the child. Killing it makes try_wait() report an exit on
+        // the next pass, but the marker error must win over that exit path.
+        if is_cancelled(&request.job_id) {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(CANCELLED_MARKER.to_string());
+        }
+
         while let Ok(line) = receiver.try_recv() {
             handle_ytdlp_line(
-                &mut progress_emitter,
+                &mut tracker,
                 output_dir,
-                &percent_regex,
                 &line,
                 &mut downloaded_files,
                 &mut recent_lines,
@@ -1002,9 +1100,8 @@ fn run_ytdlp_once(
         if let Some(status) = child.try_wait().map_err(|e| e.to_string())? {
             while let Ok(line) = receiver.recv_timeout(Duration::from_millis(120)) {
                 handle_ytdlp_line(
-                    &mut progress_emitter,
+                    &mut tracker,
                     output_dir,
-                    &percent_regex,
                     &line,
                     &mut downloaded_files,
                     &mut recent_lines,
@@ -1015,23 +1112,38 @@ fn run_ytdlp_once(
             }
 
             if !status.success() {
-                let details = recent_lines
-                    .iter()
-                    .rev()
-                    .take(6)
-                    .cloned()
-                    .collect::<Vec<_>>()
-                    .into_iter()
-                    .rev()
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                return Err(if details.trim().is_empty() {
-                    "Download failed.".to_string()
+                /* A playlist run under --ignore-errors exits non-zero when ANY
+                   item failed — even one blocked video out of forty. The old
+                   code declared total failure and threw away every file that
+                   DID download. Salvage them: partial success beats discarding
+                   the night's work. */
+                if should_download_playlist && !downloaded_files.is_empty() {
+                    emit_progress(
+                        app_handle,
+                        &request.job_id,
+                        "downloading",
+                        "Some items could not be downloaded; keeping the ones that succeeded.",
+                        None,
+                    );
                 } else {
-                    format!("Download failed:\n{}", details)
-                });
+                    let details = recent_lines
+                        .iter()
+                        .rev()
+                        .take(6)
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .into_iter()
+                        .rev()
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    return Err(if details.trim().is_empty() {
+                        "Download failed.".to_string()
+                    } else {
+                        format!("Download failed:\n{}", details)
+                    });
+                }
             }
-            progress_emitter.flush();
+            tracker.finish();
             break;
         }
 
@@ -1042,6 +1154,12 @@ fn run_ytdlp_once(
         downloaded_files = discover_downloaded_files(output_dir, request.audio_only, started_at)?;
     }
 
+    /* Intermediate stream files (Title.f137.mp4 / .f140.m4a) can be caught
+       by the destination lines before the merger deletes them; under a plain
+       sort they then LEAD the list and the UI names the batch after a file
+       that no longer exists. Drop anything with a .fNNN. stream marker. */
+    let fragment_re = Regex::new(r"\.f\d+\.").unwrap();
+    downloaded_files.retain(|path| !fragment_re.is_match(path));
     downloaded_files.sort();
     downloaded_files.dedup();
 
@@ -1106,6 +1224,9 @@ fn sanitize_download_error(error: &str, used_cookies: bool) -> String {
 }
 
 fn is_retryable_download_error(error: &str) -> bool {
+    if error == CANCELLED_MARKER {
+        return false;
+    }
     let lower = error.to_lowercase();
     let permanent_markers = [
         "private video",
@@ -1229,9 +1350,8 @@ fn spawn_line_reader<R: std::io::Read + Send + 'static>(
 }
 
 fn handle_ytdlp_line(
-    progress_emitter: &mut ProgressEmitter<'_>,
+    tracker: &mut ProgressTracker<'_>,
     output_dir: &Path,
-    percent_regex: &Regex,
     line: &str,
     downloaded_files: &mut Vec<String>,
     recent_lines: &mut Vec<String>,
@@ -1253,66 +1373,179 @@ fn handle_ytdlp_line(
         false
     };
 
-    let percent = percent_regex
-        .captures(trimmed)
-        .and_then(|captures| captures.get(1))
-        .and_then(|match_| match_.as_str().parse::<f64>().ok())
-        .map(|value| value.clamp(0.0, 100.0));
-
-    progress_emitter.emit("downloading", trimmed, percent, is_file_line);
+    tracker.observe(trimmed, is_file_line);
 }
 
-struct ProgressEmitter<'a> {
+/// What one download job's progress ACTUALLY looks like, reconstructed from
+/// yt-dlp's stream of lines.
+///
+/// The previous emitter grabbed the first "N%" anywhere in any line. Four
+/// user-visible bugs came from that one shortcut: the bar filled 0-100 once
+/// per STREAM (video, then audio) instead of once per job; playlists filled
+/// 0-100 once per item with no position shown; a "50% Off" in a video title
+/// set the bar to 50; and the merge/convert phase sat dishonestly at "100%".
+/// This tracker parses the line STRUCTURE instead: which item of how many,
+/// which stream of how many, what phase — and reports one monotonic overall
+/// figure with the speed and ETA yt-dlp already printed.
+struct ProgressTracker<'a> {
     app_handle: &'a AppHandle,
     job_id: String,
     last_emit: Instant,
-    last_percent: Option<f64>,
-    pending_stage: String,
-    pending_message: String,
-    pending_percent: Option<f64>,
+    last_sent_percent: Option<f64>,
+    /// bv*+ba downloads two streams per item; single-file formats one.
+    expected_streams: u32,
+    streams_seen: u32,
+    current_item: u32,
+    total_items: u32,
+    stream_percent: f64,
+    processing: bool,
+    speed: Option<String>,
+    eta: Option<String>,
+    progress_re: Regex,
+    item_re: Regex,
 }
 
-impl<'a> ProgressEmitter<'a> {
-    fn new(app_handle: &'a AppHandle, job_id: &str) -> Self {
+impl<'a> ProgressTracker<'a> {
+    fn new(app_handle: &'a AppHandle, job_id: &str, expected_streams: u32) -> Self {
         Self {
             app_handle,
             job_id: job_id.to_string(),
             last_emit: Instant::now() - Duration::from_secs(2),
-            last_percent: None,
-            pending_stage: "downloading".to_string(),
-            pending_message: "Starting download...".to_string(),
-            pending_percent: Some(0.0),
+            last_sent_percent: None,
+            expected_streams: expected_streams.max(1),
+            streams_seen: 0,
+            current_item: 1,
+            total_items: 1,
+            stream_percent: 0.0,
+            processing: false,
+            speed: None,
+            eta: None,
+            // Anchored to the [download] prefix: percent is taken ONLY from a
+            // real progress line, never from a title that happens to contain
+            // one. Speed and ETA ride the same line when present.
+            progress_re: Regex::new(
+                r"^\[download\]\s+(\d+(?:\.\d+)?)%(?:.*?\bat\s+(\S+/s))?(?:.*?\bETA\s+([\d:]+))?",
+            )
+            .unwrap(),
+            item_re: Regex::new(r"^\[download\] Downloading item (\d+) of (\d+)").unwrap(),
         }
     }
 
-    fn emit(&mut self, stage: &str, message: &str, percent: Option<f64>, force: bool) {
-        self.pending_stage = stage.to_string();
-        self.pending_message = compact_progress_message(message);
-        self.pending_percent = percent.or(self.pending_percent);
+    fn observe(&mut self, line: &str, is_file_line: bool) {
+        let mut force = is_file_line;
 
-        let percent_changed = match (self.last_percent, self.pending_percent) {
+        if let Some(caps) = self.item_re.captures(line) {
+            let item: u32 = caps[1].parse().unwrap_or(self.current_item);
+            let total: u32 = caps[2].parse().unwrap_or(self.total_items);
+            self.current_item = item.max(1);
+            self.total_items = total.max(1);
+            self.streams_seen = 0;
+            self.stream_percent = 0.0;
+            self.processing = false;
+            force = true;
+        } else if line.starts_with("[download] Destination:") {
+            // Each stream announces itself once; the second Destination of an
+            // item is the audio stream of a bv*+ba download.
+            self.streams_seen = (self.streams_seen + 1).min(self.expected_streams);
+            self.stream_percent = 0.0;
+            self.processing = false;
+        } else if let Some(caps) = self.progress_re.captures(line) {
+            self.processing = false;
+            if self.streams_seen == 0 {
+                self.streams_seen = 1;
+            }
+            if let Ok(value) = caps[1].parse::<f64>() {
+                self.stream_percent = value.clamp(0.0, 100.0);
+            }
+            self.speed = caps.get(2).map(|m| m.as_str().to_string());
+            self.eta = caps.get(3).map(|m| m.as_str().to_string());
+        } else if line.starts_with("[Merger]")
+            || line.starts_with("[ExtractAudio]")
+            || line.starts_with("[VideoConvertor]")
+            || line.starts_with("[Fixup")
+            || line.starts_with("[Metadata]")
+        {
+            // Post-processing: the download is done but the file is not. The
+            // old emitter reported a frozen "100%" through the whole convert;
+            // the honest shape is a distinct stage with no percent at all.
+            self.processing = true;
+            self.speed = None;
+            self.eta = None;
+            force = true;
+        }
+
+        let overall = self.overall_percent();
+        let percent_changed = match (self.last_sent_percent, overall) {
             (Some(previous), Some(next)) => (next - previous).abs() >= 1.0,
             (None, Some(_)) => true,
+            (Some(_), None) => true,
             _ => false,
         };
         let elapsed = self.last_emit.elapsed() >= Duration::from_millis(550);
 
         if force || percent_changed || elapsed {
-            self.flush();
+            self.flush(line);
         }
     }
 
-    fn flush(&mut self) {
+    fn overall_percent(&self) -> Option<f64> {
+        if self.processing {
+            return None;
+        }
+        Some(overall_percent(
+            self.current_item,
+            self.total_items,
+            self.streams_seen,
+            self.expected_streams,
+            self.stream_percent,
+        ))
+    }
+
+    fn detail(&self) -> Option<String> {
+        if self.total_items > 1 {
+            Some(format!("{}/{}", self.current_item, self.total_items))
+        } else {
+            None
+        }
+    }
+
+    fn flush(&mut self, message: &str) {
         self.last_emit = Instant::now();
-        self.last_percent = self.pending_percent;
-        emit_progress(
+        let overall = self.overall_percent();
+        self.last_sent_percent = overall;
+        emit_progress_full(
             self.app_handle,
             &self.job_id,
-            &self.pending_stage,
-            &self.pending_message,
-            self.pending_percent,
+            if self.processing { "processing" } else { "downloading" },
+            &compact_progress_message(message),
+            overall,
+            self.speed.clone(),
+            self.eta.clone(),
+            self.detail(),
         );
     }
+
+    fn finish(&mut self) {
+        // Final flush so the last state always lands regardless of throttling.
+        self.flush("");
+    }
+}
+
+/// One monotonic figure for the whole job: items advance the outer scale,
+/// streams advance within an item. Pure so the arithmetic is testable.
+fn overall_percent(
+    current_item: u32,
+    total_items: u32,
+    streams_seen: u32,
+    expected_streams: u32,
+    stream_percent: f64,
+) -> f64 {
+    let total_items = total_items.max(1) as f64;
+    let expected = expected_streams.max(1) as f64;
+    let completed_streams = streams_seen.saturating_sub(1).min(expected_streams - 1) as f64;
+    let item_fraction = (completed_streams + stream_percent / 100.0) / expected;
+    let done_items = (current_item.max(1) - 1) as f64;
+    (((done_items + item_fraction) / total_items) * 100.0).clamp(0.0, 100.0)
 }
 
 fn compact_progress_message(message: &str) -> String {
@@ -1482,6 +1715,20 @@ fn emit_progress(
     message: &str,
     percent: Option<f64>,
 ) {
+    emit_progress_full(app_handle, job_id, stage, message, percent, None, None, None);
+}
+
+#[allow(clippy::too_many_arguments)]
+fn emit_progress_full(
+    app_handle: &AppHandle,
+    job_id: &str,
+    stage: &str,
+    message: &str,
+    percent: Option<f64>,
+    speed: Option<String>,
+    eta: Option<String>,
+    detail: Option<String>,
+) {
     let _ = app_handle.emit(
         "youtube_download_progress",
         YoutubeDownloadProgress {
@@ -1489,6 +1736,9 @@ fn emit_progress(
             stage: stage.to_string(),
             message: message.to_string(),
             percent,
+            speed,
+            eta,
+            detail,
         },
     );
 }
@@ -1496,6 +1746,57 @@ fn emit_progress(
 #[cfg(test)]
 mod downloader_tests {
     use super::*;
+
+    #[test]
+    fn overall_percent_single_stream_is_identity() {
+        assert_eq!(overall_percent(1, 1, 1, 1, 0.0), 0.0);
+        assert_eq!(overall_percent(1, 1, 1, 1, 47.0), 47.0);
+        assert_eq!(overall_percent(1, 1, 1, 1, 100.0), 100.0);
+    }
+
+    #[test]
+    fn overall_percent_two_streams_never_restarts() {
+        // Video stream fills the first half of the bar...
+        assert_eq!(overall_percent(1, 1, 1, 2, 100.0), 50.0);
+        // ...and the audio stream fills the second half, from where it left off.
+        assert_eq!(overall_percent(1, 1, 2, 2, 0.0), 50.0);
+        assert_eq!(overall_percent(1, 1, 2, 2, 100.0), 100.0);
+    }
+
+    #[test]
+    fn overall_percent_playlist_positions_items() {
+        // Item 3 of 4 half done, single-stream items: 2.5/4 of the whole.
+        assert_eq!(overall_percent(3, 4, 1, 1, 50.0), 62.5);
+        // First item untouched: zero, not a leftover from a previous sweep.
+        assert_eq!(overall_percent(1, 4, 0, 1, 0.0), 0.0);
+    }
+
+    #[test]
+    fn progress_regex_ignores_percent_in_titles() {
+        let re = Regex::new(
+            r"^\[download\]\s+(\d+(?:\.\d+)?)%(?:.*?\bat\s+(\S+/s))?(?:.*?\bETA\s+([\d:]+))?",
+        )
+        .unwrap();
+        // A real progress line parses, with speed and ETA captured.
+        let caps = re
+            .captures("[download]  45.2% of ~ 120.55MiB at 3.20MiB/s ETA 00:23")
+            .expect("progress line must match");
+        assert_eq!(&caps[1], "45.2");
+        assert_eq!(caps.get(2).unwrap().as_str(), "3.20MiB/s");
+        assert_eq!(caps.get(3).unwrap().as_str(), "00:23");
+        // A title containing a percent must NOT drive the bar.
+        assert!(re
+            .captures("[download] Destination: /d/50% Off Everything [abc].mp4")
+            .is_none());
+    }
+
+    #[test]
+    fn item_regex_reads_playlist_position() {
+        let re = Regex::new(r"^\[download\] Downloading item (\d+) of (\d+)").unwrap();
+        let caps = re.captures("[download] Downloading item 3 of 25").unwrap();
+        assert_eq!(&caps[1], "3");
+        assert_eq!(&caps[2], "25");
+    }
 
     #[test]
     fn a_watch_link_carrying_a_list_is_not_a_collection() {
