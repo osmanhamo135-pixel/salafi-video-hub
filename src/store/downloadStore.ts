@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { ImportResult } from '@/types';
 import { useAppStore } from '@/store/appStore';
 
-export type DownloadStage = 'idle' | 'preparing' | 'installing' | 'downloading' | 'importing' | 'finished' | 'error';
+export type DownloadStage = 'idle' | 'preparing' | 'installing' | 'downloading' | 'processing' | 'importing' | 'finished' | 'error';
 export type DownloadQuality = 'fast' | 'best' | '1080' | '720' | '480';
 export type CookieMode = 'auto' | 'chrome' | 'edge' | 'firefox' | 'brave' | 'opera' | 'none' | 'file';
 
@@ -12,6 +12,12 @@ export interface DownloadProgressPayload {
   stage: DownloadStage;
   message: string;
   percent: number | null;
+  /** "3.2MiB/s", parsed by the backend from yt-dlp's own line. */
+  speed?: string | null;
+  /** "04:23" remaining, same source. */
+  eta?: string | null;
+  /** "3/25" batch position, when yt-dlp reports one. */
+  detail?: string | null;
 }
 
 export interface MediaDownloadResult {
@@ -33,7 +39,11 @@ interface DownloadState {
   activeJobId: string | null;
   stage: DownloadStage;
   message: string;
-  percent: number;
+  /** null = indeterminate: the stage is real work with no measurable percent. */
+  percent: number | null;
+  speed: string | null;
+  eta: string | null;
+  detail: string | null;
   result: MediaDownloadResult | null;
   error: string | null;
   startedAt: number | null;
@@ -49,12 +59,43 @@ interface DownloadState {
   resetCompleted: () => void;
   applyProgress: (payload: DownloadProgressPayload) => void;
   startDownload: () => Promise<void>;
+  cancelDownload: () => Promise<void>;
 }
 
 export const isDownloadWorking = (stage: DownloadStage) =>
-  stage === 'preparing' || stage === 'installing' || stage === 'downloading' || stage === 'importing';
+  stage === 'preparing' ||
+  stage === 'installing' ||
+  stage === 'downloading' ||
+  stage === 'processing' ||
+  stage === 'importing';
 
 let autoClearTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingProgress: DownloadProgressPayload | null = null;
+let progressFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
+const flushProgress = (
+  set: (partial: Partial<DownloadState>) => void,
+  get: () => DownloadState,
+) => {
+  if (progressFlushTimer) {
+    clearTimeout(progressFlushTimer);
+    progressFlushTimer = null;
+  }
+  const payload = pendingProgress;
+  pendingProgress = null;
+  if (!payload) return;
+  const { activeJobId } = get();
+  if (activeJobId && payload.jobId !== activeJobId) return;
+  set({
+    activeJobId: activeJobId ?? payload.jobId,
+    stage: payload.stage,
+    message: payload.message,
+    percent: typeof payload.percent === 'number' ? Math.round(payload.percent) : null,
+    speed: payload.speed ?? null,
+    eta: payload.eta ?? null,
+    detail: payload.detail ?? null,
+  });
+};
 
 const clearAutoClearTimer = () => {
   if (autoClearTimer) {
@@ -75,7 +116,10 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
   activeJobId: null,
   stage: 'idle',
   message: '',
-  percent: 0,
+  percent: null,
+  speed: null,
+  eta: null,
+  detail: null,
   result: null,
   error: null,
   startedAt: null,
@@ -98,7 +142,10 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
       activeJobId: null,
       stage: 'idle',
       message: '',
-      percent: 0,
+      percent: null,
+      speed: null,
+      eta: null,
+      detail: null,
       result: null,
       error: null,
       startedAt: null,
@@ -106,17 +153,38 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
   },
 
   applyProgress: (payload) => {
-    const { activeJobId } = get();
+    const { activeJobId, stage } = get();
     if (activeJobId && payload.jobId !== activeJobId) return;
+    /* Idle panels do not adopt terminal echoes: after a clear, a straggling
+       "finished"/"importing" from the backend used to repopulate the panel
+       and re-light the sidebar dot out of nowhere. */
+    if (!activeJobId && (payload.stage === 'finished' || payload.stage === 'importing')) return;
 
-    set({
-      activeJobId: activeJobId ?? payload.jobId,
-      stage: payload.stage,
-      message: payload.message,
-      percent: typeof payload.percent === 'number'
-        ? Math.round(payload.percent)
-        : get().percent,
-    });
+    pendingProgress = payload;
+    /* Coalesced to ~8 fps. The backend can emit several times a second
+       (percent steps + file lines + the 550ms floor), and each set() used to
+       re-render the whole Downloads page — the jank the owner felt. Stage
+       CHANGES flush immediately so state transitions never lag. */
+    const stageChanged = payload.stage !== stage;
+    if (stageChanged) {
+      flushProgress(set, get);
+      return;
+    }
+    if (progressFlushTimer === null) {
+      progressFlushTimer = setTimeout(() => flushProgress(set, get), 120);
+    }
+  },
+
+  cancelDownload: async () => {
+    const { activeJobId } = get();
+    if (!activeJobId) return;
+    try {
+      await invoke('cancel_download', { jobId: activeJobId });
+      // The running invoke unwinds with the marker; its catch block turns
+      // that into a quiet reset. Nothing else to do here.
+    } catch {
+      /* Cancel is best-effort; the job may have just finished. */
+    }
   },
 
   startDownload: async () => {
@@ -132,7 +200,10 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
       activeJobId: jobId,
       stage: 'preparing',
       message: 'Preparing downloader...',
-      percent: 0,
+      percent: null,
+      speed: null,
+      eta: null,
+      detail: null,
       error: null,
       result: null,
       startedAt: Date.now(),
@@ -159,29 +230,43 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
         stage: 'finished',
         message: 'Download finished.',
         percent: 100,
+        speed: null,
+        eta: null,
         error: null,
       });
-      autoClearTimer = setTimeout(() => {
-        const current = get();
-        if (current.stage !== 'finished') return;
-        set({
-          url: '',
-          activeJobId: null,
-          stage: 'idle',
-          message: '',
-          percent: 0,
-          result: null,
-          error: null,
-          startedAt: null,
-        });
-      }, 18000);
+      /* No auto-clear. The 18s timer silently destroyed the batch card, the
+         folder path and the open button while the user looked away. The
+         result now stays until the next download or an explicit Clear. */
       await useAppStore.getState().refreshPlaylists();
     } catch (downloadError) {
       clearAutoClearTimer();
+      const text =
+        downloadError instanceof Error ? downloadError.message : String(downloadError);
+      if (text.includes('__download_cancelled__')) {
+        /* The user asked for this; it is not an error. Quiet return to idle. */
+        set({
+          activeJobId: null,
+          stage: 'idle',
+          message: '',
+          percent: null,
+          speed: null,
+          eta: null,
+          detail: null,
+          error: null,
+          startedAt: null,
+        });
+        return;
+      }
       set({
         stage: 'error',
-        error: downloadError instanceof Error ? downloadError.message : String(downloadError),
+        error: text,
         message: 'Download failed.',
+        /* The bar no longer sits parked at 63% under a failure headline, and
+           the sidebar dot stops pulsing: the job is over. */
+        percent: null,
+        speed: null,
+        eta: null,
+        activeJobId: null,
       });
     }
   },

@@ -2654,12 +2654,53 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
+    /* Strengthened after the owner's second round of screenshots: the first
+       cut kept the top 22rem light for the hero, but content pages put their
+       H1 and field labels exactly there — the "light zone" was lighting the
+       text that most needed protecting. The ramp now starts firmer and hits
+       full strength within the first screenful. */
     background: linear-gradient(
       180deg,
-      rgb(var(--bg-main-rgb) / 0.18) 0%,
-      rgb(var(--bg-main-rgb) / 0.52) 22rem,
-      rgb(var(--bg-main-rgb) / 0.62) 100%
+      rgb(var(--bg-main-rgb) / 0.34) 0%,
+      rgb(var(--bg-main-rgb) / 0.58) 14rem,
+      rgb(var(--bg-main-rgb) / 0.66) 100%
     );
+  }
+
+  /* ── Indeterminate progress ─────────────────────────────────────────────
+     Real work with no measurable percent — helper installs, format merging,
+     MP3 conversion. The old panel showed a frozen bar (0% or a dishonest
+     100%) through all of it; a sliding pulse says "working, unmeasured"
+     without lying about a number. Falls back to a static half-fill under
+     reduced motion. */
+  .progress-indeterminate {
+    position: relative;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgb(var(--accent-gold-rgb) / 0.18);
+  }
+
+  .progress-indeterminate::after {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    width: 34%;
+    border-radius: 999px;
+    background: rgb(var(--accent-gold-rgb));
+    animation: progress-slide 1.4s var(--ease-standard) infinite;
+  }
+
+  @keyframes progress-slide {
+    from { inset-inline-start: -34%; }
+    to   { inset-inline-start: 100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .progress-indeterminate::after {
+      animation: none;
+      inset-inline-start: 0;
+      width: 50%;
+    }
   }
 
   /* Tier 2 — one slow light sweep. Compositor-only: transform and opacity,

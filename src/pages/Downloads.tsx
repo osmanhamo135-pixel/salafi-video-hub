@@ -62,9 +62,13 @@ export const Downloads: React.FC = () => {
   const stage = useDownloadStore((state) => state.stage);
   const message = useDownloadStore((state) => state.message);
   const percent = useDownloadStore((state) => state.percent);
+  const speed = useDownloadStore((state) => state.speed);
+  const eta = useDownloadStore((state) => state.eta);
+  const detail = useDownloadStore((state) => state.detail);
   const result = useDownloadStore((state) => state.result);
   const error = useDownloadStore((state) => state.error);
   const startDownload = useDownloadStore((state) => state.startDownload);
+  const cancelDownload = useDownloadStore((state) => state.cancelDownload);
   const resetCompleted = useDownloadStore((state) => state.resetCompleted);
 
   const isWorking = isDownloadWorking(stage);
@@ -259,12 +263,24 @@ export const Downloads: React.FC = () => {
               {isWorking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               {isWorking ? t('downloading') : t('startDownload')}
             </button>
+            {isWorking && (
+              <button
+                type="button"
+                onClick={() => void cancelDownload()}
+                className="btn-secondary mt-2 w-full justify-center py-2 text-sm"
+              >
+                <X className="h-4 w-4" />
+                {t('cancel')}
+              </button>
+            )}
           </section>
 
           <aside className="border-border xl:border-s xl:ps-6">
             <div className="rule-head">
               <span className="text-xs font-semibold text-text-primary">{t('progress')}</span>
-              <span className="text-[11px] tabular-nums text-muted-text"><bdi>{percent}%</bdi></span>
+              {percent !== null && stage !== 'idle' && (
+                <span className="text-[11px] tabular-nums text-muted-text"><bdi>{percent}%</bdi></span>
+              )}
             </div>
 
             <div className="mt-3 flex items-start gap-2.5">
@@ -277,6 +293,11 @@ export const Downloads: React.FC = () => {
               )}
               <div className="min-w-0">
                 <p className="text-sm text-text-primary" dir="auto">{statusMessage}</p>
+                {(speed || eta || detail) && (
+                  <p className="mt-0.5 text-xs tabular-nums text-muted-text" dir="ltr">
+                    {[detail, speed, eta ? `ETA ${eta}` : null].filter(Boolean).join(' · ')}
+                  </p>
+                )}
                 <p className="truncate text-xs text-muted-text" dir="auto" title={outputDir}>
                   {outputDir || t('defaultDownloadsFolder')}
                 </p>
@@ -286,10 +307,14 @@ export const Downloads: React.FC = () => {
             {/* One warm accent, drawn from the theme token, over a value step of
                 the same hue — no second colour and no shadow. */}
             <div className="mt-3 h-1 overflow-hidden rounded-full bg-accent-gold/15">
-              <div
-                className="h-full rounded-full bg-accent-gold transition-all motion-reduce:transition-none"
-                style={{ width: `${Math.min(Math.max(percent, 0), 100)}%` }}
-              />
+              {percent === null && isWorking ? (
+                <div className="progress-indeterminate h-full" />
+              ) : (
+                <div
+                  className="h-full rounded-full bg-accent-gold transition-all motion-reduce:transition-none"
+                  style={{ width: `${Math.min(Math.max(percent ?? 0, 0), 100)}%` }}
+                />
+              )}
             </div>
 
             {error && (
@@ -334,9 +359,6 @@ export const Downloads: React.FC = () => {
                   </p>
                 )}
 
-                {stage === 'finished' && (
-                  <p className="text-[11px] text-muted-text">{t('clearsAutomatically')}</p>
-                )}
               </div>
             )}
           </aside>
@@ -501,6 +523,9 @@ const localizeProgressMessage = (
 ) => {
   if (stage === 'preparing') return t('preparingDownloader');
   if (stage === 'installing') return t('installingDownloader');
+  if (stage === 'downloading') return t('dlDownloading');
+  if (stage === 'processing') return t('dlProcessing');
+  if (stage === 'importing') return t('dlImporting');
   if (stage === 'finished') return t('downloadFinished');
   if (stage === 'error') return t('downloadFailed');
   return message;
