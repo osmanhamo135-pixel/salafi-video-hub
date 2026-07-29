@@ -1,0 +1,126 @@
+name: Mirror release to public repository
+
+# Mirrors a finished release into the PUBLIC releases repository — the repo
+# installed apps poll first, and the only one that survives the source repo
+# going private. Callable from release.yml (every release) and dispatchable
+# by hand to re-mirror a tag whose mirror shipped broken.
+#
+# Why the URL rewrite is by ASSET NAME, not string replace: tauri-action
+# writes latest.json URLs in the API form
+#   https://api.github.com/repos/OWNER/REPO/releases/assets/<numeric id>
+# A textual repo-name swap keeps the numeric id — which belongs to the
+# SOURCE repo's asset — so every download from the mirror 404s while the
+# check itself succeeds. The owner hit exactly this on 1.46.0 -> 1.48.0.
+# Each URL is therefore resolved to its asset's real filename and rebuilt as
+# the public repo's own download path; the job refuses to publish a manifest
+# that references a file it did not download. Signatures are untouched: they
+# sign the artifact bytes, not the URL.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to mirror, for example v1.48.0'
+        required: true
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+
+jobs:
+  mirror:
+    permissions:
+      contents: read
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Mirror release assets to the public repository
+        env:
+          SOURCE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          SOURCE_REPO: ${{ github.repository }}
+          PUBLIC_REPO: osmanhamo135-pixel/salafi-video-hub-releases
+        run: |
+          set -euo pipefail
+          mkdir assets
+          cd assets
+          GH_TOKEN="$SOURCE_TOKEN" gh release download "$TAG" --repo "$SOURCE_REPO"
+          # Asset id -> stored asset name, from the source release. GitHub
+          # already normalised the names at upload (spaces became dots), so
+          # these are exactly the path segments the public URLs need.
+          GH_TOKEN="$SOURCE_TOKEN" gh api "repos/$SOURCE_REPO/releases/tags/$TAG" \
+            --jq '.assets[] | [(.id|tostring), .name] | @tsv' > asset-map.tsv
+          if [ -f latest.json ]; then
+            python3 - <<'PY'
+          import json
+          import os
+          import re
+          import sys
+          import urllib.parse
+          with open('latest.json') as f:
+              data = json.load(f)
+          src = os.environ['SOURCE_REPO']
+          pub = os.environ['PUBLIC_REPO']
+          tag = os.environ['TAG']
+          names = {}
+          with open('asset-map.tsv') as f:
+              for line in f:
+                  asset_id, _, name = line.rstrip('\n').partition('\t')
+                  names[asset_id] = name
+          local = set(os.listdir('.'))
+          for key, platform in data.get('platforms', {}).items():
+              url = platform.get('url', '')
+              m = re.search(r'/releases/assets/(\d+)$', url)
+              if m:
+                  name = names.get(m.group(1))
+                  if name is None:
+                      sys.exit(f'{key}: asset id {m.group(1)} is not on source release {tag}')
+              else:
+                  name = urllib.parse.unquote(url.rsplit('/', 1)[-1])
+              if name not in local:
+                  sys.exit(f'{key}: {name} was not downloaded — refusing to publish a manifest that would 404')
+              platform['url'] = f'https://github.com/{pub}/releases/download/{tag}/{urllib.parse.quote(name)}'
+          with open('latest.json', 'w') as f:
+              json.dump(data, f, indent=2)
+          print(f'rewrote {len(data.get("platforms", {}))} platform URLs to {pub}')
+          PY
+          fi
+          rm asset-map.tsv
+          # Draft -> upload -> publish, in that order, deliberately. A release
+          # created live becomes /releases/latest IMMEDIATELY, while its
+          # latest.json is still uploading — and every client that checks for
+          # updates inside that window gets a raw 404. A draft is invisible
+          # to /latest until the flip, which is atomic: the new version
+          # appears only when every asset is already in place. (An existing
+          # published release being re-mirrored skips the draft dance; the
+          # upload --clobber below repairs it in place.)
+          if ! gh release view "$TAG" --repo "$PUBLIC_REPO" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$PUBLIC_REPO" --draft \
+              --title "Salafi Video Hub $TAG" \
+              --notes "Official signed build. The application source is proprietary — see the licence shipped with the app."
+          fi
+          gh release upload "$TAG" ./* --repo "$PUBLIC_REPO" --clobber
+          gh release edit "$TAG" --repo "$PUBLIC_REPO" --draft=false
+          # Prove the manifest before calling it done: every URL it serves
+          # must answer. A mirror that cannot pass this check is worse than
+          # no mirror — the check succeeds and the download dies.
+          sleep 5
+          python3 - <<'PY'
+          import json
+          import sys
+          import urllib.request
+          with open('latest.json') as f:
+              data = json.load(f)
+          failed = False
+          for key, platform in data.get('platforms', {}).items():
+              req = urllib.request.Request(platform['url'], method='HEAD')
+              try:
+                  with urllib.request.urlopen(req) as resp:
+                      print(f'{key}: HTTP {resp.status}')
+              except Exception as exc:
+                  print(f'{key}: FAILED {exc}')
+                  failed = True
+          if failed:
+              sys.exit('mirror published but at least one platform URL does not resolve')
+          PY
