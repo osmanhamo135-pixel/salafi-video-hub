@@ -97,6 +97,15 @@ fn detect_resource_ffmpeg(
         candidates.push(resource_dir.join(FFMPEG_BIN));
         candidates.push(resource_dir.join("resources").join(FFMPEG_BIN));
         candidates.push(resource_dir.join("ffmpeg").join(FFMPEG_BIN));
+        // Where "resources/ffmpeg/ffmpeg.exe" from tauri.windows.conf.json
+        // actually lands: the bundler preserves the path relative to the
+        // config dir.
+        candidates.push(
+            resource_dir
+                .join("resources")
+                .join("ffmpeg")
+                .join(FFMPEG_BIN),
+        );
     }
 
     for ffmpeg_path in candidates {

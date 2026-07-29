@@ -240,6 +240,9 @@ export const AmbientLayer: React.FC = () => {
       {tier >= 1 && <div className="ambient-scene" />}
       {tier >= 2 && <div className="ambient-sweep" />}
       {tier >= 3 && <canvas ref={canvasRef} className="ambient-canvas" />}
+      {/* Above everything the layer paints, below everything the app draws:
+          the scene may never outshine the page. */}
+      {tier >= 1 && <div className="ambient-veil" />}
     </div>
   );
 };

@@ -7,6 +7,8 @@
     ],
     "resources": [
       "resources/yt-dlp.exe",
+      "resources/ffmpeg/ffmpeg.exe",
+      "resources/ffmpeg/ffprobe.exe",
       "resources/quran.json",
       "resources/QURAN_TEXT_NOTICE.txt",
       "resources/quran-warsh.json",
