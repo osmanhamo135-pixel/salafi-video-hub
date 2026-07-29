@@ -1,0 +1,16 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "targets": [
+      "nsis",
+      "msi"
+    ],
+    "resources": [
+      "resources/yt-dlp.exe",
+      "resources/quran.json",
+      "resources/QURAN_TEXT_NOTICE.txt",
+      "resources/quran-warsh.json",
+      "resources/QURAN_WARSH_NOTICE.txt"
+    ]
+  }
+}

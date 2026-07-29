@@ -1,5 +1,7 @@
 use crate::utils::paths::get_app_data_dir;
-use crate::utils::process::{hidden_command, ps_single_quote};
+use crate::utils::process::hidden_command;
+#[cfg(windows)]
+use crate::utils::process::ps_single_quote;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -7,8 +9,21 @@ use tauri::{AppHandle, Manager};
 use uuid::Uuid;
 use walkdir::WalkDir;
 
-const FFMPEG_ZIP_URL: &str =
+/* Same BtbN builds on both platforms — one project, one licence, one layout
+   (bin/ inside a versioned folder), so the extraction walk stays shared. */
+#[cfg(windows)]
+const FFMPEG_ARCHIVE_URL: &str =
     "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip";
+#[cfg(not(windows))]
+const FFMPEG_ARCHIVE_URL: &str =
+    "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz";
+
+const FFMPEG_BIN: &str = if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" };
+const FFPROBE_BIN: &str = if cfg!(windows) { "ffprobe.exe" } else { "ffprobe" };
+/* On Windows, plain `curl` can resolve to a PowerShell alias for
+   Invoke-WebRequest with different flags; `curl.exe` pins the real binary.
+   Unix has no such trap. */
+const CURL_BIN: &str = if cfg!(windows) { "curl.exe" } else { "curl" };
 
 static FFMPEG_INSTALL_LOCK: Mutex<()> = Mutex::new(());
 
@@ -66,8 +81,8 @@ fn detect_app_owned_ffmpeg(
 ) -> Option<(Option<String>, Option<String>, String, Option<String>)> {
     let dir = app_ffmpeg_dir(app_handle).ok()?;
     detect_pair(
-        dir.join("ffmpeg.exe"),
-        dir.join("ffprobe.exe"),
+        dir.join(FFMPEG_BIN),
+        dir.join(FFPROBE_BIN),
         "app".to_string(),
         true,
     )
@@ -79,13 +94,13 @@ fn detect_resource_ffmpeg(
     let mut candidates = Vec::new();
 
     if let Ok(resource_dir) = app_handle.path().resource_dir() {
-        candidates.push(resource_dir.join("ffmpeg.exe"));
-        candidates.push(resource_dir.join("resources").join("ffmpeg.exe"));
-        candidates.push(resource_dir.join("ffmpeg").join("ffmpeg.exe"));
+        candidates.push(resource_dir.join(FFMPEG_BIN));
+        candidates.push(resource_dir.join("resources").join(FFMPEG_BIN));
+        candidates.push(resource_dir.join("ffmpeg").join(FFMPEG_BIN));
     }
 
     for ffmpeg_path in candidates {
-        let ffprobe_path = ffmpeg_path.with_file_name("ffprobe.exe");
+        let ffprobe_path = ffmpeg_path.with_file_name(FFPROBE_BIN);
         if let Some(found) = detect_pair(ffmpeg_path, ffprobe_path, "bundled".to_string(), true) {
             return Some(found);
         }
@@ -98,13 +113,13 @@ fn detect_without_app_paths() -> (Option<String>, Option<String>, String, Option
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
             let candidates = [
-                exe_dir.join("ffmpeg.exe"),
-                exe_dir.join("resources").join("ffmpeg.exe"),
-                exe_dir.join("ffmpeg").join("ffmpeg.exe"),
+                exe_dir.join(FFMPEG_BIN),
+                exe_dir.join("resources").join(FFMPEG_BIN),
+                exe_dir.join("ffmpeg").join(FFMPEG_BIN),
             ];
 
             for ffmpeg_path in candidates {
-                let ffprobe_path = ffmpeg_path.with_file_name("ffprobe.exe");
+                let ffprobe_path = ffmpeg_path.with_file_name(FFPROBE_BIN);
                 if let Some(found) =
                     detect_pair(ffmpeg_path, ffprobe_path, "bundled".to_string(), true)
                 {
@@ -115,9 +130,10 @@ fn detect_without_app_paths() -> (Option<String>, Option<String>, String, Option
     }
 
     if let Ok(path_var) = std::env::var("PATH") {
-        for path_dir in path_var.split(';') {
-            let ffmpeg_path = PathBuf::from(path_dir).join("ffmpeg.exe");
-            let ffprobe_path = PathBuf::from(path_dir).join("ffprobe.exe");
+        // split_paths, not split(';') — the separator is ':' on Unix.
+        for path_dir in std::env::split_paths(&path_var) {
+            let ffmpeg_path = path_dir.join(FFMPEG_BIN);
+            let ffprobe_path = path_dir.join(FFPROBE_BIN);
 
             if let Some(found) = detect_pair(ffmpeg_path, ffprobe_path, "system".to_string(), false)
             {
@@ -126,16 +142,19 @@ fn detect_without_app_paths() -> (Option<String>, Option<String>, String, Option
         }
     }
 
-    let common_paths = [
-        r"C:\ffmpeg\bin\ffmpeg.exe",
-        r"C:\Program Files\ffmpeg\bin\ffmpeg.exe",
-        r"C:\Program Files (x86)\ffmpeg\bin\ffmpeg.exe",
-        r"C:\tools\ffmpeg\bin\ffmpeg.exe",
+    #[cfg(windows)]
+    let common_dirs = [
+        r"C:\ffmpeg\bin",
+        r"C:\Program Files\ffmpeg\bin",
+        r"C:\Program Files (x86)\ffmpeg\bin",
+        r"C:\tools\ffmpeg\bin",
     ];
+    #[cfg(not(windows))]
+    let common_dirs = ["/usr/bin", "/usr/local/bin", "/snap/bin", "/opt/homebrew/bin"];
 
-    for path_str in &common_paths {
-        let ffmpeg_path = PathBuf::from(path_str);
-        let ffprobe_path = PathBuf::from(path_str.replace("ffmpeg.exe", "ffprobe.exe"));
+    for dir in &common_dirs {
+        let ffmpeg_path = PathBuf::from(dir).join(FFMPEG_BIN);
+        let ffprobe_path = PathBuf::from(dir).join(FFPROBE_BIN);
 
         if let Some(found) = detect_pair(ffmpeg_path, ffprobe_path, "system".to_string(), false) {
             return found;
@@ -187,13 +206,14 @@ fn install_app_ffmpeg(app_handle: &AppHandle) -> Result<(), String> {
 
     // Do the work inside a closure so the temp folder is always cleaned up afterwards.
     let outcome = (|| {
-        let zip_path = temp_root.join("ffmpeg.zip");
-        download_ffmpeg_zip(&zip_path)?;
-        extract_zip(&zip_path, &temp_root)?;
+        let archive_name = if cfg!(windows) { "ffmpeg.zip" } else { "ffmpeg.tar.xz" };
+        let archive_path = temp_root.join(archive_name);
+        download_ffmpeg_archive(&archive_path)?;
+        extract_archive(&archive_path, &temp_root)?;
 
         let (ffmpeg_src, ffprobe_src) = locate_ffmpeg_binaries(&temp_root)?;
-        let ffmpeg_dest = target_dir.join("ffmpeg.exe");
-        let ffprobe_dest = target_dir.join("ffprobe.exe");
+        let ffmpeg_dest = target_dir.join(FFMPEG_BIN);
+        let ffprobe_dest = target_dir.join(FFPROBE_BIN);
         copy_file(&ffmpeg_src, &ffmpeg_dest)?;
         copy_file(&ffprobe_src, &ffprobe_dest)?;
 
@@ -213,25 +233,36 @@ fn install_app_ffmpeg(app_handle: &AppHandle) -> Result<(), String> {
 fn copy_file(src: &Path, dest: &Path) -> Result<(), String> {
     fs::copy(src, dest)
         .map(|_| ())
-        .map_err(|e| format!("Could not copy {}: {}", src.display(), e))
+        .map_err(|e| format!("Could not copy {}: {}", src.display(), e))?;
+
+    // fs::copy carries permission bits, but only the ones the archive gave
+    // us — a tar extracted through a picky umask can arrive 644. The binary
+    // is unusable without the executable bit, so set it outright.
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = fs::set_permissions(dest, fs::Permissions::from_mode(0o755));
+    }
+
+    Ok(())
 }
 
-fn download_ffmpeg_zip(zip_path: &Path) -> Result<(), String> {
+fn download_ffmpeg_archive(archive_path: &Path) -> Result<(), String> {
     let mut errors = Vec::new();
 
-    match download_url_with_curl(FFMPEG_ZIP_URL, zip_path) {
-        Ok(()) if zip_looks_complete(zip_path) => return Ok(()),
+    match download_url_with_curl(FFMPEG_ARCHIVE_URL, archive_path) {
+        Ok(()) if archive_looks_complete(archive_path) => return Ok(()),
         Ok(()) => errors.push("curl produced an incomplete archive".to_string()),
         Err(error) => errors.push(error),
     }
-    let _ = fs::remove_file(zip_path);
+    let _ = fs::remove_file(archive_path);
 
-    match download_url_with_powershell(FFMPEG_ZIP_URL, zip_path) {
-        Ok(()) if zip_looks_complete(zip_path) => return Ok(()),
-        Ok(()) => errors.push("PowerShell produced an incomplete archive".to_string()),
+    match download_url_with_fallback(FFMPEG_ARCHIVE_URL, archive_path) {
+        Ok(()) if archive_looks_complete(archive_path) => return Ok(()),
+        Ok(()) => errors.push("fallback downloader produced an incomplete archive".to_string()),
         Err(error) => errors.push(error),
     }
-    let _ = fs::remove_file(zip_path);
+    let _ = fs::remove_file(archive_path);
 
     Err(format!(
         "Could not download FFmpeg. Check your internet connection and try again. Details: {}",
@@ -239,15 +270,41 @@ fn download_ffmpeg_zip(zip_path: &Path) -> Result<(), String> {
     ))
 }
 
-fn zip_looks_complete(zip_path: &Path) -> bool {
-    fs::metadata(zip_path)
+fn archive_looks_complete(archive_path: &Path) -> bool {
+    fs::metadata(archive_path)
         .map(|metadata| metadata.len() > 1_000_000)
         .unwrap_or(false)
 }
 
+/* The second-chance downloader when curl is absent or blocked: PowerShell on
+   Windows, wget on Unix. Both ship by default on their platforms. */
+#[cfg(windows)]
+fn download_url_with_fallback(url: &str, dest: &Path) -> Result<(), String> {
+    download_url_with_powershell(url, dest)
+}
+
+#[cfg(not(windows))]
+fn download_url_with_fallback(url: &str, dest: &Path) -> Result<(), String> {
+    let dest_string = dest.to_string_lossy().to_string();
+    let output = hidden_command("wget")
+        .args(["-q", "--tries=3", "--timeout=30", "-O", &dest_string, url])
+        .output()
+        .map_err(|e| format!("wget unavailable: {}", e))?;
+
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(format_process_error(
+            "wget download failed",
+            &output.stderr,
+            &[],
+        ))
+    }
+}
+
 fn download_url_with_curl(url: &str, dest: &Path) -> Result<(), String> {
     let dest_string = dest.to_string_lossy().to_string();
-    let output = hidden_command("curl.exe")
+    let output = hidden_command(CURL_BIN)
         .args([
             "-L",
             "--fail",
@@ -275,6 +332,7 @@ fn download_url_with_curl(url: &str, dest: &Path) -> Result<(), String> {
     }
 }
 
+#[cfg(windows)]
 fn download_url_with_powershell(url: &str, dest: &Path) -> Result<(), String> {
     let script = format!(
         "$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri {} -OutFile {}",
@@ -284,14 +342,40 @@ fn download_url_with_powershell(url: &str, dest: &Path) -> Result<(), String> {
     run_powershell_script(&script).map_err(|error| format!("PowerShell download failed: {}", error))
 }
 
-fn extract_zip(zip_path: &Path, dest_dir: &Path) -> Result<(), String> {
+#[cfg(windows)]
+fn extract_archive(archive_path: &Path, dest_dir: &Path) -> Result<(), String> {
     let script = format!(
         "$ErrorActionPreference='Stop'; Expand-Archive -LiteralPath {} -DestinationPath {} -Force",
-        ps_single_quote(&zip_path.to_string_lossy()),
+        ps_single_quote(&archive_path.to_string_lossy()),
         ps_single_quote(&dest_dir.to_string_lossy()),
     );
     run_powershell_script(&script)
         .map_err(|error| format!("Could not extract the FFmpeg archive: {}", error))
+}
+
+#[cfg(not(windows))]
+fn extract_archive(archive_path: &Path, dest_dir: &Path) -> Result<(), String> {
+    // tar decodes .tar.xz itself (-J) on every mainstream distro; shelling out
+    // beats vendoring an xz decoder for a once-per-install code path.
+    let output = hidden_command("tar")
+        .args([
+            "-xJf",
+            &archive_path.to_string_lossy(),
+            "-C",
+            &dest_dir.to_string_lossy(),
+        ])
+        .output()
+        .map_err(|e| format!("tar unavailable: {}", e))?;
+
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(format_process_error(
+            "Could not extract the FFmpeg archive",
+            &output.stderr,
+            &[],
+        ))
+    }
 }
 
 fn locate_ffmpeg_binaries(root: &Path) -> Result<(PathBuf, PathBuf), String> {
@@ -308,8 +392,12 @@ fn locate_ffmpeg_binaries(root: &Path) -> Result<(PathBuf, PathBuf), String> {
             .map(|name| name.to_lowercase())
             .as_deref()
         {
-            Some("ffmpeg.exe") if ffmpeg.is_none() => ffmpeg = Some(entry.path().to_path_buf()),
-            Some("ffprobe.exe") if ffprobe.is_none() => ffprobe = Some(entry.path().to_path_buf()),
+            Some(name) if name == FFMPEG_BIN && ffmpeg.is_none() => {
+                ffmpeg = Some(entry.path().to_path_buf())
+            }
+            Some(name) if name == FFPROBE_BIN && ffprobe.is_none() => {
+                ffprobe = Some(entry.path().to_path_buf())
+            }
             _ => {}
         }
         if ffmpeg.is_some() && ffprobe.is_some() {
@@ -319,12 +407,14 @@ fn locate_ffmpeg_binaries(root: &Path) -> Result<(PathBuf, PathBuf), String> {
 
     match (ffmpeg, ffprobe) {
         (Some(ffmpeg), Some(ffprobe)) => Ok((ffmpeg, ffprobe)),
-        _ => Err(
-            "The downloaded FFmpeg archive did not contain ffmpeg.exe and ffprobe.exe.".to_string(),
-        ),
+        _ => Err(format!(
+            "The downloaded FFmpeg archive did not contain {} and {}.",
+            FFMPEG_BIN, FFPROBE_BIN
+        )),
     }
 }
 
+#[cfg(windows)]
 fn run_powershell_script(script: &str) -> Result<(), String> {
     let output = hidden_command("powershell.exe")
         .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script])

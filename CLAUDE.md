@@ -74,7 +74,13 @@ build one and seed real data, then Playwright drives Chromium at
 `/opt/pw-browsers/chromium`. Sweep 5 themes x 2 languages before shipping —
 several bugs here only appeared in one theme or one direction.
 
-Windows-only paths (`Open externally`, `Reveal in folder`) compile only in CI.
+The app ships for **Windows and Linux**. The Rust helpers (ffmpeg, yt-dlp,
+open/reveal) are platform-switched on `cfg`; the Windows-only branches compile
+only in CI, the Linux branches compile natively here — `cargo test` exercises
+them. Platform bundling lives in `tauri.windows.conf.json` (nsis/msi,
+bundled yt-dlp.exe) and `tauri.linux.conf.json` (appimage/deb; yt-dlp is
+downloaded on demand, not bundled). Only the AppImage auto-updates on Linux —
+deb installs are updated by their package manager, not by the app.
 
 ## Releasing
 
@@ -84,9 +90,14 @@ Bump the version in **five** places, or `tauri-action` fails the tag check:
 `salafi-video-hub` entry — note `typenum` carries its own unrelated version).
 
 Then commit, push, open a PR, squash-merge, and dispatch `release.yml` on
-`main` with `{"version":"X.Y.Z","draft":"false"}`. Confirm afterwards that
-`latest.json` reports the new version and every platform entry carries a
-signature — that file is the updater endpoint the installed app polls.
+`main` with `{"version":"X.Y.Z","draft":"false"}`. The Windows job publishes
+first; the Linux job then adds its artifacts to the same release and merges
+its entries into `latest.json` (the sequencing is deliberate — see the
+comment in release.yml). Confirm afterwards that `latest.json` reports the
+new version and every platform entry (three windows-x86_64 variants plus
+linux-x86_64) carries a signature — that file is the updater endpoint the
+installed app polls. A missing linux entry with intact windows entries means
+the Linux job failed; that is degraded, not broken.
 
 A squash-merge rewrites `main`, so a branch that predates it will conflict.
 Restart from `origin/main` and cherry-pick the new commits rather than merging.

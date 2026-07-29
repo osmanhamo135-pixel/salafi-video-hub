@@ -68,7 +68,10 @@ fn counts(db: &DbState) -> (i64, i64) {
 }
 
 fn ytdlp_version(app_handle: &AppHandle) -> Option<String> {
-    let path = get_app_data_dir(app_handle).ok()?.join("tools").join("yt-dlp.exe");
+    let path = get_app_data_dir(app_handle)
+        .ok()?
+        .join("tools")
+        .join(crate::commands::downloader::YT_DLP_RESOURCE_NAME);
     if !path.exists() {
         return None;
     }
