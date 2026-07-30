@@ -18,9 +18,13 @@ import { YoutubeSearchItem } from '@/store/watchStore';
  *   newest-first uploads list, and everything before that index is new.
  *   Opening the profile marks it seen. This is how a muhaddith's student
  *   actually uses it: "what has the shaykh put out since I last looked?"
- * - Catalogs cache in memory only. They are one yt-dlp call to refetch and
- *   go stale by nature; persisting them would just serve last week's list
- *   with confidence.
+ * - Quick catalogs cache in memory only — they are one cheap yt-dlp call to
+ *   refetch. A FULLY loaded catalog is different: it costs a minute-plus of
+ *   enumeration for a big channel, so it is cached on disk (a few MB of
+ *   text, one JSON file per profile in app data — the reader's own machine,
+ *   never a remote service) and rehydrated on start. The routine refresh
+ *   then merges the fresh head on top, so the cache never quietly serves
+ *   last week's list as current.
  * - The channel's identity (avatar, handle, subscriber count) DOES persist
  *   on the profile: the card must look whole on app start, before the
  *   six-hour stale window has any reason to refetch.
@@ -56,6 +60,14 @@ export interface ChannelCatalog {
   channelHandle: string | null;
   subscriberCount: number | null;
   videos: YoutubeSearchItem[];
+}
+
+/** What the on-disk full-catalog cache holds, versioned for future shape
+    changes — an unknown version reads as a miss, never a crash. */
+interface CachedCatalogEnvelope {
+  version: 1;
+  cachedAt: number;
+  catalog: ChannelCatalog;
 }
 
 const STORAGE_KEY = 'salafi-hub.shuyukh.v1';
@@ -96,12 +108,17 @@ interface ShuyukhState {
   catalogs: Record<string, ChannelCatalog>;
   /** Ids whose in-memory catalog holds the channel's entire uploads list. */
   fullyLoaded: Record<string, boolean>;
+  /** Ids whose disk cache has been consulted this session. */
+  hydrated: Record<string, boolean>;
   loading: Record<string, boolean>;
   /** The heavy whole-channel fetch, distinct so the UI can say so. */
   loadingFull: Record<string, boolean>;
   errors: Record<string, string | null>;
   addProfile: (name: string, channelUrl: string) => Promise<ShaykhProfile | null>;
   removeProfile: (id: string) => void;
+  /** Installs a disk-cached full catalog, if one exists. Cheap after the
+      first call per profile. */
+  hydrateCatalog: (id: string) => Promise<void>;
   refreshProfile: (id: string) => Promise<void>;
   /** Fetches every upload on the channel, not just the newest QUICK_LIMIT. */
   loadFullCatalog: (id: string) => Promise<void>;
@@ -118,6 +135,7 @@ export const useShuyukhStore = create<ShuyukhState>((set, get) => {
   const applyCatalog = (id: string, catalog: ChannelCatalog, fullyLoaded: boolean) => {
     const profile = get().profiles.find((p) => p.id === id);
     if (!profile) return;
+    const wasFullBefore = Boolean(get().fullyLoaded[id]);
     const seenIndex = profile.lastSeenVideoId
       ? catalog.videos.findIndex((v) => v.id === profile.lastSeenVideoId)
       : -1;
@@ -145,15 +163,59 @@ export const useShuyukhStore = create<ShuyukhState>((set, get) => {
       fullyLoaded: { ...s.fullyLoaded, [id]: fullyLoaded },
     }));
     writeProfiles(profiles);
+
+    /* The disk cache mirrors the fully-loaded state, best-effort: a full
+       catalog (fresh or merged) is worth a minute of enumeration and gets
+       written; a demotion to a quick slice removes the file so a stale
+       "whole channel" is never rehydrated as the truth. */
+    if (fullyLoaded) {
+      const envelope: CachedCatalogEnvelope = { version: 1, cachedAt: Date.now(), catalog };
+      void invoke('shuyukh_catalog_cache_write', { profileId: id, envelope }).catch(() => {});
+    } else if (wasFullBefore) {
+      void invoke('shuyukh_catalog_cache_remove', { profileId: id }).catch(() => {});
+    }
   };
 
   return {
     profiles: readProfiles(),
     catalogs: {},
     fullyLoaded: {},
+    hydrated: {},
     loading: {},
     loadingFull: {},
     errors: {},
+
+    hydrateCatalog: async (id) => {
+      if (get().hydrated[id] || get().catalogs[id]) {
+        set((s) => ({ hydrated: { ...s.hydrated, [id]: true } }));
+        return;
+      }
+      try {
+        const envelope = await invoke<CachedCatalogEnvelope | null>(
+          'shuyukh_catalog_cache_read',
+          { profileId: id },
+        );
+        if (
+          envelope &&
+          envelope.version === 1 &&
+          envelope.catalog &&
+          Array.isArray(envelope.catalog.videos) &&
+          envelope.catalog.videos.length > 0 &&
+          // A profile can be removed while the read is in flight.
+          get().profiles.some((p) => p.id === id) &&
+          !get().catalogs[id]
+        ) {
+          set((s) => ({
+            catalogs: { ...s.catalogs, [id]: envelope.catalog },
+            fullyLoaded: { ...s.fullyLoaded, [id]: true },
+          }));
+        }
+      } catch {
+        /* no cache command (harness) or unreadable file: plain cache miss */
+      } finally {
+        set((s) => ({ hydrated: { ...s.hydrated, [id]: true } }));
+      }
+    },
 
     addProfile: async (name, channelUrl) => {
       const trimmedName = name.trim();
@@ -191,14 +253,21 @@ export const useShuyukhStore = create<ShuyukhState>((set, get) => {
       const profiles = get().profiles.filter((p) => p.id !== id);
       const { [id]: _c, ...catalogs } = get().catalogs;
       const { [id]: _f, ...fullyLoaded } = get().fullyLoaded;
+      const { [id]: _h, ...hydrated } = get().hydrated;
       const { [id]: _e, ...errors } = get().errors;
-      set({ profiles, catalogs, fullyLoaded, errors });
+      set({ profiles, catalogs, fullyLoaded, hydrated, errors });
       writeProfiles(profiles);
+      void invoke('shuyukh_catalog_cache_remove', { profileId: id }).catch(() => {});
     },
 
     refreshProfile: async (id) => {
       const profile = get().profiles.find((p) => p.id === id);
       if (!profile || get().loading[id] || get().loadingFull[id]) return;
+      /* Hydrate BEFORE fetching: the merge below decides against the
+         in-memory catalog, and a cached full list that arrives after the
+         quick slice would be clobbered instead of merged into. */
+      await get().hydrateCatalog(id);
+      if (get().loading[id] || get().loadingFull[id]) return;
       set((s) => ({
         loading: { ...s.loading, [id]: true },
         errors: { ...s.errors, [id]: null },
@@ -270,6 +339,11 @@ export const useShuyukhStore = create<ShuyukhState>((set, get) => {
     },
 
     refreshStale: async () => {
+      // Hydrate every profile first — cards should show the cached whole-
+      // channel counts on app start even when nothing is stale yet.
+      for (const profile of get().profiles) {
+        await get().hydrateCatalog(profile.id);
+      }
       const now = Date.now();
       const stale = get().profiles.filter(
         (p) => !p.lastCheckedAt || now - p.lastCheckedAt > STALE_MS,

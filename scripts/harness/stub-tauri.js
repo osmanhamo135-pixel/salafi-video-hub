@@ -121,6 +121,9 @@
       }
       return { audioUrl: 'https://example.invalid/afasy/' + (a && a.surahId) + '.mp3', ayahTimings: ayahTimings, wordTimings: wordTimings, wordsByAyah: wordsByAyah };
     },
+    // The full-catalog disk cache always misses in the harness — write and
+    // remove fall through to the silent-success default below.
+    shuyukh_catalog_cache_read: function () { return null; },
     // The ad-free stream resolver, so the inline player on the Shuyukh page
     // (and the Watch player) mounts in the harness. The media URL is dead —
     // the player chrome renders; playback itself is not the harness's job.

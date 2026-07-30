@@ -316,6 +316,80 @@ fn channel_avatar(json: &serde_json::Value) -> Option<String> {
         .map(|(_, url)| url)
 }
 
+/// The Shuyukh full-catalog cache: one JSON file per profile under app data.
+/// A whole channel is a minute-plus of yt-dlp enumeration but only a few MB
+/// of text, so it is cached on the reader's own disk — never a remote
+/// service; which shuyukh someone studies is nobody's data but theirs.
+fn catalog_cache_path(
+    app_handle: &AppHandle,
+    profile_id: &str,
+) -> Result<std::path::PathBuf, String> {
+    if !valid_profile_id(profile_id) {
+        return Err("Invalid profile id.".to_string());
+    }
+    let dir = crate::utils::paths::get_app_data_dir(app_handle)?.join("shuyukh-catalogs");
+    Ok(dir.join(format!("{profile_id}.json")))
+}
+
+/// Profile ids are app-minted (`sh-<base36>-<base36>`); anything else is
+/// refused outright rather than sanitized, so an id can never path-traverse.
+fn valid_profile_id(profile_id: &str) -> bool {
+    !profile_id.is_empty()
+        && profile_id.len() <= 64
+        && profile_id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-')
+}
+
+#[tauri::command]
+pub async fn shuyukh_catalog_cache_read(
+    app_handle: AppHandle,
+    profile_id: String,
+) -> Result<Option<serde_json::Value>, String> {
+    let path = catalog_cache_path(&app_handle, &profile_id)?;
+    match std::fs::read(&path) {
+        // A corrupt or unreadable file is a cache miss, not an error the UI
+        // should surface — the catalog refetches from the channel.
+        Ok(bytes) => Ok(serde_json::from_slice(&bytes).ok()),
+        Err(_) => Ok(None),
+    }
+}
+
+#[tauri::command]
+pub async fn shuyukh_catalog_cache_write(
+    app_handle: AppHandle,
+    profile_id: String,
+    envelope: serde_json::Value,
+) -> Result<(), String> {
+    let path = catalog_cache_path(&app_handle, &profile_id)?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|error| format!("Could not create the catalog cache: {}", error))?;
+    }
+    let bytes = serde_json::to_vec(&envelope)
+        .map_err(|error| format!("Could not encode the catalog: {}", error))?;
+    // Write-then-rename, so a crash mid-write never leaves a torn file that
+    // would read as permanently corrupt cache.
+    let tmp = path.with_extension("json.tmp");
+    std::fs::write(&tmp, bytes)
+        .map_err(|error| format!("Could not write the catalog cache: {}", error))?;
+    std::fs::rename(&tmp, &path)
+        .map_err(|error| format!("Could not store the catalog cache: {}", error))
+}
+
+#[tauri::command]
+pub async fn shuyukh_catalog_cache_remove(
+    app_handle: AppHandle,
+    profile_id: String,
+) -> Result<(), String> {
+    let path = catalog_cache_path(&app_handle, &profile_id)?;
+    match std::fs::remove_file(&path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(format!("Could not remove the catalog cache: {}", error)),
+    }
+}
+
 fn normalize_channel_url(url: &str) -> String {
     let trimmed = url.trim_end_matches('/');
     let is_channel_root = (trimmed.contains("youtube.com/@")
@@ -514,6 +588,17 @@ mod tests {
         assert_eq!(channel_avatar(&banners_only), None);
         assert_eq!(channel_avatar(&json!({ "thumbnails": [] })), None);
         assert_eq!(channel_avatar(&json!({})), None);
+    }
+
+    #[test]
+    fn profile_ids_reject_anything_that_could_traverse() {
+        assert!(valid_profile_id("sh-m1abc2-x9y8z7"));
+        assert!(!valid_profile_id(""));
+        assert!(!valid_profile_id("../../../etc/passwd"));
+        assert!(!valid_profile_id("sh-abc/def"));
+        assert!(!valid_profile_id("sh-abc\\def"));
+        assert!(!valid_profile_id("sh..def"));
+        assert!(!valid_profile_id(&"a".repeat(65)));
     }
 
     #[test]
