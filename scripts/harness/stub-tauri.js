@@ -60,11 +60,18 @@
     },
     get_quran_reciters: function () { return F.reciters; },
     youtube_channel_catalog: function (a) {
+      // The store asks for QUICK_LIMIT (90) on a routine refresh and 0 for
+      // the whole channel; serving exactly the cap makes the truncation
+      // banner and the "90+" count real in screenshots.
+      var limit = a && typeof a.limit === 'number' ? a.limit : 90;
+      var count = limit === 0 ? 240 : Math.max(limit, 12);
       var vids = [];
-      for (var i = 1; i <= 12; i += 1) {
+      for (var i = 1; i <= count; i += 1) {
         vids.push({
           id: 'ch-' + i,
-          title: 'شرح كتاب التوحيد — الدرس ' + i,
+          title: i % 5 === 0
+            ? 'فوائد شرح منظومة الآداب الشرعية لفضيلة الشيخ — الدرس ' + i + ' — باب ما يقال عند دخول المسجد وآدابه'
+            : 'شرح كتاب التوحيد — الدرس ' + i,
           channel: 'قناة الشيخ',
           durationSeconds: 1800 + i * 60,
           thumbnail: 'asset://localhost/thumb-' + i,
@@ -72,7 +79,22 @@
           viewCount: 1000 + i,
         });
       }
-      return { channel: 'قناة الشيخ صالح', channelUrl: (a && a.channelUrl) || '', videos: vids };
+      // Geometric avatar only — an octagram on a plain field, never a face
+      // or silhouette (manhaj: no animate beings, harness art included).
+      var avatar = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">' +
+        '<circle cx="48" cy="48" r="48" fill="#10233d"/>' +
+        '<path d="M48 14 L56.5 39.5 L82 48 L56.5 56.5 L48 82 L39.5 56.5 L14 48 L39.5 39.5 Z" fill="#c9a227"/>' +
+        '</svg>'
+      );
+      return {
+        channel: 'قناة الشيخ صالح',
+        channelUrl: (a && a.channelUrl) || '',
+        channelAvatar: avatar,
+        channelHandle: '@shaykh-salih',
+        subscriberCount: 231000,
+        videos: vids,
+      };
     },
     /* One synced reciter, so the Read tab's whole transport cluster — play,
        repeat, times, speed — actually renders in the harness. It returned []
@@ -98,6 +120,24 @@
         }
       }
       return { audioUrl: 'https://example.invalid/afasy/' + (a && a.surahId) + '.mp3', ayahTimings: ayahTimings, wordTimings: wordTimings, wordsByAyah: wordsByAyah };
+    },
+    // The full-catalog disk cache always misses in the harness — write and
+    // remove fall through to the silent-success default below.
+    shuyukh_catalog_cache_read: function () { return null; },
+    // The ad-free stream resolver, so the inline player on the Shuyukh page
+    // (and the Watch player) mounts in the harness. The media URL is dead —
+    // the player chrome renders; playback itself is not the harness's job.
+    youtube_resolve: function (a) {
+      return {
+        videoId: 'stub-video',
+        videoUrl: 'https://example.invalid/stream.mp4',
+        title: 'شرح كتاب التوحيد — الدرس الأول',
+        channel: 'قناة الشيخ صالح',
+        durationSeconds: 1930,
+        thumbnail: 'asset://localhost/thumb-1',
+        sourceUrl: (a && a.url) || '',
+        height: 720,
+      };
     },
     get_ffmpeg_status: function () { return { status: 'bundled', ffmpegPath: null, ffprobePath: null }; },
     get_diagnostics: function () {
@@ -155,6 +195,26 @@
   };
   window.__TAURI__ = window.__TAURI_INTERNALS__;
   window.__HARNESS_CALLS__ = seen;
+
+  // One seeded shaykh profile, so the Shuyukh route shows a live card rather
+  // than its empty state in every harness consumer. lastSeenVideoId points a
+  // few entries into the stub catalog, which makes the "new" badge real.
+  try {
+    if (!localStorage.getItem('salafi-hub.shuyukh.v1')) {
+      localStorage.setItem('salafi-hub.shuyukh.v1', JSON.stringify([{
+        id: 'sh-fixture-1',
+        name: 'الشيخ عبد الرزاق البدر',
+        channelUrl: 'https://www.youtube.com/@sheikhalbadr',
+        channelName: null,
+        channelAvatar: null,
+        channelHandle: null,
+        subscriberCount: null,
+        lastSeenVideoId: 'ch-4',
+        newCount: 0,
+        lastCheckedAt: null,
+      }]));
+    }
+  } catch (e) { /* storage is best-effort in the harness */ }
 
   // The app is Windows-only and draws its own title bar; without this the
   // OS-detection path can take a branch the real build never takes.

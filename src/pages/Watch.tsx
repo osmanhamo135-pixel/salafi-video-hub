@@ -259,7 +259,9 @@ const PROGRESS_SAVE_MS = 5000;
 // rather than a class because src/index.css is owned elsewhere — see report.
 const QUIET_ACTION = 'quiet-action';
 
-const WatchPlayer: React.FC = () => {
+/** Exported for the Shuyukh page, which plays lessons inline through the
+    same ad-free machinery instead of bouncing the reader to this page. */
+export const WatchPlayer: React.FC = () => {
   const { t } = useI18n();
   const navigate = useNavigate();
   const current = useWatchStore((state) => state.current);

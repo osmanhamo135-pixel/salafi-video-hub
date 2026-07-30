@@ -65,7 +65,7 @@ commented at its site; this is the index.
 ```
 npx tsc --noEmit
 npm run build
-cd src-tauri && cargo test        # 13 tests
+cd src-tauri && cargo test        # 22 tests
 ```
 
 Visual changes are checked by rendering, not by eye-balling the diff. The app
