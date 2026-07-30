@@ -41,6 +41,7 @@ const ROUTES = [
   { path: '/quran', name: 'quran' },
   { path: '/library', name: 'library' },
   { path: '/watch', name: 'watch' },
+  { path: '/shuyukh', name: 'shuyukh' },
   { path: '/radio', name: 'radio' },
   { path: '/reminders', name: 'reminders' },
   { path: '/downloads', name: 'downloads' },

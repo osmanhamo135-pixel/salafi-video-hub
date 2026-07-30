@@ -149,12 +149,23 @@ fn best_thumbnail(entry: &serde_json::Value) -> Option<String> {
 pub struct ChannelCatalog {
     pub channel: String,
     pub channel_url: String,
+    /// The channel's profile picture, from yt3.ggpht.com / yt3.googleusercontent.com
+    /// (both must stay in the CSP img-src for it to render).
+    pub channel_avatar: Option<String>,
+    /// The @handle, e.g. "@sheikhalbadr".
+    pub channel_handle: Option<String>,
+    pub subscriber_count: Option<i64>,
     pub videos: Vec<YoutubeSearchItem>,
 }
 
 /// Fetches a channel's uploads for the Shuyukh profiles — newest first, the
 /// order the /videos tab serves them in, which is what makes "everything
 /// before the last-seen id is new" a correct client-side computation.
+///
+/// `limit` caps the fetch (`None` → 90, quick enough for the six-hour
+/// auto-refresh); `Some(0)` means the whole channel — a flat enumeration
+/// that walks every uploads page, so a ten-thousand-video channel takes a
+/// minute or more. The store only asks for that on an explicit user click.
 #[tauri::command]
 pub async fn youtube_channel_catalog(
     app_handle: AppHandle,
@@ -188,17 +199,16 @@ fn channel_catalog_blocking(
     let target = normalize_channel_url(raw);
 
     let ytdlp = ensure_ytdlp(app_handle, None)?;
-    let output = hidden_command(&ytdlp)
-        .args([
-            "--no-warnings",
-            "--flat-playlist",
-            "--dump-single-json",
-            "--playlist-end",
-            &limit.to_string(),
-            "--socket-timeout",
-            "20",
-            &target,
-        ])
+    let mut command = hidden_command(&ytdlp);
+    command.args(["--no-warnings", "--flat-playlist", "--dump-single-json"]);
+    // limit 0 = the whole channel; anything else caps the enumeration.
+    let limit_arg;
+    if limit > 0 {
+        limit_arg = limit.to_string();
+        command.args(["--playlist-end", &limit_arg]);
+    }
+    let output = command
+        .args(["--socket-timeout", "20", &target])
         .output()
         .map_err(|error| format!("Could not start the channel helper: {}", error))?;
 
@@ -220,6 +230,16 @@ fn channel_catalog_blocking(
         .unwrap_or("")
         .to_string();
 
+    let channel_avatar = channel_avatar(&json);
+    let channel_handle = json
+        .get("uploader_id")
+        .and_then(|value| value.as_str())
+        .filter(|value| value.starts_with('@'))
+        .map(str::to_string);
+    let subscriber_count = json
+        .get("channel_follower_count")
+        .and_then(|value| value.as_i64());
+
     let videos = json
         .get("entries")
         .and_then(|value| value.as_array())
@@ -238,8 +258,62 @@ fn channel_catalog_blocking(
     Ok(ChannelCatalog {
         channel,
         channel_url: raw.to_string(),
+        channel_avatar,
+        channel_handle,
+        subscriber_count,
         videos,
     })
+}
+
+/// The channel's profile picture, from the tab dump's top-level `thumbnails`.
+/// That array mixes the avatar (square, id `avatar_uncropped` for the
+/// original) with the page banner; the banner is a design surface, not the
+/// shaykh's picture, so it is never an acceptable fallback. In real dumps the
+/// sized banner entries carry NO id (yt-dlp backfills numeric ones) — what
+/// marks them is `preference: -10`, so the fallback filters on preference and
+/// squareness, not on id alone.
+fn channel_avatar(json: &serde_json::Value) -> Option<String> {
+    let thumbnails = json.get("thumbnails")?.as_array()?;
+
+    let id_of = |thumb: &serde_json::Value| {
+        thumb
+            .get("id")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .to_string()
+    };
+
+    if let Some(url) = thumbnails
+        .iter()
+        .find(|thumb| id_of(thumb) == "avatar_uncropped")
+        .and_then(|thumb| thumb.get("url"))
+        .and_then(|value| value.as_str())
+    {
+        return Some(url.to_string());
+    }
+
+    thumbnails
+        .iter()
+        .filter(|thumb| {
+            let preference = thumb
+                .get("preference")
+                .and_then(|value| value.as_i64())
+                .unwrap_or(0);
+            let width = thumb.get("width").and_then(|value| value.as_i64());
+            let height = thumb.get("height").and_then(|value| value.as_i64());
+            let square = match (width, height) {
+                (Some(w), Some(h)) => w == h,
+                _ => true, // unsized entries are the metadata avatars
+            };
+            preference >= 0 && square && !id_of(thumb).contains("banner")
+        })
+        .filter_map(|thumb| {
+            let url = thumb.get("url")?.as_str()?;
+            let width = thumb.get("width").and_then(|value| value.as_i64()).unwrap_or(0);
+            Some((width, url.to_string()))
+        })
+        .max_by_key(|(width, _)| *width)
+        .map(|(_, url)| url)
 }
 
 fn normalize_channel_url(url: &str) -> String {
@@ -388,5 +462,77 @@ fn compact_yt_error(stderr: &[u8], fallback: &str) -> String {
         fallback.to_string()
     } else {
         details.chars().take(300).collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn channel_avatar_prefers_uncropped_and_never_the_banner() {
+        // Shaped like a real channel-tab dump: sized banners carry numeric
+        // backfilled ids and preference -10; avatars carry no preference.
+        let dump = json!({
+            "thumbnails": [
+                { "id": "0", "url": "https://yt3.googleusercontent.com/banner-sized", "width": 2560, "height": 424, "preference": -10 },
+                { "id": "banner_uncropped", "url": "https://yt3.googleusercontent.com/banner", "preference": -5 },
+                { "id": "1", "url": "https://yt3.ggpht.com/small", "width": 88, "height": 88 },
+                { "id": "avatar_uncropped", "url": "https://yt3.googleusercontent.com/avatar" },
+                { "id": "2", "url": "https://yt3.ggpht.com/large", "width": 800, "height": 800 },
+            ]
+        });
+        assert_eq!(
+            channel_avatar(&dump).as_deref(),
+            Some("https://yt3.googleusercontent.com/avatar")
+        );
+    }
+
+    #[test]
+    fn channel_avatar_falls_back_to_widest_square_never_a_banner() {
+        // No avatar_uncropped (header-layout churn): the widest square,
+        // non-negative-preference entry wins; the 2560px banner never does.
+        let dump = json!({
+            "thumbnails": [
+                { "id": "0", "url": "https://yt3.googleusercontent.com/banner-sized", "width": 2560, "height": 424, "preference": -10 },
+                { "id": "banner_uncropped", "url": "https://yt3.googleusercontent.com/banner", "preference": -5 },
+                { "id": "1", "url": "https://yt3.ggpht.com/small", "width": 88, "height": 88 },
+                { "id": "2", "url": "https://yt3.ggpht.com/large", "width": 800, "height": 800 },
+            ]
+        });
+        assert_eq!(
+            channel_avatar(&dump).as_deref(),
+            Some("https://yt3.ggpht.com/large")
+        );
+        // Only banners in the dump: no avatar is better than the banner.
+        let banners_only = json!({
+            "thumbnails": [
+                { "id": "0", "url": "https://yt3.googleusercontent.com/banner-sized", "width": 2560, "height": 424, "preference": -10 },
+            ]
+        });
+        assert_eq!(channel_avatar(&banners_only), None);
+        assert_eq!(channel_avatar(&json!({ "thumbnails": [] })), None);
+        assert_eq!(channel_avatar(&json!({})), None);
+    }
+
+    #[test]
+    fn normalize_channel_url_pins_the_videos_tab_only_at_the_root() {
+        assert_eq!(
+            normalize_channel_url("https://www.youtube.com/@sheikhalbadr"),
+            "https://www.youtube.com/@sheikhalbadr/videos"
+        );
+        assert_eq!(
+            normalize_channel_url("https://www.youtube.com/@sheikhalbadr/"),
+            "https://www.youtube.com/@sheikhalbadr/videos"
+        );
+        assert_eq!(
+            normalize_channel_url("https://www.youtube.com/@sheikhalbadr/videos"),
+            "https://www.youtube.com/@sheikhalbadr/videos"
+        );
+        assert_eq!(
+            normalize_channel_url("https://www.youtube.com/playlist?list=PL123"),
+            "https://www.youtube.com/playlist?list=PL123"
+        );
     }
 }

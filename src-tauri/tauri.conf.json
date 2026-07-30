@@ -25,7 +25,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https://asset.localhost https://i.ytimg.com https://*.ytimg.com; media-src 'self' asset: http://asset.localhost https://asset.localhost https: http:; frame-src https://www.youtube-nocookie.com https://www.youtube.com; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'",
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https://asset.localhost https://i.ytimg.com https://*.ytimg.com https://yt3.ggpht.com https://*.ggpht.com https://yt3.googleusercontent.com; media-src 'self' asset: http://asset.localhost https://asset.localhost https: http:; frame-src https://www.youtube-nocookie.com https://www.youtube.com; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'",
       "assetProtocol": {
         "enable": true,
         "scope": [
