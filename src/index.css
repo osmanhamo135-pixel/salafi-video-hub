@@ -6,7 +6,15 @@
    the printed Madinah mushaf (bundled unmodified; see KFGQPC-NOTICE.txt). */
 @font-face {
   font-family: 'KFGQPC Uthmanic Script HAFS';
-  src: url('./assets/fonts/KFGQPC-Hafs-v18.woff2') format('woff2');
+  /* WOFF2 first (small), TTF second as a real fallback. A WebKitGTK built
+     without libwoff2 — or any build where the woff2 decode fails — would
+     otherwise drop the face entirely, and since the mushaf chain names no
+     other family (deliberately), the ayah would fall to the browser's last
+     resort: thin, wrongly shaped, with the ayah number outside its
+     medallion. The TTF is the same font, container change only. */
+  src:
+    url('./assets/fonts/KFGQPC-Hafs-v18.woff2') format('woff2'),
+    url('./assets/fonts/KFGQPC-Hafs-v18.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   /* `block`, never `swap`: with swap the browser paints the ayah in whatever
@@ -20,7 +28,10 @@
    mushaf (bundled unmodified; see KFGQPC-NOTICE.txt). */
 @font-face {
   font-family: 'KFGQPC Warsh';
-  src: url('./assets/fonts/KFGQPC-Warsh-v10.woff2') format('woff2');
+  /* WOFF2 first, TTF fallback — see the Hafs face above. */
+  src:
+    url('./assets/fonts/KFGQPC-Warsh-v10.woff2') format('woff2'),
+    url('./assets/fonts/KFGQPC-Warsh-v10.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   /* `block` for the same reason as the Hafs face above. */
