@@ -9,7 +9,11 @@
   src: url('./assets/fonts/KFGQPC-Hafs-v18.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
-  font-display: swap;
+  /* `block`, never `swap`: with swap the browser paints the ayah in whatever
+     fallback is at hand during the block period and swaps the mushaf face in
+     afterwards, so Qur'anic text is briefly set in a face that is not the
+     Complex's. The file is local, so blocking costs a frame, not a request. */
+  font-display: block;
 }
 
 /* KFGQPC Warsh (v10) — the official King Fahd Complex typeface of the Warsh
@@ -19,7 +23,8 @@
   src: url('./assets/fonts/KFGQPC-Warsh-v10.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
-  font-display: swap;
+  /* `block` for the same reason as the Hafs face above. */
+  font-display: block;
 }
 
 /* Aref Ruqaa (OFL) — Arabic DISPLAY only: hero wordmark and surah bands.
@@ -902,9 +907,17 @@
     border-bottom: 1px solid var(--hair);
   }
 
-  /* Mushaf-style Quranic script (Amiri Quran with graceful fallbacks). */
+  /* Mushaf text: the bundled official KFGQPC face for the riwayah, and
+     NOTHING else. CSS font fallback is per GLYPH, not per element, so every
+     family listed after the mushaf face is a face that can silently composite
+     individual letters into a Qur'anic word. The old chain ran through Amiri
+     Quran (which the manhaj allows for the ayah MARKER but explicitly forbids
+     for the ayah body) all the way down to Segoe UI and sans-serif — UI faces
+     setting Qur'an. A missing mushaf face must be a visible failure, never a
+     silent substitution; `font-display: block` on the @font-face keeps that
+     from ever being the paint path in practice. */
   .quran-script {
-    font-family: 'KFGQPC Uthmanic Script HAFS', 'Amiri Quran', 'Noto Naskh Arabic', 'Scheherazade New', 'Segoe UI', Tahoma, system-ui, sans-serif;
+    font-family: 'KFGQPC Uthmanic Script HAFS';
     text-rendering: geometricPrecision;
     /* The mushaf faces carry their own required ligatures and mark
        positioning. Nothing here may add spacing, synthesise a weight or
@@ -921,9 +934,13 @@
 
   /* Warsh mode renders with the official Warsh mushaf typeface — its
      orthography marks require this font to display correctly. */
+  /* Warsh, and only Warsh. The Hafs face used to sit second in this chain,
+     so any codepoint the Warsh font did not carry was composited from the
+     HAFS face inside a Warsh ayah — the two readings' letterforms mixed
+     inside one word, which the riwayah rule forbids outright. */
   .quran-riwayah-warsh .quran-script,
   .quran-riwayah-warsh.quran-reading-surface {
-    font-family: 'KFGQPC Warsh', 'KFGQPC Uthmanic Script HAFS', 'Amiri Quran', 'Noto Naskh Arabic', serif;
+    font-family: 'KFGQPC Warsh';
   }
 
   /* The mushaf page. It still takes its darkness from the active theme — no
@@ -1176,7 +1193,23 @@
   /* The traditional elongated calligraphic basmala (U+FDFD) — the same form
      printed mushafs use. A standalone centered block with generous vertical
      room, so the tall calligraphy can never collide with surrounding lines. */
-  .quran-basmala-calligraphy {
+  /* The Warsh rule below is `.quran-riwayah-warsh .quran-script` — two classes,
+     so it outranks a lone `.quran-basmala-calligraphy` and put the mushaf face
+     back on the ornament in Warsh mode only. Both selectors are listed here to
+     match that specificity in either riwayah. */
+  .quran-basmala-calligraphy,
+  .quran-riwayah-warsh .quran-basmala-calligraphy {
+    /* Amiri Quran explicitly, and this is the ONE place outside the ayah
+       marker where that is right. The glyph here is U+FDFD — the single
+       ligature codepoint for the basmala, a typographic ornament rather than
+       ayah body text, which is why the element carries `role="img"` and an
+       aria-label of the real words. Neither KFGQPC face contains U+FDFD at
+       all (checked against both cmaps), so with the mushaf face alone this
+       fell through to the browser's last resort and printed a cramped
+       stacked block instead of the elongated calligraphic form a printed
+       mushaf opens a surah with. The ayah body still gets the Complex's face
+       and nothing else — see .quran-script. */
+    font-family: 'Amiri Quran';
     display: block;
     max-width: 100%;
     line-height: 1.9;
@@ -3240,7 +3273,12 @@
       rgb(var(--bg-card-rgb) / 0.72);
   }
 
-  @supports not (backdrop-filter: blur(1px)) {
+  /* Both forms must be tested. WebKit only shipped the UNPREFIXED property in
+     2.46; older WebKitGTK — which plenty of Linux desktops still ship —
+     supports `-webkit-backdrop-filter` and would fail a query that names only
+     the standard one, so the opaque fallback landed on top of a blur that was
+     working fine and every glass surface went flat on Linux alone. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .glass {
       background:
         radial-gradient(130% 90% at 50% -14%, rgb(var(--accent-gold-rgb) / 0.14), transparent 56%),
@@ -3379,7 +3417,12 @@
 
   /* No backdrop-filter support, or a compositor that refuses it: fall back to
      the opaque panel rather than a see-through unreadable one. */
-  @supports not (backdrop-filter: blur(1px)) {
+  /* Both forms must be tested. WebKit only shipped the UNPREFIXED property in
+     2.46; older WebKitGTK — which plenty of Linux desktops still ship —
+     supports `-webkit-backdrop-filter` and would fail a query that names only
+     the standard one, so the opaque fallback landed on top of a blur that was
+     working fine and every glass surface went flat on Linux alone. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .sidebar-glass {
       background: rgb(var(--bg-sidebar-rgb));
     }
@@ -4006,8 +4049,11 @@
       rgb(var(--shade-rgb) / 0.48) 40%,
       rgb(var(--shade-rgb) / 0.58)
     );
+    /* The two must carry the SAME value: `-webkit-backdrop-filter` is an alias,
+       not a fallback, and it came last, so every engine took blur(3px) with no
+       saturation and the standard line above was dead. */
     backdrop-filter: blur(10px) saturate(112%);
-    -webkit-backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(10px) saturate(112%);
     animation: palette-scrim-in var(--dur-fast) var(--ease-out) both;
   }
 

@@ -120,6 +120,25 @@ fn derive_ffprobe_path(ffmpeg_path: &str) -> String {
     }
 }
 
+/// Whether this install can replace itself in place.
+///
+/// tauri-plugin-updater only implements self-update on Linux for AppImages —
+/// it looks for the `APPIMAGE` env var the AppRun exports. A deb (or an rpm,
+/// or a distro package) is owned by the system package manager, so the
+/// updater's install step always throws there and the UI offered a Retry
+/// button that could never succeed. Windows installs always self-update.
+#[tauri::command]
+pub fn updater_can_self_install() -> bool {
+    #[cfg(windows)]
+    {
+        true
+    }
+    #[cfg(not(windows))]
+    {
+        std::env::var_os("APPIMAGE").is_some()
+    }
+}
+
 #[tauri::command]
 pub fn get_app_data_path(app_handle: tauri::AppHandle) -> Result<String, String> {
     app_handle

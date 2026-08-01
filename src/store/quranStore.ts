@@ -216,6 +216,11 @@ export const useQuranStore = create<QuranState>((set, get) => ({
       currentSurahRiwayah: null,
       lastRead: readJson<QuranBookmark | null>(lastReadKey(riwayah), null, isNullableBookmark),
       bookmarks: readJson<QuranBookmark[]>(bookmarksKey(riwayah), [], isBookmarkList),
+      /* Recitation timing data is Hafs-only, word list included. Leaving it
+         cached across a riwayah switch let the Hafs word text render inside
+         a Warsh ayah — the one mixing the riwayah rule forbids outright. */
+      syncedAudio: {},
+      syncedAudioError: null,
     });
     void get()
       .loadSurahs()

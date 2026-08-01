@@ -681,7 +681,16 @@ const QuranVerseWords: React.FC<{
   text: string;
   syncedWords?: string[];
 }> = React.memo(({ surahId, ayah, text, syncedWords }) => {
-  const words = syncedWords?.length ? syncedWords : text.trim().split(/\s+/u).filter(Boolean);
+  /* Split on the ASCII space ONLY — never `\s`. Both corpora use a second,
+     deliberate space that is *inside* a word and must never become a split
+     point: Hafs carries U+2009 THIN SPACE in 2:72 (فَٱدَّٰرَٰٔتُمۡ), and Warsh
+     carries 434 U+00A0 NBSPs binding ۞ to the word it opens. `\s` matches
+     both. Splitting there put combining marks — a superscript alef and a
+     hamza with no base — at the head of their own span, and WebKit shapes
+     each span as its own run, so HarfBuzz stamps a dotted circle onto
+     Qur'anic text; it also broke the NBSP's whole purpose by letting the
+     ornament orphan at a line end, and shifted every later word index. */
+  const words = syncedWords?.length ? syncedWords : text.trim().split(/ +/).filter(Boolean);
 
   return (
     <span className="quran-ayah-text">
@@ -893,7 +902,13 @@ const SurahReader: React.FC = () => {
   // Recitation timing data uses the Hafs (Kufan) numbering; the tracker is
   // Hafs-only so it can never point at a differently numbered Warsh ayah.
   const syncActive = !warshMode && Boolean(syncStationId && currentStation?.id === syncStationId);
-  const synced = surah && read ? syncedAudioBySurah[`${read.id}:${surah.id}`] ?? null : null;
+  /* Gated on `!warshMode` for the same reason `syncActive` is: the timing
+     data — and the word list that comes with it — is quran.com's HAFS text.
+     Without the gate, `syncedWordsByAyah` still fed QuranVerseWords, which
+     prefers it over the bundled ayah, so playing a Hafs recitation and then
+     switching riwayah rendered the HAFS words under Warsh attribution and
+     Warsh numbering. The two readings are never mixed. */
+  const synced = !warshMode && surah && read ? syncedAudioBySurah[`${read.id}:${surah.id}`] ?? null : null;
   const syncedWordsByAyah = useMemo(
     () => new Map(synced?.wordsByAyah.map((entry) => [entry.ayah, entry.words]) ?? []),
     [synced],

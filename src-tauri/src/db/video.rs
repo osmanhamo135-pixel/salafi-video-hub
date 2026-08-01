@@ -172,14 +172,31 @@ pub fn get_videos_by_ids(db: &DbState, ids: &[String]) -> Result<Vec<Video>> {
         .take(unique_ids.len())
         .collect::<Vec<_>>()
         .join(",");
+    /* No ORDER BY: the CALLER's id order is the answer. `get_videos_by_playlist`
+       passes `playlist.video_ids`, which the scanner built with a natural sort
+       (`natord`) so that "الدرس 2" precedes "الدرس 10". Sorting by title here
+       threw that away and returned 1, 10, 11, 12, 2, 3… — which then became the
+       player's queue, so "next lesson" after the first was the tenth, and
+       "continue" resumed at the alphabetically-first unwatched lesson rather
+       than the next one. SQL cannot express "in the order I asked", so the rows
+       are re-indexed against the request below. */
     let sql = format!(
-        "SELECT {} FROM videos WHERE id IN ({}) ORDER BY title",
-        VIDEO_COLUMNS,
-        placeholders
+        "SELECT {} FROM videos WHERE id IN ({})",
+        VIDEO_COLUMNS, placeholders
     );
     let mut stmt = conn.prepare(&sql)?;
     let rows = stmt.query_map(params_from_iter(unique_ids.iter()), row_to_video)?;
-    rows.collect()
+
+    let mut by_id: std::collections::HashMap<String, Video> = std::collections::HashMap::new();
+    for row in rows {
+        let video = row?;
+        by_id.insert(video.id.clone(), video);
+    }
+    // Ids with no row (deleted from the library but still listed) simply drop.
+    Ok(unique_ids
+        .iter()
+        .filter_map(|id| by_id.remove(id))
+        .collect())
 }
 
 pub fn search_videos(db: &DbState, query: &str) -> Result<Vec<Video>> {

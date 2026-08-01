@@ -66,6 +66,26 @@ commented at its site; this is the index.
   the manhaj forbids it outright. Blink (Windows WebView2) expands only at
   spaces, so this looks perfect on Windows and broken on Linux.
   `text-justify: inter-word` is not a fix — WebKit ignores it.
+- **Split ayah text on U+0020 only, never `\s`.** Both corpora carry a second,
+  deliberate space *inside* a word: Hafs has U+2009 THIN SPACE in 2:72, Warsh
+  has 434 U+00A0 NBSPs binding ۞ to the word it opens. `\s` matches both, and
+  splitting there puts bare combining marks at the head of their own span —
+  which WebKit shapes as its own run, stamping a dotted circle onto Qur'anic
+  text — besides orphaning the ornament and shifting every later word index.
+- **The mushaf font chain is the riwayah's KFGQPC face and nothing else.**
+  CSS font fallback is per GLYPH, so any family listed after it can composite
+  single letters into a Qur'anic word; the Hafs face sitting second in the
+  Warsh chain mixed the two readings' letterforms inside one word. Both faces
+  are `font-display: block` — with `swap` the ayah paints in a fallback first.
+  The sole exception is `.quran-basmala-calligraphy`: U+FDFD is an ornament
+  ligature (the element is `role="img"`) that neither KFGQPC face contains, so
+  it names Amiri Quran explicitly, at the specificity of the Warsh rule.
+- `get_videos_by_ids` returns rows in the CALLER's id order, never SQL's. The
+  scanner naturally-sorts `playlist.video_ids` so "الدرس 2" precedes "الدرس 10";
+  an `ORDER BY title` there became the player's queue and made "next lesson"
+  play the tenth.
+- `src/db/playlist.rs` uses `PLAYLIST_COLUMNS`, never `SELECT *` — same reason
+  as `VIDEO_COLUMNS`, and a test asserts the order.
 - **One shaping run must live in one DOM text node.** WebKit shapes each text
   node independently; Blink merges adjacent ones first. So JSX of the form
   `۝{digits}` — ornament and number as separate children — renders an empty

@@ -12,7 +12,8 @@ type WindowWithWebkitAudio = Window &
 
 let activeAudio: HTMLAudioElement | null = null;
 let activeAudioContext: AudioContext | null = null;
-let activeOscillators: OscillatorNode[] = [];
+// Any scheduled source node (noise burst today, previously oscillators).
+let activeSources: AudioScheduledSourceNode[] = [];
 let defaultSoundStopTimer: number | null = null;
 
 export async function playReminderSound({
@@ -44,14 +45,14 @@ export function stopReminderSound() {
     activeAudio = null;
   }
 
-  for (const oscillator of activeOscillators) {
+  for (const source of activeSources) {
     try {
-      oscillator.stop();
+      source.stop();
     } catch {
-      // The oscillator may already have ended.
+      // The node may already have ended.
     }
   }
-  activeOscillators = [];
+  activeSources = [];
 
   if (activeAudioContext) {
     void activeAudioContext.close().catch(() => undefined);
@@ -83,33 +84,51 @@ const playDefaultTone = async (volume: number) => {
     throw new Error('Reminder audio is not supported on this system.');
   }
 
+  /* A NON-PITCHED alert, deliberately. This used to be 880Hz followed by
+     1320Hz — a rising perfect fifth, two pitched tones in sequence, which is
+     a melodic sting; the manhaj forbids music and melodic feedback outright,
+     and this is the sound every install hears by default. What replaces it is
+     a short filtered noise burst: an attention signal with no pitch, no
+     interval and no tune, the acoustic equivalent of a knock. */
   const context = new AudioContextCtor();
   const gain = context.createGain();
   const now = context.currentTime;
-  const peak = Math.max(0.0001, volume * 0.35);
+  const peak = Math.max(0.0001, volume * 0.32);
 
   gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(peak, now + 0.03);
-  gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak * 0.55), now + 0.32);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
+  gain.gain.exponentialRampToValueAtTime(peak, now + 0.008);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak * 0.4), now + 0.09);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
   gain.connect(context.destination);
 
-  const firstTone = context.createOscillator();
-  firstTone.type = 'sine';
-  firstTone.frequency.setValueAtTime(880, now);
-  firstTone.connect(gain);
-  firstTone.start(now);
-  firstTone.stop(now + 0.45);
+  // White noise, one buffer, played twice as a knock-knock — two identical
+  // bursts, so there is no interval between them to hear as a melody.
+  const frames = Math.floor(context.sampleRate * 0.34);
+  const buffer = context.createBuffer(1, frames, context.sampleRate);
+  const channel = buffer.getChannelData(0);
+  for (let i = 0; i < frames; i += 1) {
+    // Two bursts: 0–90ms and 150–240ms, silence between and after.
+    const t = i / context.sampleRate;
+    const inBurst = t < 0.09 || (t >= 0.15 && t < 0.24);
+    channel[i] = inBurst ? Math.random() * 2 - 1 : 0;
+  }
 
-  const secondTone = context.createOscillator();
-  secondTone.type = 'triangle';
-  secondTone.frequency.setValueAtTime(1320, now + 0.16);
-  secondTone.connect(gain);
-  secondTone.start(now + 0.16);
-  secondTone.stop(now + 0.9);
+  const source = context.createBufferSource();
+  source.buffer = buffer;
+
+  // Band-limit it so it reads as a soft wooden knock rather than a hiss.
+  const band = context.createBiquadFilter();
+  band.type = 'bandpass';
+  band.frequency.setValueAtTime(1100, now);
+  band.Q.setValueAtTime(0.7, now);
+
+  source.connect(band);
+  band.connect(gain);
+  source.start(now);
+  source.stop(now + 0.34);
 
   activeAudioContext = context;
-  activeOscillators = [firstTone, secondTone];
+  activeSources = [source];
 
   try {
     await context.resume();
@@ -120,7 +139,7 @@ const playDefaultTone = async (volume: number) => {
 
   defaultSoundStopTimer = window.setTimeout(() => {
     stopReminderSound();
-  }, 1200);
+  }, 600);
 };
 
 const createAudioError = (error: unknown) => {
