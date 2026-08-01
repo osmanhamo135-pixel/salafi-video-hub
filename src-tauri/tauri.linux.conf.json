@@ -6,6 +6,12 @@
       "deb"
     ],
     "linux": {
+      "appimage": {
+        "bundleMediaFramework": true,
+        "files": {
+          "usr/lib/libharfbuzz.so.0": "/usr/lib/x86_64-linux-gnu/libharfbuzz.so.0"
+        }
+      },
       "deb": {
         "depends": [
           "ffmpeg",
