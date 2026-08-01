@@ -108,6 +108,17 @@ build one and seed real data, then Playwright drives Chromium at
 `/opt/pw-browsers/chromium`. Sweep 5 themes x 2 languages before shipping —
 several bugs here only appeared in one theme or one direction.
 
+**The AppImage must bundle `libharfbuzz.so.0`** (`tauri.linux.conf.json` →
+`appimage.files`). linuxdeploy bundles GTK, Pango, cairo, ICU 70 and
+`libharfbuzz-icu` but leaves plain HarfBuzz to the host, and HarfBuzz-ICU
+must match the HarfBuzz it pairs with — HarfBuzz is what supplies Unicode
+joining types, so a mismatch stops Arabic letters joining in EVERY surface,
+mushaf and UI alike. ICU cannot be un-bundled instead: WebKit links
+`libicuuc.so.70` by soname, and no current distro ships 70. The Linux job
+stays on **ubuntu-22.04** deliberately — building against the oldest
+supported glibc is what lets the deb install anywhere; moving it up would
+strand every user on an older distro.
+
 The app ships for **Windows and Linux**. The Rust helpers (ffmpeg, yt-dlp,
 open/reveal) are platform-switched on `cfg`; the Windows-only branches compile
 only in CI, the Linux branches compile natively here — `cargo test` exercises
