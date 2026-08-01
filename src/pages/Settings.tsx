@@ -133,12 +133,27 @@ export const Settings: React.FC = () => {
 
   const [appVersion, setAppVersion] = useState('');
   const [diagnostics, setDiagnostics] = useState<DiagnosticsReport | null>(null);
+  /* Whether the two bundled mushaf faces actually loaded in THIS engine.
+     The mushaf chain names no fallback family on purpose, so a face that
+     fails to load is the difference between a correct page and one set in
+     the browser's last resort — thin, wrongly shaped, ayah number outside
+     its medallion. That failure is invisible from here otherwise, and it
+     cannot be reproduced on every machine, so the app reports it. */
+  const [mushafFonts, setMushafFonts] = useState<string>('');
   const [runningDiagnostics, setRunningDiagnostics] = useState(false);
 
   const handleRunDiagnostics = async () => {
     setRunningDiagnostics(true);
     try {
       setDiagnostics(await invoke<DiagnosticsReport>('get_diagnostics'));
+      try {
+        await document.fonts.ready;
+        const hafs = document.fonts.check('30px "KFGQPC Uthmanic Script HAFS"');
+        const warsh = document.fonts.check('30px "KFGQPC Warsh"');
+        setMushafFonts(`Hafs ${hafs ? 'OK' : 'FAILED'} / Warsh ${warsh ? 'OK' : 'FAILED'}`);
+      } catch {
+        setMushafFonts('unavailable');
+      }
     } catch (error) {
       showToast(getErrorMessage(error), 'error');
     } finally {
@@ -773,6 +788,11 @@ export const Settings: React.FC = () => {
           {diagnostics && (
             <div className="grid gap-x-10 sm:grid-cols-2">
               <DiagRow label={t('appVersion')} value={diagnostics.appVersion} />
+              <DiagRow
+                label={t('diagMushafFonts')}
+                value={mushafFonts || '—'}
+                ok={mushafFonts.startsWith('Hafs OK / Warsh OK')}
+              />
               <DiagRow label={t('diagDatabaseSize')} value={formatBytes(diagnostics.dbSizeBytes)} />
               <DiagRow
                 label={t('diagLibraryItems')}
