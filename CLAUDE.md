@@ -59,6 +59,20 @@ commented at its site; this is the index.
   the joins in a cursive script.
 - `src/db/video.rs` uses the `VIDEO_COLUMNS` const, never `SELECT *` — column
   order in the file does not match the struct, and a test asserts this.
+- **Never `text-align: justify` on a surface carrying Arabic, above all
+  Qur'anic text.** WebKit — every Linux build — justifies Arabic by expanding
+  between LETTERS, not only at spaces, which tears the joins of the cursive
+  script apart. That is letter-spacing on Qur'anic text by another name, so
+  the manhaj forbids it outright. Blink (Windows WebView2) expands only at
+  spaces, so this looks perfect on Windows and broken on Linux.
+  `text-justify: inter-word` is not a fix — WebKit ignores it.
+- **One shaping run must live in one DOM text node.** WebKit shapes each text
+  node independently; Blink merges adjacent ones first. So JSX of the form
+  `۝{digits}` — ornament and number as separate children — renders an empty
+  ayah medallion with the number stranded beside it on Linux and correctly on
+  Windows. Build such strings whole (`ayahMarker()` in `src/pages/Quran.tsx`)
+  rather than letting JSX split them. The same trap applies to any combining
+  mark separated from its base.
 
 ## Verifying
 

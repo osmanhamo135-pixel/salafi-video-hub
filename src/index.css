@@ -1189,10 +1189,11 @@
      at every reader font size — a printed page's measure, not a browser's.
      Line breaking changes with it; word order, count and splitting do not, so
      the recitation index is untouched. */
+  /* NEVER `text-align: justify` on Qur'anic text — see .quran-ayah-line. */
   .quran-flow {
     max-width: 33em;
     margin-inline: auto;
-    text-align: justify;
+    text-align: start;
     text-align-last: center;
     color: rgb(var(--text-main-rgb));
     word-spacing: 0.05em;
@@ -1200,10 +1201,18 @@
 
   /* Ayah-list mode gets the same measure and the same set body as the mushaf
      flow, so both modes read as one page rather than two designs. */
+  /* `text-align: justify` is FORBIDDEN on any surface carrying Qur'anic text.
+     WebKit — every Linux build, since Tauri uses WebKitGTK there — justifies
+     Arabic by expanding between LETTERS, not just at spaces. That pulls the
+     joins of the cursive script apart and strands the ayah number outside its
+     medallion; it is letter-spacing on Qur'anic text by another name, which
+     the manhaj forbids outright. Blink (Windows WebView2) expands only at
+     spaces, which is why this looked fine on Windows and broke on Linux.
+     `text-justify: inter-word` does not help — WebKit ignores it. */
   .quran-ayah-line {
     max-width: 33em;
     margin-inline: auto;
-    text-align: justify;
+    text-align: start;
     /* `start`, never `end`: in RTL the last line of an ayah must sit against
        the right margin where the reading begins, not the left. */
     text-align-last: start;

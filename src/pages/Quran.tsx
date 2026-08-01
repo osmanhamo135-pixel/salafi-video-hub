@@ -1627,7 +1627,7 @@ const SurahReader: React.FC = () => {
                         text={verse.text}
                         syncedWords={syncedWordsByAyah.get(verse.id)}
                       />
-                      <span className="quran-ayah-marker"> ۝{toArabicDigits(verse.id)} </span>
+                      <span className="quran-ayah-marker">{ayahMarker(verse.id)}</span>
                     </span>
                   </p>
                   <p dir="ltr" className="quran-translation mt-1.5 text-sm leading-relaxed">
@@ -1679,7 +1679,7 @@ const SurahReader: React.FC = () => {
                     text={verse.text}
                     syncedWords={syncedWordsByAyah.get(verse.id)}
                   />
-                  <span className="quran-ayah-marker"> ۝{toArabicDigits(verse.id)} </span>
+                  <span className="quran-ayah-marker">{ayahMarker(verse.id)}</span>
                 </span>
               );
             })}
@@ -1695,6 +1695,14 @@ const SurahReader: React.FC = () => {
 /** Converts 1 → ١ etc. for the traditional end-of-ayah ornament. */
 const toArabicDigits = (value: number) =>
   String(value).replace(/\d/g, (digit) => '٠١٢٣٤٥٦٧٨٩'[Number(digit)]);
+
+/* The whole marker as ONE string, deliberately: `۝{digits}` in JSX emits
+   the ornament and the number as SEPARATE DOM text nodes, and WebKit (every
+   Linux build) shapes each text node on its own. U+06DD only encloses the
+   digits when the shaper sees them in one run, so split nodes rendered an
+   empty medallion with the number stranded beside it. Blink merges adjacent
+   text nodes before shaping, which is why Windows never showed it. */
+const ayahMarker = (value: number) => ` \u06dd${toArabicDigits(value)} `;
 
 const ListenTab: React.FC = () => {
   const { t, language } = useI18n();
