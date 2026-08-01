@@ -86,12 +86,20 @@ commented at its site; this is the index.
   play the tenth.
 - `src/db/playlist.rs` uses `PLAYLIST_COLUMNS`, never `SELECT *` — same reason
   as `VIDEO_COLUMNS`, and a test asserts the order.
+- **The ayah medallion never depends on the shaper.** `۝` + digits is
+  composed into one medallion by HARFBUZZ, and only from a certain version:
+  measured on one binary, HarfBuzz 8.3 sets the digits inside the ring while
+  HarfBuzz 2.7 leaves it empty and strands the number beside it. Windows uses
+  DirectWrite and never shows it; a current distro never shows it; an older
+  Linux gets a page of empty medallions. `AyahMarker` therefore renders U+06DD
+  ALONE (nothing follows it in its run, so there is nothing to compose) and
+  centres the number over it with CSS. The 70% offset is measured, not
+  arbitrary — the ring glyph's ink sits low in its em box.
 - **One shaping run must live in one DOM text node.** WebKit shapes each text
   node independently; Blink merges adjacent ones first. So JSX of the form
   `۝{digits}` — ornament and number as separate children — renders an empty
   ayah medallion with the number stranded beside it on Linux and correctly on
-  Windows. Build such strings whole (`ayahMarker()` in `src/pages/Quran.tsx`)
-  rather than letting JSX split them. The same trap applies to any combining
+  Windows. Build such strings whole rather than letting JSX split them. The same trap applies to any combining
   mark separated from its base.
 
 ## Verifying
@@ -99,7 +107,7 @@ commented at its site; this is the index.
 ```
 npx tsc --noEmit
 npm run build
-cd src-tauri && cargo test        # 22 tests
+cd src-tauri && cargo test        # 23 tests
 ```
 
 Visual changes are checked by rendering, not by eye-balling the diff. The app
@@ -108,16 +116,18 @@ build one and seed real data, then Playwright drives Chromium at
 `/opt/pw-browsers/chromium`. Sweep 5 themes x 2 languages before shipping —
 several bugs here only appeared in one theme or one direction.
 
-**The AppImage must bundle `libharfbuzz.so.0`** (`tauri.linux.conf.json` →
-`appimage.files`). linuxdeploy bundles GTK, Pango, cairo, ICU 70 and
-`libharfbuzz-icu` but leaves plain HarfBuzz to the host, and HarfBuzz-ICU
-must match the HarfBuzz it pairs with — HarfBuzz is what supplies Unicode
-joining types, so a mismatch stops Arabic letters joining in EVERY surface,
-mushaf and UI alike. ICU cannot be un-bundled instead: WebKit links
-`libicuuc.so.70` by soname, and no current distro ships 70. The Linux job
-stays on **ubuntu-22.04** deliberately — building against the oldest
-supported glibc is what lets the deb install anywhere; moving it up would
-strand every user on an older distro.
+**The AppImage must NOT bundle `libharfbuzz.so.0`.** It was tried, on the
+theory that the bundled `libharfbuzz-icu` should be paired with a matching
+HarfBuzz, and it regressed the mushaf: the builder's HarfBuzz is 2.7 (the
+job runs on ubuntu-22.04), which is too old to set the ayah number inside
+its medallion, so bundling it inflicted on every user the exact fault the
+field reported. The host's HarfBuzz is newer than the builder's on any
+current distro, so letting it win is correct. ICU stays bundled and cannot
+be dropped — WebKit links `libicuuc.so.70` by soname and no current distro
+ships 70. The Linux job stays on **ubuntu-22.04** deliberately: building
+against the oldest supported glibc is what lets the deb install anywhere.
+`bundleMediaFramework` is on because an AppImage cannot declare the
+GStreamer decoders the deb declares.
 
 The app ships for **Windows and Linux**. The Rust helpers (ffmpeg, yt-dlp,
 open/reveal) are platform-switched on `cfg`; the Windows-only branches compile
