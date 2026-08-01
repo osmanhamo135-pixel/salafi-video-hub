@@ -1642,7 +1642,7 @@ const SurahReader: React.FC = () => {
                         text={verse.text}
                         syncedWords={syncedWordsByAyah.get(verse.id)}
                       />
-                      <span className="quran-ayah-marker">{ayahMarker(verse.id)}</span>
+                      <AyahMarker ayah={verse.id} />
                     </span>
                   </p>
                   <p dir="ltr" className="quran-translation mt-1.5 text-sm leading-relaxed">
@@ -1694,7 +1694,7 @@ const SurahReader: React.FC = () => {
                     text={verse.text}
                     syncedWords={syncedWordsByAyah.get(verse.id)}
                   />
-                  <span className="quran-ayah-marker">{ayahMarker(verse.id)}</span>
+                  <AyahMarker ayah={verse.id} />
                 </span>
               );
             })}
@@ -1711,13 +1711,35 @@ const SurahReader: React.FC = () => {
 const toArabicDigits = (value: number) =>
   String(value).replace(/\d/g, (digit) => '٠١٢٣٤٥٦٧٨٩'[Number(digit)]);
 
-/* The whole marker as ONE string, deliberately: `۝{digits}` in JSX emits
-   the ornament and the number as SEPARATE DOM text nodes, and WebKit (every
-   Linux build) shapes each text node on its own. U+06DD only encloses the
-   digits when the shaper sees them in one run, so split nodes rendered an
-   empty medallion with the number stranded beside it. Blink merges adjacent
-   text nodes before shaping, which is why Windows never showed it. */
-const ayahMarker = (value: number) => ` \u06dd${toArabicDigits(value)} `;
+/**
+ * The end-of-ayah medallion.
+ *
+ * The obvious markup — U+06DD followed by the digits, and let the font put
+ * them inside the ring — is not portable. That composition is done by the
+ * SHAPER, and HarfBuzz only performs it from a certain version on: measured
+ * side by side on one binary, HarfBuzz 8.3 sets the digits inside the ring
+ * while HarfBuzz 2.7 leaves the ring empty and strands the number beside it.
+ * Windows never shows it (DirectWrite, no HarfBuzz), and neither does a
+ * developer machine on a current distro — but a reader on an older one gets
+ * a page of empty medallions, which is what was reported from the field.
+ *
+ * So nothing here depends on the shaper. The ring is U+06DD ALONE — no digit
+ * follows it in its text run, so there is nothing to compose and every
+ * HarfBuzz draws the same glyph — and the number is a separate element that
+ * CSS centres on top of it. The marker is an ornament, not Qur'anic text
+ * (hence the Amiri face and `role="img"`), so composing it this way is a
+ * typographic choice, not a change to the mushaf.
+ */
+const AyahMarker: React.FC<{ ayah: number }> = ({ ayah }) => (
+  <span className="quran-ayah-marker" role="img" aria-label={`\u0622\u064a\u0629 ${ayah}`}>
+    <span className="quran-ayah-ring" aria-hidden="true">
+      {'\u06dd'}
+    </span>
+    <span className="quran-ayah-number" aria-hidden="true">
+      {toArabicDigits(ayah)}
+    </span>
+  </span>
+);
 
 const ListenTab: React.FC = () => {
   const { t, language } = useI18n();

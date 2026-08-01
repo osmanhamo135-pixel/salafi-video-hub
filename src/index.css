@@ -1282,20 +1282,48 @@
   /* The traditional ۝ end-of-ayah ornament: U+06DD encloses the following
      Arabic-Indic digits inside the circle (Amiri Quran composes them), exactly
      like the medallion of a printed page — in the theme's gold. */
+  /* The ring and the number are two elements stacked by CSS, NEVER a
+     `۝` + digits string left to the shaper to compose — HarfBuzz only does
+     that composition from a certain version on, and older ones (still
+     shipping on plenty of Linux distros) leave the ring empty with the
+     number stranded beside it. See AyahMarker in src/pages/Quran.tsx.
+     It is an ornament, never Qur'anic text — the ayah body stays in the
+     official face for its riwayah. */
   .quran-ayah-marker {
-    /* Amiri Quran composes ۝ + digits into one medallion (KFGQPC draws them
-       as two separate marks), so the marker keeps the Amiri glyph. It is an
-       ornament, never Qur'anic text — the ayah text itself stays in the
-       official face for its riwayah.
-       Raised from 0.95em: Amiri's medallion sets the digits well inside the
-       ring, so at the old size the number was unreadable at reading sizes. */
     font-family: 'Amiri Quran', 'Noto Naskh Arabic', serif;
     color: rgb(var(--mushaf-gold-rgb));
     font-size: 1.06em;
     line-height: 1;
     vertical-align: -0.05em;
-    /* The ring and its digits are one mark and never split across lines. */
+    /* The ring and its number are one mark and never split across lines. */
     white-space: nowrap;
+    position: relative;
+    display: inline-block;
+  }
+
+  .quran-ayah-ring {
+    display: inline-block;
+  }
+
+  /* Centred on the ring's own box. `left/top` rather than inset-inline so the
+     centring is identical in both directions — the ring is symmetric. */
+  .quran-ayah-number {
+    position: absolute;
+    left: 50%;
+    /* 70%, not 50%: the ring glyph's ink is not centred in its em box — it
+       sits low, under the ascent — so centring on the box puts the number up
+       in the ring's top ornament. This value was measured against the
+       shaper-composed marker until the two matched. */
+    top: 70%;
+    transform: translate(-50%, -50%);
+    /* Matches the size Amiri's own composed medallion sets the digits at. */
+    font-size: 0.5em;
+    line-height: 1;
+    /* Digits inside an ornament: they are a label, never a run of Arabic
+       text, so they must not pick up the page's word/letter spacing. */
+    letter-spacing: 0;
+    word-spacing: 0;
+    pointer-events: none;
   }
 
   .quran-bookmarked {
