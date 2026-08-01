@@ -3,6 +3,18 @@ use crate::models::playlist::Playlist;
 use rusqlite::{params, Result, Row};
 use serde_json;
 
+/* Named columns, never `SELECT *` — the same invariant `VIDEO_COLUMNS` carries
+   in video.rs, and for the same reason. `ensure_column` APPENDS a new column to
+   the physical table on an upgraded database, so `SELECT *` yields a different
+   index order on an old install than on a fresh one, while `row_to_playlist`
+   reads fixed indices. One appended column and every positional `get` below
+   shifts: `get(8)` reads an INTEGER as `Option<String>`, rusqlite returns
+   InvalidColumnType, `get_all_playlists` fails, and the whole Library page
+   reports "failed to load" with no way back. This list must stay in the same
+   order as the `get(n)` calls, not the order of the CREATE TABLE. */
+pub(crate) const PLAYLIST_COLUMNS: &str = "id, name, folder_path, video_ids, video_count, \
+     total_duration_seconds, progress_seconds, thumbnail_path, category, created_at, updated_at";
+
 fn row_to_playlist(row: &Row) -> Result<Playlist> {
     let video_ids_json: String = row.get(3)?;
     let video_ids: Vec<String> = serde_json::from_str(&video_ids_json).unwrap_or_default();
@@ -51,7 +63,7 @@ pub fn insert_playlist(db: &DbState, playlist: &Playlist) -> Result<()> {
 
 pub fn get_playlist_by_id(db: &DbState, id: &str) -> Result<Option<Playlist>> {
     let conn = lock_conn(db);
-    let mut stmt = conn.prepare("SELECT * FROM playlists WHERE id = ?1")?;
+    let mut stmt = conn.prepare(&format!("SELECT {} FROM playlists WHERE id = ?1", PLAYLIST_COLUMNS))?;
     let mut rows = stmt.query(params![id])?;
 
     if let Some(row) = rows.next()? {
@@ -63,7 +75,7 @@ pub fn get_playlist_by_id(db: &DbState, id: &str) -> Result<Option<Playlist>> {
 
 pub fn get_playlist_by_folder(db: &DbState, folder_path: &str) -> Result<Option<Playlist>> {
     let conn = lock_conn(db);
-    let mut stmt = conn.prepare("SELECT * FROM playlists WHERE folder_path = ?1")?;
+    let mut stmt = conn.prepare(&format!("SELECT {} FROM playlists WHERE folder_path = ?1", PLAYLIST_COLUMNS))?;
     let mut rows = stmt.query(params![folder_path])?;
 
     if let Some(row) = rows.next()? {
@@ -75,7 +87,7 @@ pub fn get_playlist_by_folder(db: &DbState, folder_path: &str) -> Result<Option<
 
 pub fn get_all_playlists(db: &DbState) -> Result<Vec<Playlist>> {
     let conn = lock_conn(db);
-    let mut stmt = conn.prepare("SELECT * FROM playlists ORDER BY name")?;
+    let mut stmt = conn.prepare(&format!("SELECT {} FROM playlists ORDER BY name", PLAYLIST_COLUMNS))?;
     let rows = stmt.query_map([], row_to_playlist)?;
     rows.collect()
 }
@@ -174,7 +186,10 @@ pub fn search_playlists(db: &DbState, query: &str) -> Result<Vec<Playlist>> {
     let conn = lock_conn(db);
     let pattern = format!("%{}%", query);
     let mut stmt = conn.prepare(
-        "SELECT * FROM playlists WHERE name LIKE ?1 OR folder_path LIKE ?1 OR category LIKE ?1 ORDER BY name"
+        &format!(
+            "SELECT {} FROM playlists WHERE name LIKE ?1 OR folder_path LIKE ?1 OR category LIKE ?1 ORDER BY name",
+            PLAYLIST_COLUMNS
+        )
     )?;
     let rows = stmt.query_map(params![pattern], row_to_playlist)?;
     rows.collect()
@@ -208,4 +223,37 @@ pub fn get_playlist_stats(db: &DbState) -> Result<(i64, i64, i64, i64, i64)> {
         completed,
         total_storage,
     ))
+}
+
+#[cfg(test)]
+mod playlist_row_tests {
+    use super::PLAYLIST_COLUMNS;
+
+    /* Mirrors `video_columns_covers_every_field_once`. The list must name every
+       column `row_to_playlist` reads, in the order it reads them — the whole
+       point is that a later `ensure_column` cannot shift the indices. */
+    #[test]
+    fn playlist_columns_match_the_positional_reads() {
+        let columns: Vec<&str> = PLAYLIST_COLUMNS.split(',').map(str::trim).collect();
+        assert_eq!(
+            columns,
+            vec![
+                "id",
+                "name",
+                "folder_path",
+                "video_ids",
+                "video_count",
+                "total_duration_seconds",
+                "progress_seconds",
+                "thumbnail_path",
+                "category",
+                "created_at",
+                "updated_at",
+            ]
+        );
+        let mut sorted = columns.clone();
+        sorted.sort_unstable();
+        sorted.dedup();
+        assert_eq!(sorted.len(), columns.len(), "a column is listed twice");
+    }
 }

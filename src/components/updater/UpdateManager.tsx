@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import { AlertTriangle, CheckCircle2, Download, Loader2, RefreshCw, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { useUpdateStore } from '@/store/updateStore';
@@ -20,12 +21,27 @@ export const UpdateManager: React.FC = () => {
   const restart = useUpdateStore((state) => state.restart);
   const dismiss = useUpdateStore((state) => state.dismiss);
 
+  /* Only poll where the app can actually replace itself. A deb (and any
+     distro package) is owned by the system package manager: the updater's
+     install step always throws there, which left an update card offering a
+     Retry button that could never succeed, re-armed every three hours. */
   useEffect(() => {
-    const initialTimer = window.setTimeout(() => checkForUpdates(), INITIAL_CHECK_DELAY);
-    const interval = window.setInterval(() => checkForUpdates(), PERIODIC_CHECK_INTERVAL);
+    let cancelled = false;
+    let initialTimer: number | undefined;
+    let interval: number | undefined;
+
+    void invoke<boolean>('updater_can_self_install')
+      .catch(() => true) // command missing (older build): behave as before
+      .then((canSelfInstall) => {
+        if (cancelled || !canSelfInstall) return;
+        initialTimer = window.setTimeout(() => checkForUpdates(), INITIAL_CHECK_DELAY);
+        interval = window.setInterval(() => checkForUpdates(), PERIODIC_CHECK_INTERVAL);
+      });
+
     return () => {
-      window.clearTimeout(initialTimer);
-      window.clearInterval(interval);
+      cancelled = true;
+      if (initialTimer !== undefined) window.clearTimeout(initialTimer);
+      if (interval !== undefined) window.clearInterval(interval);
     };
   }, [checkForUpdates]);
 

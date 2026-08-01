@@ -325,7 +325,7 @@ const ProfileDetail: React.FC<{ profileId: string; onBack: () => void }> = ({
      reset would first commit one frame of the whole expanded list against the
      new filter before snapping back — a jank spike mid-typing. Deriving the
      count from a key makes the reset atomic. */
-  const listKey = `${profileId} ${filter}`;
+  const listKey = `${profileId}\u0000${filter}`;
   const [pager, setPager] = useState({ key: listKey, count: PAGE_INITIAL });
   const visibleCount = pager.key === listKey ? pager.count : PAGE_INITIAL;
   /* The seen boundary as it was when the reader OPENED the profile. markSeen

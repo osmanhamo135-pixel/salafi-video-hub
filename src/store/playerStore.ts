@@ -419,11 +419,19 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     if (!currentVideoId) return;
     
     try {
-      await invoke('save_progress', { videoId: currentVideoId, progressSeconds: duration, completed: true });
+      // Math.floor, like every other call site: `duration` is a media duration
+      // and is virtually always fractional, and the command takes an i64, so
+      // serde rejected the float and this whole handler threw — the button
+      // never marked anything completed.
+      await invoke('save_progress', {
+        videoId: currentVideoId,
+        progressSeconds: Math.floor(duration),
+        completed: true,
+      });
       const updatedVideos = new Map(videos);
       const video = videos.get(currentVideoId);
       if (video) {
-        updatedVideos.set(currentVideoId, { ...video, completed: true, progressSeconds: duration });
+        updatedVideos.set(currentVideoId, { ...video, completed: true, progressSeconds: Math.floor(duration) });
         set({ videos: updatedVideos });
       }
     } catch (e) {

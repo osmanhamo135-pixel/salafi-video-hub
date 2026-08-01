@@ -96,6 +96,7 @@ pub fn run() {
             commands::settings::get_ffmpeg_status,
             commands::settings::set_ffmpeg_path,
             commands::settings::get_app_data_path,
+            commands::settings::updater_can_self_install,
             commands::settings::export_backup,
             commands::settings::import_backup,
             commands::settings::rescan_all,

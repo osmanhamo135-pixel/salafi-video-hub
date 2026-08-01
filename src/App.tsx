@@ -15,6 +15,7 @@ import { ReminderAlarm } from './components/reminders/ReminderAlarm';
 import { UpdateManager } from './components/updater/UpdateManager';
 import { RadioMiniPlayer } from './components/radio/RadioMiniPlayer';
 import { TitleBar } from './components/layout/TitleBar';
+import { ResizeGrips } from './components/layout/ResizeGrips';
 import { CommandPalette } from './components/chrome/CommandPalette';
 import { usePlayerStore } from './store/playerStore';
 import { useSettingsStore } from './store/settingsStore';
@@ -71,6 +72,7 @@ export default function App() {
   return (
     <div className="app-container flex-col">
       <TitleBar />
+      <ResizeGrips />
       <CommandPalette />
       <div className="min-h-0 w-full flex-1">
         <AppShell>
