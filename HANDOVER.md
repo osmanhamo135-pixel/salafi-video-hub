@@ -298,6 +298,13 @@ unrelated. Each is commented at its site in code; this is the index.
     never moves sidebars or alignment; Arabic renders RTL inside each label via
     `dir="auto"` / `<bdi>`.
 
+**The mushaf `@font-face` families are app-private names** — `SVH Mushaf Hafs`,
+`SVH Mushaf Warsh`, `SVH Ornament Amiri` — never the fonts' real names. A
+machine with `KFGQPC Uthmanic Script HAFS` installed system-wide otherwise wins
+the name and sets the Qur'an in *its* copy of the face, silently. Proven by
+installing an impostor under that name and watching the mushaf change. The
+CSP's `font-src` must stay in step, or the faces never load at all.
+
 ### CSS mechanics
 
 11. **`rgb(var(--x-rgb) / 0.16)` — slash syntax.** `rgba(var(--x-rgb), 0.16)`
@@ -430,6 +437,58 @@ Consequences already handled in the code:
   declare dependencies.
 - The updater is gated on `updater_can_self_install` so deb users are not shown
   an update prompt whose Retry can never succeed.
+
+### WebKitGTK 2.46+ drops the Qur'anic harakat (the big one)
+
+**This is the outstanding Linux defect, it is not ours, and nothing in the app
+can fix it.** Suspect it first whenever a Linux screenshot shows a mushaf of
+bare consonants.
+
+From WebKitGTK 2.46 — the release that moved rendering from Cairo to Skia — the
+engine no longer applies HarfBuzz's GPOS mark-attachment offsets for the KFGQPC
+faces. Shaping is fine: the glyph list carries every mark, and `hb-shape` on
+the same file returns the right offsets under HarfBuzz 8.3 and 14.3 alike. The
+marks are simply painted at the baseline instead of above their letter, where
+they vanish into the letterforms. The reader is left with an incomplete
+Qur'anic text — a manhaj problem, not a cosmetic one.
+
+**How it was proven.** The *same* `.deb` binary, same fonts, same automation
+script, captured twice: at 20:47 on 2026-08-01 under WebKitGTK 2.44, every
+harakah present; and again under 2.52.3, all of them gone. `/var/log/dpkg.log`
+records the downgrade to 2.44.0-2 at 20:44:16 and the upgrade back at 20:55:55.
+One variable.
+
+**Already ruled out — do not spend a day re-testing these.** Font fallback; the
+app's CSS (it reproduces on a bare page whose only font is the `@font-face`
+file); `.woff2` vs `.ttf`; Hafs vs Warsh (both fail); the `gasp` table; the
+legacy `kern` table; `line-height`; `text-rendering`; `-webkit-font-smoothing`;
+`text-shadow`; `-webkit-text-stroke`; layerisation (`opacity`, `will-change`,
+`translateZ`, `contain`); `font-feature-settings`; `word-spacing`;
+`paint-order`; font size; DOM vs SVG `<text>` vs `<canvas>` (all three fail
+identically, so there is no surface to move the mushaf onto); and the env vars
+`WEBKIT_FORCE_COMPLEX_TEXT`, `WEBKIT_SKIA_ENABLE_CPU_RENDERING`,
+`WEBKIT_DISABLE_COMPOSITING_MODE`, `WEBKIT_DISABLE_DMABUF_RENDERER`,
+`LIBGL_ALWAYS_SOFTWARE` (byte-identical output).
+
+**Why a screenshot can look half-right.** KFGQPC precomposes some sequences
+into single glyphs via GSUB — `بِسۡمِ` is one glyph (`Bism`), and most of
+`ٱلرَّحۡمَٰنِ` likewise. A glyph carrying its own marks needs no GPOS offset, so
+the basmala survives while `ٱلۡحَمۡدُ` beside it does not. Marks *below* the
+line (kasra) also survive: their outlines already sit below the baseline.
+
+**What the app does about it.** `checkHarakat` in `src/utils/mushafFont.ts`
+detects it; the Qur'an page shows a plain-language warning
+(`quranHarakatEngineBug`) and Settings → Diagnostics → "Mushaf fonts" appends
+`harakat OK` / `HARAKAT NOT PLACED`. The probe measures painted pixels, because
+that is the only thing that reveals it; canvas fails the same way as the DOM,
+which is exactly what makes it a faithful witness.
+
+**If you want to actually fix it**, the only avenues are outside the web layer,
+and each is a real decision the owner should take, not a quiet refactor:
+bundling a working WebKitGTK in the AppImage (large, fragile, and the AppImage
+is not what the tester uses — he is on the deb); or generating a font whose
+marks need no GPOS. The second would mean shipping a mushaf face that is not
+the Complex's own file, which §2 forbids. Neither should be done unilaterally.
 
 ### The AppImage / HarfBuzz trap (do not repeat this)
 
@@ -591,14 +650,14 @@ Key rotation is **permanently cancelled** — it breaks every installed client.
 
 ## 14. Open / unresolved
 
-- **One field report may still be outstanding.** A Linux tester saw torn letters
-  and stranded ayah numbers. The medallion cause is found, fixed and **proven
-  against old HarfBuzz** on the shipped 1.51.3 AppImage. If that user still sees
-  **torn letters** after 1.51.3, the remaining suspect is the **mushaf font
-  failing to load on his machine** — ask him for
-  **Settings → Diagnostics → "Mushaf fonts"** (`Hafs OK / Warsh OK` vs `FAILED`)
-  and `cat /etc/os-release | head -2`. A simulated font-load failure reproduces
-  torn-looking letters, which is why the TTF fallback was added in 1.51.1.
+- **The Linux field report is explained and is an upstream defect.** The tester
+  saw torn letters and stranded ayah numbers. The torn letters were `justify`
+  on Arabic (fixed 1.51.0) and the medallion was HarfBuzz-version dependent
+  (fixed 1.51.3). What remains — a mushaf that reads as thin or wrong — is
+  **WebKitGTK 2.46+ not placing the harakat** (§9). The app now detects and
+  reports it; it cannot repair it. Ask a reporting user for
+  **Settings → Diagnostics → "Mushaf fonts"**: `harakat OK` means the engine is
+  fine and the cause is something else, `HARAKAT NOT PLACED` means it is this.
 - **The AppImage bundles Pango but not HarfBuzz/FreeType/fontconfig.** This is
   inconsistent in principle. Do **not** "fix" it by bundling the builder's
   HarfBuzz (§9). If it is ever revisited, it must be tested against an old-host

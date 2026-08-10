@@ -30,6 +30,7 @@ import { languageOptions, themeOptions, useI18n } from '@/i18n';
 import { MOTION_KEY } from '@/components/layout/AmbientLayer';
 import { ThemePreview } from '@/components/ui/ThemePreview';
 import { Select } from '@/components/ui/Select';
+import { checkFace, checkHarakat, mushafFamily } from '@/utils/mushafFont';
 
 interface ThumbnailBatchResult {
   generated_count: number;
@@ -147,10 +148,19 @@ export const Settings: React.FC = () => {
     try {
       setDiagnostics(await invoke<DiagnosticsReport>('get_diagnostics'));
       try {
-        await document.fonts.ready;
-        const hafs = document.fonts.check('30px "KFGQPC Uthmanic Script HAFS"');
-        const warsh = document.fonts.check('30px "KFGQPC Warsh"');
-        setMushafFonts(`Hafs ${hafs ? 'OK' : 'FAILED'} / Warsh ${warsh ? 'OK' : 'FAILED'}`);
+        const [hafs, warsh] = await Promise.all([
+          checkFace(mushafFamily(false)),
+          checkFace(mushafFamily(true)),
+        ]);
+        const label = (s: string) => (s === 'loaded' ? 'OK' : s === 'failed' ? 'FAILED' : '?');
+        /* Loading the face is only half of it: an engine can load the face,
+           shape the ayah correctly and still paint every above-the-letter
+           harakah down at the baseline (WebKitGTK 2.46+). Report that too —
+           it is the difference between a mushaf and bare consonants. */
+        const marks = await checkHarakat(mushafFamily(false));
+        const marksLabel =
+          marks === 'ok' ? 'harakat OK' : marks === 'broken' ? 'HARAKAT NOT PLACED' : 'harakat ?';
+        setMushafFonts(`Hafs ${label(hafs)} / Warsh ${label(warsh)} / ${marksLabel}`);
       } catch {
         setMushafFonts('unavailable');
       }

@@ -31,6 +31,7 @@ import { audioElementHolder, useRadioStore } from '@/store/radioStore';
 import { TranslationKey, useI18n } from '@/i18n';
 import { juzFor } from '@/utils/juz';
 import { SplitGrid } from '@/components/ui/SplitGrid';
+import { checkFace, checkHarakat, mushafFamily } from '@/utils/mushafFont';
 
 const BASMALA_TEXT = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
 const BASMALA_LIGATURE = '﷽';
@@ -896,6 +897,38 @@ const SurahReader: React.FC = () => {
   }, [loadTimingReads]);
 
   const warshMode = riwayah === 'warsh';
+
+  /* Whether the bundled mushaf face for the ACTIVE riwayah actually loaded.
+     Qur'anic text must render only through the Complex's own face, and the
+     chain deliberately names no fallback family — so if the bundled file ever
+     fails to load, the reader would otherwise be shown Qur'an set in whatever
+     the browser reaches for, with no indication that it is not the mushaf.
+     The families are app-private names, so nothing installed on the machine
+     can quietly stand in for them; this reports the failure instead. */
+  const [mushafFaceMissing, setMushafFaceMissing] = React.useState(false);
+  /* And whether this engine places the harakat at all. WebKitGTK 2.46+ shapes
+     the ayah correctly and then paints every above-the-letter mark down at the
+     baseline, where it vanishes into the letterforms — the reader is left with
+     bare consonants. The face loaded, so the check above stays silent; only a
+     pixel probe sees it. See checkHarakat. */
+  const [harakatBroken, setHarakatBroken] = React.useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    const family = mushafFamily(warshMode);
+    void (async () => {
+      const state = await checkFace(family);
+      if (cancelled) return;
+      setMushafFaceMissing(state === 'failed');
+      // Only meaningful once the face is actually there: with no face, the
+      // probe measures a fallback and would blame the engine for a missing file.
+      if (state !== 'loaded') return;
+      const marks = await checkHarakat(family);
+      if (!cancelled) setHarakatBroken(marks === 'broken');
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [warshMode]);
   const read = timingReads.find((entry) => entry.id === selectedTimingReadId) ?? timingReads[0];
   const readName = read ? (language === 'ar' ? read.nameAr ?? read.name : read.name) : '';
   const syncStationId = surah && read ? `quran-sync-${read.id}-${surah.id}` : null;
@@ -1542,6 +1575,26 @@ const SurahReader: React.FC = () => {
           <BookOpen className="h-3 w-3" />
           {t('quranFollowAyah')}
         </button>
+      )}
+
+      {mushafFaceMissing && (
+        <p
+          role="alert"
+          className="mb-3 rounded-md border border-warning-orange/40 bg-warning-orange/10 px-3 py-2 text-xs leading-relaxed text-warning-orange"
+          dir="auto"
+        >
+          {t('quranMushafFontMissing')}
+        </p>
+      )}
+
+      {!mushafFaceMissing && harakatBroken && (
+        <p
+          role="alert"
+          className="mb-3 rounded-md border border-warning-orange/40 bg-warning-orange/10 px-3 py-2 text-xs leading-relaxed text-warning-orange"
+          dir="auto"
+        >
+          {t('quranHarakatEngineBug')}
+        </p>
       )}
 
       {/* Three elements, and the split matters:

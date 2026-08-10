@@ -5,7 +5,19 @@
 /* KFGQPC Uthmanic Script HAFS — the official King Fahd Complex typeface of
    the printed Madinah mushaf (bundled unmodified; see KFGQPC-NOTICE.txt). */
 @font-face {
-  font-family: 'KFGQPC Uthmanic Script HAFS';
+  /* PRIVATE family name, deliberately not the font's real one. A face declared
+     as 'KFGQPC Uthmanic Script HAFS' shares its name with the KFGQPC font many
+     Arabic desktops have INSTALLED SYSTEM-WIDE. Whenever the bundled face fails
+     to win — it fails to load, or an older WebKit lets a locally installed font
+     of the same name shadow an @font-face — CSS substitutes that system copy
+     silently, and the mushaf renders in a different cut of the typeface with
+     wrong mark placement. Measured: with the bundled file unavailable and a
+     same-named system font present, the mushaf renders entirely in the system
+     font. A name nothing else can claim makes that substitution impossible; if
+     the bundled file ever fails, the failure is visible and the app says so
+     (see the mushaf-font warning on the Quran page) instead of quietly setting
+     Qur'an in an unapproved face. */
+  font-family: 'SVH Mushaf Hafs';
   /* WOFF2 first (small), TTF second as a real fallback. A WebKitGTK built
      without libwoff2 — or any build where the woff2 decode fails — would
      otherwise drop the face entirely, and since the mushaf chain names no
@@ -27,7 +39,8 @@
 /* KFGQPC Warsh (v10) — the official King Fahd Complex typeface of the Warsh
    mushaf (bundled unmodified; see KFGQPC-NOTICE.txt). */
 @font-face {
-  font-family: 'KFGQPC Warsh';
+  /* Private name, same reason as the Hafs face above. */
+  font-family: 'SVH Mushaf Warsh';
   /* WOFF2 first, TTF fallback — see the Hafs face above. */
   src:
     url('./assets/fonts/KFGQPC-Warsh-v10.woff2') format('woff2'),
@@ -108,7 +121,10 @@
 
 /* Amiri Quran (OFL) — calligraphic fallback (basmala ligature and glyph gaps). */
 @font-face {
-  font-family: 'Amiri Quran';
+  /* Private name, same reason as the mushaf faces: 'Amiri Quran' is a real
+     installed font name too, and the ayah medallion and basmala must come from
+     the bundled copy. */
+  font-family: 'SVH Ornament Amiri';
   src: url('./assets/fonts/AmiriQuran-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
@@ -928,7 +944,7 @@
      silent substitution; `font-display: block` on the @font-face keeps that
      from ever being the paint path in practice. */
   .quran-script {
-    font-family: 'KFGQPC Uthmanic Script HAFS';
+    font-family: 'SVH Mushaf Hafs';
     text-rendering: geometricPrecision;
     /* The mushaf faces carry their own required ligatures and mark
        positioning. Nothing here may add spacing, synthesise a weight or
@@ -951,7 +967,7 @@
      inside one word, which the riwayah rule forbids outright. */
   .quran-riwayah-warsh .quran-script,
   .quran-riwayah-warsh.quran-reading-surface {
-    font-family: 'KFGQPC Warsh';
+    font-family: 'SVH Mushaf Warsh';
   }
 
   /* The mushaf page. It still takes its darkness from the active theme — no
@@ -1220,7 +1236,7 @@
        stacked block instead of the elongated calligraphic form a printed
        mushaf opens a surah with. The ayah body still gets the Complex's face
        and nothing else — see .quran-script. */
-    font-family: 'Amiri Quran';
+    font-family: 'SVH Ornament Amiri';
     display: block;
     max-width: 100%;
     line-height: 1.9;
@@ -1290,7 +1306,7 @@
      It is an ornament, never Qur'anic text — the ayah body stays in the
      official face for its riwayah. */
   .quran-ayah-marker {
-    font-family: 'Amiri Quran', 'Noto Naskh Arabic', serif;
+    font-family: 'SVH Ornament Amiri', 'Noto Naskh Arabic', serif;
     color: rgb(var(--mushaf-gold-rgb));
     font-size: 1.06em;
     line-height: 1;
@@ -2132,7 +2148,7 @@
 
   .hero-wordmark {
     margin: 0 0 var(--s3);
-    font-family: 'Aref Ruqaa', 'Amiri Quran', serif;
+    font-family: 'Aref Ruqaa', 'SVH Ornament Amiri', serif;
     font-size: var(--fs-lg);
     font-weight: 400;
     line-height: 1.5;
