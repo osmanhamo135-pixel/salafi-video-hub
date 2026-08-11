@@ -31,6 +31,7 @@ import { MOTION_KEY } from '@/components/layout/AmbientLayer';
 import { ThemePreview } from '@/components/ui/ThemePreview';
 import { Select } from '@/components/ui/Select';
 import { checkFace, checkHarakat, mushafFamily } from '@/utils/mushafFont';
+import type { FaceState, HarakatState } from '@/utils/mushafFont';
 
 interface ThumbnailBatchResult {
   generated_count: number;
@@ -140,7 +141,15 @@ export const Settings: React.FC = () => {
      the browser's last resort — thin, wrongly shaped, ayah number outside
      its medallion. That failure is invisible from here otherwise, and it
      cannot be reproduced on every machine, so the app reports it. */
-  const [mushafFonts, setMushafFonts] = useState<string>('');
+  /* Kept as the three states rather than as the rendered sentence: the row's
+     green/red flag is derived from them. Sniffing a prefix off the sentence
+     once reported OK in green while the rest of it said HARAKAT NOT PLACED. */
+  const [mushafFonts, setMushafFonts] = useState<{
+    hafs: FaceState;
+    warsh: FaceState;
+    marks: HarakatState;
+  } | null>(null);
+  const [mushafFontsError, setMushafFontsError] = useState(false);
   const [runningDiagnostics, setRunningDiagnostics] = useState(false);
 
   const handleRunDiagnostics = async () => {
@@ -152,17 +161,16 @@ export const Settings: React.FC = () => {
           checkFace(mushafFamily(false)),
           checkFace(mushafFamily(true)),
         ]);
-        const label = (s: string) => (s === 'loaded' ? 'OK' : s === 'failed' ? 'FAILED' : '?');
         /* Loading the face is only half of it: an engine can load the face,
            shape the ayah correctly and still paint every above-the-letter
            harakah down at the baseline (WebKitGTK 2.46+). Report that too —
            it is the difference between a mushaf and bare consonants. */
         const marks = await checkHarakat(mushafFamily(false));
-        const marksLabel =
-          marks === 'ok' ? 'harakat OK' : marks === 'broken' ? 'HARAKAT NOT PLACED' : 'harakat ?';
-        setMushafFonts(`Hafs ${label(hafs)} / Warsh ${label(warsh)} / ${marksLabel}`);
+        setMushafFonts({ hafs, warsh, marks });
+        setMushafFontsError(false);
       } catch {
-        setMushafFonts('unavailable');
+        setMushafFonts(null);
+        setMushafFontsError(true);
       }
     } catch (error) {
       showToast(getErrorMessage(error), 'error');
@@ -170,6 +178,26 @@ export const Settings: React.FC = () => {
       setRunningDiagnostics(false);
     }
   };
+
+  const faceLabel = (state: FaceState) =>
+    state === 'loaded' ? 'OK' : state === 'failed' ? 'FAILED' : '?';
+  const mushafFontsValue = mushafFonts
+    ? `Hafs ${faceLabel(mushafFonts.hafs)} / Warsh ${faceLabel(mushafFonts.warsh)} / ${
+        mushafFonts.marks === 'ok'
+          ? 'harakat OK'
+          : mushafFonts.marks === 'broken'
+            ? 'HARAKAT NOT PLACED'
+            : 'harakat ?'
+      }`
+    : mushafFontsError
+      ? 'unavailable'
+      : '';
+  const mushafFontsOk = Boolean(
+    mushafFonts &&
+      mushafFonts.hafs === 'loaded' &&
+      mushafFonts.warsh === 'loaded' &&
+      mushafFonts.marks === 'ok',
+  );
 
   const [rescanning, setRescanning] = useState(false);
   const [repairing, setRepairing] = useState(false);
@@ -800,8 +828,8 @@ export const Settings: React.FC = () => {
               <DiagRow label={t('appVersion')} value={diagnostics.appVersion} />
               <DiagRow
                 label={t('diagMushafFonts')}
-                value={mushafFonts || '—'}
-                ok={mushafFonts.startsWith('Hafs OK / Warsh OK')}
+                value={mushafFontsValue || '—'}
+                ok={mushafFontsOk}
               />
               <DiagRow label={t('diagDatabaseSize')} value={formatBytes(diagnostics.dbSizeBytes)} />
               <DiagRow

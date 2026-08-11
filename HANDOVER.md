@@ -668,9 +668,13 @@ Key rotation is **permanently cancelled** — it breaks every installed client.
   `get_quran_surahs` parse). They should move to `spawn_blocking`.
 - `import_backup` is non-transactional and rejects backups written by older
   builds (missing `#[serde(default)]` on `Video`).
-- Tauri capabilities grant `fs:read-all`, `fs:write-all`, `shell:allow-open` and
-  `shell.open` scoped to `^.*$`, while nothing in `src/` imports those plugins.
-  That surface should be narrowed.
+- Tauri capabilities were narrowed in 1.51.4: `fs:read-all` and `fs:write-all`
+  are gone (the app-scoped `fs:allow-app*`/`appcache`/`applocaldata`/`applog`
+  grants remain) and `shell.open` is scoped to `^https://[^\s]+$` instead of
+  `^.*$`. Nothing in `src/` imports `@tauri-apps/plugin-fs` or
+  `-plugin-shell` — every file operation goes through the app's own Rust
+  commands, which the fs plugin ACL does not govern. If a future change does
+  need the fs plugin, add the narrowest scope that works, never `*-all`.
 
 ---
 

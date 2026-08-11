@@ -77,6 +77,10 @@ pub fn generate_thumbnail(
     let timestamps = [timestamp, 0.1, 0.5, 1.0, 3.0, 8.0, 15.0];
 
     for &ts in &timestamps {
+        // The output path is passed as an OsStr, not via to_str().unwrap():
+        // a path that is not valid UTF-8 is a panic there, and to_string_lossy
+        // would be worse — ffmpeg would happily write to the mangled name and
+        // the file we then look for would not exist.
         let result = hidden_command(&ffmpeg)
             .args([
                 "-y",
@@ -93,8 +97,8 @@ pub fn generate_thumbnail(
                 "2",
                 "-vf",
                 "scale=320:-1",
-                thumb_path.to_str().unwrap(),
             ])
+            .arg(&thumb_path)
             .output()
             .map_err(|e| format!("FFmpeg error: {}", e))?;
 

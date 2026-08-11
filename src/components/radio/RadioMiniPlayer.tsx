@@ -46,9 +46,16 @@ export const RadioMiniPlayer: React.FC = () => {
   const [buffering, setBuffering] = React.useState(false);
   const [position, setPosition] = React.useState(0);
   const [duration, setDuration] = React.useState(0);
-  const [collapsed, setCollapsed] = React.useState(
-    () => localStorage.getItem('salafi-hub.player-collapsed') === '1',
-  );
+  /* Guarded because this dock mounts app-wide: an engine with storage
+     disabled or wedged throws on access, and an unguarded read here took the
+     whole window down rather than losing one collapse preference. */
+  const [collapsed, setCollapsed] = React.useState(() => {
+    try {
+      return localStorage.getItem('salafi-hub.player-collapsed') === '1';
+    } catch {
+      return false;
+    }
+  });
   const seekable = Number.isFinite(duration) && duration > 0;
   /* Recitation plays through this same dock, but it is not a radio station
      and must not be dressed as one: a mushaf next to a "Live" pip and a
@@ -59,7 +66,11 @@ export const RadioMiniPlayer: React.FC = () => {
 
   const setCollapsedPersisted = (value: boolean) => {
     setCollapsed(value);
-    localStorage.setItem('salafi-hub.player-collapsed', value ? '1' : '0');
+    try {
+      localStorage.setItem('salafi-hub.player-collapsed', value ? '1' : '0');
+    } catch {
+      /* quota or private mode — the dock still collapses, it just forgets */
+    }
   };
 
   useEffect(() => {
