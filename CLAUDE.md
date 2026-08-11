@@ -110,8 +110,10 @@ commented at its site; this is the index.
 
 ## WebKitGTK 2.46+ drops the harakat
 
-Not an app bug, and nothing in the app can fix it — but the first thing to
-suspect whenever a Linux screenshot shows a mushaf of bare consonants.
+Not an app bug, and the app cannot make the engine place them — but it no
+longer has to: see "The app works around it" below. This is still the first
+thing to suspect whenever a Linux screenshot shows a mushaf of bare
+consonants.
 
 WebKitGTK from 2.46 (the Skia rendering backend) does not apply HarfBuzz's
 GPOS mark-attachment offsets for the KFGQPC faces. Shaping is correct — the
@@ -150,8 +152,39 @@ why the basmala survives while `ٱلۡحَمۡدُ` next to it does not, and why
 screenshot can look half-right. Marks *below* the line (kasra) also survive:
 their outlines already sit below the baseline.
 
-`checkHarakat` in `src/utils/mushafFont.ts` detects it and the Qur'an page says
-so plainly. It measures painted pixels — canvas is the only way to see them,
+### The app works around it
+
+`checkHarakat` in `src/utils/mushafFont.ts`
+detects the engine; when it is one of these, the Qur'an page stops asking the
+engine to lay out Qur'anic text and asks it only to fill outlines shaped out in
+Rust — `src-tauri/src/commands/mushaf_shape.rs`, rustybuzz over the Complex's
+own face, the offsets the Complex's own GPOS asks for. Verified end to end: on
+WebKitGTK 2.52 the page renders `ٱلۡحَمۡدُ لِلَّهِ رَبِّ ٱلۡعَٰلَمِينَ` complete.
+
+Rules for that path:
+
+- It is keyed on the probe, never on the platform. A healthy engine — every
+  Windows build, Linux before 2.46 — takes the normal text path and shapes
+  nothing. Verified: Chromium renders 0 outline SVGs.
+- Each GLYPH is sent once and placed by reference. Whole-word paths measure
+  ~19 MB for al-Baqarah alone and ~139 MB for the Qur'an; per glyph the total
+  is bounded by the face, about 1400 outlines.
+- Coordinates are font units, and SVG's y grows DOWNWARD: the outline is
+  written negated and the placement must be negated too, or every mark GPOS
+  lifts lands below its letter — the same defect, reintroduced by a sign. A
+  test asserts a raised mark has negative y.
+- The word span keeps its id and its box, so the recitation cue and the
+  word-sync highlight need no changes; the glyphs take `fill: currentColor` so
+  colouring the span still colours the word.
+- The real text stays in the DOM under `.quran-word-source`, clipped rather
+  than `display:none`, so the ayah can still be selected, copied and announced.
+- The warning banner only appears if the fallback ITSELF could not run. When
+  the outlines are drawn there is nothing for the reader to do, so nothing is
+  said.
+- Cost: a long surah gains roughly four `<use>` nodes per word. Acceptable
+  against an unreadable mushaf, but it is why the fallback is not the default.
+
+The banner text and the Diagnostics row still report the engine plainly. It measures painted pixels — canvas is the only way to see them,
 and it fails the same way, which is what makes it a faithful witness. It
 compares the topmost ink of `لَّهِ` against `له`: a correct engine lifts it
 0.34–0.45em, a broken one 0.00–0.16em, and the threshold is 0.25em. Measure

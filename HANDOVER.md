@@ -476,10 +476,21 @@ into single glyphs via GSUB — `بِسۡمِ` is one glyph (`Bism`), and most o
 the basmala survives while `ٱلۡحَمۡدُ` beside it does not. Marks *below* the
 line (kasra) also survive: their outlines already sit below the baseline.
 
-**What the app does about it.** `checkHarakat` in `src/utils/mushafFont.ts`
-detects it; the Qur'an page shows a plain-language warning
-(`quranHarakatEngineBug`) and Settings → Diagnostics → "Mushaf fonts" appends
-`harakat OK` / `HARAKAT NOT PLACED`. The probe measures painted pixels, because
+**What the app does about it — it is fixed.** `checkHarakat` detects the
+engine; when it is one of these, the Qur'an page renders each word from
+outlines shaped in Rust (`src-tauri/src/commands/mushaf_shape.rs`, rustybuzz
+over the Complex's own face) instead of asking the engine to lay out Arabic.
+Verified on WebKitGTK 2.52: the page renders the full harakat. The transport
+sends each glyph once and places it by reference, because whole-word paths come
+to ~19 MB for al-Baqarah alone. Windows is untouched — the fallback is keyed on
+the probe, and Chromium renders zero outlines. Settings → Diagnostics still
+reports `harakat OK` / `HARAKAT NOT PLACED` so the engine itself is visible.
+
+Gotchas if you touch it: SVG's y grows downward, so the placement y must be
+negated along with the outline (a test asserts this); the word span keeps its
+id and box so the recitation cue is unaffected; the real text stays in the DOM
+clipped, not `display:none`, so copy and screen readers still work; and the
+warning banner only shows if the fallback itself fails. The probe measures painted pixels, because
 that is the only thing that reveals it; canvas fails the same way as the DOM,
 which is exactly what makes it a faithful witness.
 

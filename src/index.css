@@ -4631,3 +4631,42 @@
     pointer-events: none;
   }
 }
+
+/* --- Outline fallback for engines that will not place the harakat ---------
+   WebKitGTK 2.46+ paints every GPOS-lifted mark at the baseline, where it
+   disappears into the letterforms. When the probe in mushafFont.ts sees that,
+   each word is drawn from outlines shaped in Rust instead of laid out by the
+   engine. See src-tauri/src/commands/mushaf_shape.rs. */
+
+/* Zero-sized and out of flow: it carries the glyph <defs> only, and must never
+   occupy a line box inside the mushaf. */
+.quran-glyph-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* The glyphs take their colour from the word span, so the word-sync tracker
+   keeps working untouched: it colours the span, the outlines follow. */
+.quran-word-outline {
+  display: inline-block;
+  overflow: visible;
+  fill: currentColor;
+}
+
+/* The real Qur'anic text, kept in the DOM so the ayah can still be selected,
+   copied and announced — but never painted, because the outlines above are
+   already showing it. Not `display: none`, which would take it out of the
+   accessibility tree and off the clipboard too. */
+.quran-word-source {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

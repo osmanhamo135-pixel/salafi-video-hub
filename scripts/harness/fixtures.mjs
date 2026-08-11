@@ -15,6 +15,12 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, '..', '..');
 
 const quran = JSON.parse(readFileSync(join(repo, 'src-tauri/resources/quran.json'), 'utf8'));
+/* Shaped outlines for surah 1, dumped from the Rust shaper (which the browser
+   cannot run). Lets the harness exercise the outline fallback that engines
+   dropping the harakat fall back to. Regenerate with:
+     cd src-tauri && FIXTURE_OUT=../scripts/harness/mushaf-shape.json \
+       cargo test dump_harness_fixture -- --ignored */
+const mushafShape = JSON.parse(readFileSync(join(here, 'mushaf-shape.json'), 'utf8'));
 
 const surahMeta = quran.map((s) => ({
   id: s.id,
@@ -201,6 +207,7 @@ const surahPayloads = Object.fromEntries(
 );
 
 export const fixtures = {
+  mushafShape,
   videos,
   playlists,
   reminders,

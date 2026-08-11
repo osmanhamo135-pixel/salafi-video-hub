@@ -124,6 +124,26 @@
     // The full-catalog disk cache always misses in the harness — write and
     // remove fall through to the silent-success default below.
     shuyukh_catalog_cache_read: function () { return null; },
+    /* The browser cannot shape, so the outline fallback is served from a
+       fixture dumped by the Rust shaper. Only surah 1 is covered; any other
+       word simply comes back null and keeps its text, which is exactly what
+       the real command does when a word cannot be shaped. */
+    shape_mushaf_words: function (a) {
+      var fx = (F && F.mushafShape) || { upem: 0, glyphs: [], words: {} };
+      var known = {};
+      (a.knownGlyphs || []).forEach(function (id) { known[id] = true; });
+      var words = (a.words || []).map(function (w) { return fx.words[w] || null; });
+      var need = {};
+      words.forEach(function (w) {
+        if (!w) return;
+        w.p.forEach(function (p) { if (!known[p.g]) need[p.g] = true; });
+      });
+      return {
+        upem: fx.upem,
+        glyphs: (fx.glyphs || []).filter(function (g) { return need[g.id]; }),
+        words: words,
+      };
+    },
     // The ad-free stream resolver, so the inline player on the Shuyukh page
     // (and the Watch player) mounts in the harness. The media URL is dead —
     // the player chrome renders; playback itself is not the harness's job.
