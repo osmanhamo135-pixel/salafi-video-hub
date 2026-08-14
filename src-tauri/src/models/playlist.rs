@@ -2,6 +2,11 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+// Container-level default: a backup written by an older build simply lacks
+// the fields added since, and rejecting the whole file over them threw away
+// the user's entire restorable library. Missing fields take the struct's
+// Default; import_backup refuses rows that defaulted away their identity.
+#[serde(default)]
 pub struct Playlist {
     pub id: String,
     pub name: String,

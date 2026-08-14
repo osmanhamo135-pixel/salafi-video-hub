@@ -60,7 +60,19 @@ pub struct QuranReciter {
 }
 
 #[tauri::command]
-pub fn get_quran_surahs(
+pub async fn get_quran_surahs(
+    app_handle: AppHandle,
+    riwayah: Option<String>,
+) -> Result<Vec<SurahMeta>, String> {
+    // The first call parses the whole bundled corpus — several MB of JSON —
+    // into the OnceLock. On the main thread that froze the first paint of the
+    // Qur'an page; off it, only this command waits.
+    tauri::async_runtime::spawn_blocking(move || get_quran_surahs_blocking(app_handle, riwayah))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn get_quran_surahs_blocking(
     app_handle: AppHandle,
     riwayah: Option<String>,
 ) -> Result<Vec<SurahMeta>, String> {
@@ -79,17 +91,22 @@ pub fn get_quran_surahs(
 }
 
 #[tauri::command]
-pub fn get_quran_surah(
+pub async fn get_quran_surah(
     app_handle: AppHandle,
     surah_id: i64,
     riwayah: Option<String>,
 ) -> Result<Surah, String> {
-    let quran = load_riwayah(&app_handle, riwayah.as_deref())?;
-    quran
-        .iter()
-        .find(|surah| surah.id == surah_id)
-        .cloned()
-        .ok_or_else(|| format!("Surah {} was not found.", surah_id))
+    // Same first-parse cost as get_quran_surahs, so the same treatment.
+    tauri::async_runtime::spawn_blocking(move || {
+        let quran = load_riwayah(&app_handle, riwayah.as_deref())?;
+        quran
+            .iter()
+            .find(|surah| surah.id == surah_id)
+            .cloned()
+            .ok_or_else(|| format!("Surah {} was not found.", surah_id))
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// Selects the requested riwayah's text. Hafs is the default; Warsh uses the

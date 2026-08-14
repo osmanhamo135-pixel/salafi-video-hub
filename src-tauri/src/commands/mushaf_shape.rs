@@ -423,6 +423,25 @@ mod tests {
             if surah["id"].as_i64() != Some(1) {
                 continue;
             }
+            // The heading words, so the harness can show the shaped heading:
+            // \u0633\u064F\u0648\u0631\u064E\u0629\u064F + the surah's own name.
+            let heading = format!(
+                "\u{0633}\u{064F}\u{0648}\u{0631}\u{064E}\u{0629}\u{064F} {}",
+                surah["name"].as_str().unwrap_or("")
+            );
+            for word in heading.split(' ').filter(|w| !w.is_empty()) {
+                if !words_out.contains_key(word) {
+                    if let Some(shaped) = shape_one(&f, word) {
+                        for placement in &shaped.p {
+                            if !glyph_ids.contains(&placement.g) {
+                                glyph_ids.push(placement.g);
+                            }
+                        }
+                        words_out
+                            .insert(word.to_string(), serde_json::to_value(&shaped).expect("word"));
+                    }
+                }
+            }
             for verse in surah["verses"].as_array().expect("verses") {
                 for word in verse["text"].as_str().unwrap_or("").split(' ') {
                     if word.is_empty() || words_out.contains_key(word) {

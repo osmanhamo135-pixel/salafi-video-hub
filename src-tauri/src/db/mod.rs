@@ -16,10 +16,11 @@ pub type DbState = Arc<Mutex<Connection>>;
 /// it panics too. That turned one bad row into a dead session: library,
 /// settings and reminders all failing until the app was restarted.
 ///
-/// Recovering is safe here because no application code holds an open
-/// transaction across a point where it could panic; the only `BEGIN` blocks are
-/// single `execute_batch` calls during schema setup. Statements are atomic, so
-/// the connection is not left half-written.
+/// Recovering is safe here because no open transaction can survive a panic:
+/// the schema-setup `BEGIN` blocks are single `execute_batch` calls, and
+/// `import_backup`'s restore transaction is a rusqlite `Transaction`, which
+/// rolls back on drop — including the drop that runs while a panic unwinds.
+/// Either way the connection handed to the next caller is not half-written.
 pub fn lock_conn(db: &DbState) -> std::sync::MutexGuard<'_, Connection> {
     db.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
 }

@@ -1,6 +1,6 @@
 use crate::db::{lock_conn, DbState};
 use crate::models::playlist::Playlist;
-use rusqlite::{params, Result, Row};
+use rusqlite::{params, Connection, Result, Row};
 use serde_json;
 
 /* Named columns, never `SELECT *` — the same invariant `VIDEO_COLUMNS` carries
@@ -35,7 +35,12 @@ fn row_to_playlist(row: &Row) -> Result<Playlist> {
 }
 
 pub fn insert_playlist(db: &DbState, playlist: &Playlist) -> Result<()> {
-    let conn = lock_conn(db);
+    insert_playlist_with_conn(&lock_conn(db), playlist)
+}
+
+/// Same operation against an already-held connection, so several writes can
+/// compose into one transaction (see `import_backup`).
+pub fn insert_playlist_with_conn(conn: &Connection, playlist: &Playlist) -> Result<()> {
     let video_ids_json = serde_json::to_string(&playlist.video_ids).unwrap_or_default();
 
     conn.execute(

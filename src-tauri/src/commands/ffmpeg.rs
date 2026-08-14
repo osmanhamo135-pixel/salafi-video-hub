@@ -38,10 +38,24 @@ pub async fn install_ffmpeg_helper(
 }
 
 #[tauri::command]
-pub fn generate_thumbnail(
+pub async fn generate_thumbnail(
     app_handle: tauri::AppHandle,
     video_path: String,
     _output_path: Option<String>,
+    timestamp: f64,
+) -> Result<String, String> {
+    // Spawning ffmpeg and waiting on it — up to seven times for awkward
+    // videos — is exactly the work that must not sit on the main thread.
+    tauri::async_runtime::spawn_blocking(move || {
+        generate_thumbnail_blocking(app_handle, video_path, timestamp)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+fn generate_thumbnail_blocking(
+    app_handle: tauri::AppHandle,
+    video_path: String,
     timestamp: f64,
 ) -> Result<String, String> {
     let (ffmpeg, _, _, _) = ffmpeg_finder::ensure_ffmpeg_for_app(&app_handle)?;

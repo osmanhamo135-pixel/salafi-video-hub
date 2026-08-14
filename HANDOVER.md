@@ -674,11 +674,15 @@ Key rotation is **permanently cancelled** — it breaks every installed client.
   HarfBuzz (§9). If it is ever revisited, it must be tested against an old-host
   scenario first.
 - **No frontend tests exist.** Highest-value place to add them.
-- Several sync Rust commands do heavy I/O on the main thread (`rescan_all`,
-  `export_backup`/`import_backup`, `generate_thumbnail`, the first
-  `get_quran_surahs` parse). They should move to `spawn_blocking`.
-- `import_backup` is non-transactional and rejects backups written by older
-  builds (missing `#[serde(default)]` on `Video`).
+- ~~Heavy sync I/O on the main thread~~ — resolved: `rescan_all`,
+  `export_backup`, `import_backup`, `generate_thumbnail` and both corpus
+  commands now run under `spawn_blocking`, matching the rest of the file.
+- ~~`import_backup` fragile~~ — resolved: `Video`/`Playlist` carry
+  container-level `#[serde(default)]` so older backups restore (rows that
+  default away their identity are skipped, not stored), and the restore is one
+  rusqlite transaction that rolls back on drop. Two tests pin both properties;
+  the poison-recovery note on `lock_conn` explains why drop-rollback keeps it
+  sound.
 - Tauri capabilities were narrowed in 1.51.4: `fs:read-all` and `fs:write-all`
   are gone (the app-scoped `fs:allow-app*`/`appcache`/`applocaldata`/`applog`
   grants remain) and `shell.open` is scoped to `^https://[^\s]+$` instead of

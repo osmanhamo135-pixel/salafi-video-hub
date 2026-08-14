@@ -1,6 +1,6 @@
 use crate::db::{lock_conn, DbState};
 use crate::models::reminder::Reminder;
-use rusqlite::{params, Result, Row};
+use rusqlite::{params, Connection, Result, Row};
 use serde_json;
 
 fn row_to_reminder(row: &Row) -> Result<Reminder> {
@@ -28,7 +28,12 @@ fn row_to_reminder(row: &Row) -> Result<Reminder> {
 }
 
 pub fn insert_reminder(db: &DbState, reminder: &Reminder) -> Result<()> {
-    let conn = lock_conn(db);
+    insert_reminder_with_conn(&lock_conn(db), reminder)
+}
+
+/// Same operation against an already-held connection, so several writes can
+/// compose into one transaction (see `import_backup`).
+pub fn insert_reminder_with_conn(conn: &Connection, reminder: &Reminder) -> Result<()> {
     let custom_days_json = reminder
         .custom_days
         .as_ref()

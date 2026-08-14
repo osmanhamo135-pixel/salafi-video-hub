@@ -724,6 +724,36 @@ const QuranWordOutline: React.FC<{ word: string; shaped: ShapedWord; upem: numbe
   );
 };
 
+/**
+ * A run of mushaf-face text outside an ayah body — the surah heading. Words an
+ * outline exists for are drawn; anything else stays text, so a word the shaper
+ * missed degrades to exactly what the page showed before.
+ */
+const OutlineTextRun: React.FC<{ text: string; outlines: OutlineSet | null }> = ({
+  text,
+  outlines,
+}) => {
+  if (!outlines || outlines.upem <= 0) return <>{text}</>;
+  const parts = text.trim().split(/ +/).filter(Boolean);
+  return (
+    <>
+      {parts.map((word, index) => {
+        const shaped = outlines.words.get(word);
+        return (
+          <React.Fragment key={`${index}-${word}`}>
+            {index > 0 ? ' ' : null}
+            {shaped ? (
+              <QuranWordOutline word={word} shaped={shaped} upem={outlines.upem} />
+            ) : (
+              word
+            )}
+          </React.Fragment>
+        );
+      })}
+    </>
+  );
+};
+
 const QuranVerseWords: React.FC<{
   surahId: number;
   ayah: number;
@@ -988,6 +1018,25 @@ const SurahReader: React.FC = () => {
     };
   }, [warshMode]);
 
+
+  const read = timingReads.find((entry) => entry.id === selectedTimingReadId) ?? timingReads[0];
+  const readName = read ? (language === 'ar' ? read.nameAr ?? read.name : read.name) : '';
+  const syncStationId = surah && read ? `quran-sync-${read.id}-${surah.id}` : null;
+  // Recitation timing data uses the Hafs (Kufan) numbering; the tracker is
+  // Hafs-only so it can never point at a differently numbered Warsh ayah.
+  const syncActive = !warshMode && Boolean(syncStationId && currentStation?.id === syncStationId);
+  /* Gated on `!warshMode` for the same reason `syncActive` is: the timing
+     data — and the word list that comes with it — is quran.com's HAFS text.
+     Without the gate, `syncedWordsByAyah` still fed QuranVerseWords, which
+     prefers it over the bundled ayah, so playing a Hafs recitation and then
+     switching riwayah rendered the HAFS words under Warsh attribution and
+     Warsh numbering. The two readings are never mixed. */
+  const synced = !warshMode && surah && read ? syncedAudioBySurah[`${read.id}:${surah.id}`] ?? null : null;
+  const syncedWordsByAyah = useMemo(
+    () => new Map(synced?.wordsByAyah.map((entry) => [entry.ayah, entry.words]) ?? []),
+    [synced],
+  );
+
   /* When the engine will not place the marks, shape the surah's words out in
      Rust and render outlines instead. Only the words actually on the page are
      shaped, and only once per window: the second surah reuses almost every
@@ -1008,9 +1057,23 @@ const SurahReader: React.FC = () => {
     let cancelled = false;
     setOutlineStatus('working');
     const words = new Set<string>();
-    for (const verse of surah.verses) {
-      for (const word of verse.text.trim().split(/ +/)) {
+    const collect = (text: string) => {
+      for (const word of text.trim().split(/ +/)) {
         if (word) words.add(word);
+      }
+    };
+    for (const verse of surah.verses) collect(verse.text);
+    /* The heading is set in the mushaf face too, and its dammas drop with the
+       rest — a bare سورة over a fully vocalised page reads as a defect. */
+    collect(`\u0633\u064F\u0648\u0631\u064E\u0629\u064F ${surah.name}`);
+    /* Synced recitation swaps in quran.com's word list, which spells the same
+       words as DIFFERENT strings than the bundled corpus. Without shaping them
+       the mushaf regressed to bare consonants the moment playback started. */
+    if (synced) {
+      for (const entry of synced.wordsByAyah) {
+        for (const word of entry.words) {
+          if (word) words.add(word);
+        }
       }
     }
     // Show whatever is already shaped straight away, so switching back to a
@@ -1032,25 +1095,7 @@ const SurahReader: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [harakatBroken, surah, warshMode]);
-
-  const read = timingReads.find((entry) => entry.id === selectedTimingReadId) ?? timingReads[0];
-  const readName = read ? (language === 'ar' ? read.nameAr ?? read.name : read.name) : '';
-  const syncStationId = surah && read ? `quran-sync-${read.id}-${surah.id}` : null;
-  // Recitation timing data uses the Hafs (Kufan) numbering; the tracker is
-  // Hafs-only so it can never point at a differently numbered Warsh ayah.
-  const syncActive = !warshMode && Boolean(syncStationId && currentStation?.id === syncStationId);
-  /* Gated on `!warshMode` for the same reason `syncActive` is: the timing
-     data — and the word list that comes with it — is quran.com's HAFS text.
-     Without the gate, `syncedWordsByAyah` still fed QuranVerseWords, which
-     prefers it over the bundled ayah, so playing a Hafs recitation and then
-     switching riwayah rendered the HAFS words under Warsh attribution and
-     Warsh numbering. The two readings are never mixed. */
-  const synced = !warshMode && surah && read ? syncedAudioBySurah[`${read.id}:${surah.id}`] ?? null : null;
-  const syncedWordsByAyah = useMemo(
-    () => new Map(synced?.wordsByAyah.map((entry) => [entry.ayah, entry.words]) ?? []),
-    [synced],
-  );
+  }, [harakatBroken, surah, synced, warshMode]);
   const repeatSelection = useMemo<QuranRepeatSelection>(
     () => ({ mode: repeatMode, startAyah: repeatStart, endAyah: repeatEnd, times: repeatTimes }),
     [repeatEnd, repeatMode, repeatStart, repeatTimes],
@@ -1752,7 +1797,9 @@ const SurahReader: React.FC = () => {
           className="quran-surah-heading quran-script arabic-text mb-6 text-center font-normal"
           style={{ fontSize: fontSize * 0.66, lineHeight: 1.5 }}
         >
-          <span className="quran-surah-title">سُورَةُ {surah.name}</span>
+          <span className="quran-surah-title">
+            <OutlineTextRun text={`سُورَةُ ${surah.name}`} outlines={outlines} />
+          </span>
         </h2>
 
         {/* The unnumbered opening basmala: written before every surah except

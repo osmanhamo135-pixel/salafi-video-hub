@@ -176,6 +176,10 @@ Rules for that path:
 - The word span keeps its id and its box, so the recitation cue and the
   word-sync highlight need no changes; the glyphs take `fill: currentColor` so
   colouring the span still colours the word.
+- The surah heading and quran.com's synced word list are shaped too. The
+  synced words are DIFFERENT strings than the bundled corpus, so without
+  shaping them the mushaf regressed to bare consonants the moment playback
+  started; the heading's dammas dropped like the ayah text's.
 - The real text stays in the DOM under `.quran-word-source`, clipped rather
   than `display:none`, so the ayah can still be selected, copied and announced.
 - The warning banner only appears if the fallback ITSELF could not run. When
