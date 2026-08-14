@@ -1,6 +1,6 @@
 [package]
 name = "salafi-video-hub"
-version = "1.51.3"
+version = "1.51.4"
 description = "Salafi Hub - a polished, fast desktop Islamic video hub and player"
 authors = ["Salafi Video Hub"]
 license = "MIT"
@@ -33,6 +33,8 @@ dirs = "5.0"
 natord = "1.0"
 tauri-plugin-updater = "2.10.1"
 tauri-plugin-window-state = "2"
+rustybuzz = "0.20"
+ttf-parser = "0.25"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]

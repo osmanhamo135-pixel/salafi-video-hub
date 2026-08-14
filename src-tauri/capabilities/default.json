@@ -11,8 +11,6 @@
     "core:window:allow-start-dragging",
     "dialog:default",
     "dialog:allow-open",
-    "fs:read-all",
-    "fs:write-all",
     "fs:allow-app-read",
     "fs:allow-app-write",
     "fs:allow-app-meta",

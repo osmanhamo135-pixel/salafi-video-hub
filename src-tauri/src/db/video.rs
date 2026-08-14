@@ -1,6 +1,6 @@
 use crate::db::{lock_conn, DbState};
 use crate::models::video::Video;
-use rusqlite::{params, params_from_iter, Result, Row};
+use rusqlite::{params, params_from_iter, Connection, Result, Row};
 
 /// The video columns, in exactly the order `row_to_video` reads them.
 ///
@@ -46,7 +46,12 @@ fn row_to_video(row: &Row) -> Result<Video> {
 }
 
 pub fn insert_video(db: &DbState, video: &Video) -> Result<()> {
-    let conn = lock_conn(db);
+    insert_video_with_conn(&lock_conn(db), video)
+}
+
+/// Same operation against an already-held connection, so several writes can
+/// compose into one transaction (see `import_backup`).
+pub fn insert_video_with_conn(conn: &Connection, video: &Video) -> Result<()> {
     conn.execute(
         "INSERT OR IGNORE INTO videos (
             id, title, file_path, folder_path, file_name, extension,
@@ -69,7 +74,12 @@ pub fn insert_video(db: &DbState, video: &Video) -> Result<()> {
 }
 
 pub fn update_video(db: &DbState, video: &Video) -> Result<()> {
-    let conn = lock_conn(db);
+    update_video_with_conn(&lock_conn(db), video)
+}
+
+/// Same operation against an already-held connection, so several writes can
+/// compose into one transaction (see `import_backup`).
+pub fn update_video_with_conn(conn: &Connection, video: &Video) -> Result<()> {
     conn.execute(
         "UPDATE videos SET
             title = ?1, file_path = ?2, folder_path = ?3, file_name = ?4,
@@ -110,7 +120,12 @@ pub fn update_video(db: &DbState, video: &Video) -> Result<()> {
 }
 
 pub fn get_video_by_id(db: &DbState, id: &str) -> Result<Option<Video>> {
-    let conn = lock_conn(db);
+    get_video_by_id_with_conn(&lock_conn(db), id)
+}
+
+/// Same operation against an already-held connection, so several writes can
+/// compose into one transaction (see `import_backup`).
+pub fn get_video_by_id_with_conn(conn: &Connection, id: &str) -> Result<Option<Video>> {
     let mut stmt = conn.prepare(&format!("SELECT {} FROM videos WHERE id = ?1", VIDEO_COLUMNS))?;
     let mut rows = stmt.query(params![id])?;
 

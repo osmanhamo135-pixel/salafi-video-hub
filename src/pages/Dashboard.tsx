@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { withTimeout } from '@/utils/async';
 import { BellOff } from 'lucide-react';
 import { Reminder } from '@/types';
 import { useAppStore } from '@/store/appStore';
@@ -39,7 +40,11 @@ export const Dashboard: React.FC = () => {
     const fetchReminders = async () => {
       try {
         setRemindersLoading(true);
-        const data = await invoke<Reminder[]>('get_all_reminders');
+        const data = await withTimeout(
+          invoke<Reminder[]>('get_all_reminders'),
+          15000,
+          'Loading reminders',
+        );
         const enabled = (data || [])
           .filter((r) => r.enabled)
           .sort((a, b) => a.time.localeCompare(b.time));

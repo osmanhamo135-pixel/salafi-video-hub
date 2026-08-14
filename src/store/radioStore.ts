@@ -65,8 +65,14 @@ const loadFavorites = (): string[] => {
 };
 
 const loadVolume = (): number => {
-  const value = Number(localStorage.getItem(VOLUME_KEY));
-  return Number.isFinite(value) && value >= 0 && value <= 100 ? value : 80;
+  /* Runs while the store is being created, i.e. before React mounts: an
+     unguarded throw here is a blank window, not a forgotten volume. */
+  try {
+    const value = Number(localStorage.getItem(VOLUME_KEY));
+    return Number.isFinite(value) && value >= 0 && value <= 100 ? value : 80;
+  } catch {
+    return 80;
+  }
 };
 
 /**

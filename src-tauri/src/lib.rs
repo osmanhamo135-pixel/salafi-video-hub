@@ -85,6 +85,7 @@ pub fn run() {
             commands::radio::get_radio_stations,
             commands::diagnostics::get_diagnostics,
             commands::quran::get_quran_surahs,
+            commands::mushaf_shape::shape_mushaf_words,
             commands::quran::get_quran_surah,
             commands::quran::get_quran_reciters,
             commands::quran::get_quran_word_timing_reads,

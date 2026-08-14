@@ -17,6 +17,7 @@ import { RadioMiniPlayer } from './components/radio/RadioMiniPlayer';
 import { TitleBar } from './components/layout/TitleBar';
 import { ResizeGrips } from './components/layout/ResizeGrips';
 import { CommandPalette } from './components/chrome/CommandPalette';
+import { BackendHealthBanner } from './components/chrome/BackendHealthBanner';
 import { usePlayerStore } from './store/playerStore';
 import { useSettingsStore } from './store/settingsStore';
 import { useAppEvents } from './hooks/useAppEvents';
@@ -90,6 +91,7 @@ export default function App() {
           </Routes>
         </AppShell>
       </div>
+      <BackendHealthBanner />
       <ReminderAlarm />
       <UpdateManager />
       <RadioMiniPlayer />

@@ -1,6 +1,6 @@
 use crate::db::{lock_conn, DbState};
 use crate::models::settings::Settings;
-use rusqlite::{params, Result, Row};
+use rusqlite::{params, Connection, Result, Row};
 use serde_json;
 
 fn row_to_settings(row: &Row) -> Result<Settings> {
@@ -75,7 +75,12 @@ pub fn get_settings(db: &DbState) -> Result<Settings> {
 }
 
 pub fn update_settings(db: &DbState, settings: &Settings) -> Result<()> {
-    let conn = lock_conn(db);
+    update_settings_with_conn(&lock_conn(db), settings)
+}
+
+/// Same operation against an already-held connection, so several writes can
+/// compose into one transaction (see `import_backup`).
+pub fn update_settings_with_conn(conn: &Connection, settings: &Settings) -> Result<()> {
     let folders_json = serde_json::to_string(&settings.imported_folders).unwrap_or_default();
 
     conn.execute(

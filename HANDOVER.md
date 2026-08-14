@@ -298,6 +298,13 @@ unrelated. Each is commented at its site in code; this is the index.
     never moves sidebars or alignment; Arabic renders RTL inside each label via
     `dir="auto"` / `<bdi>`.
 
+**The mushaf `@font-face` families are app-private names** — `SVH Mushaf Hafs`,
+`SVH Mushaf Warsh`, `SVH Ornament Amiri` — never the fonts' real names. A
+machine with `KFGQPC Uthmanic Script HAFS` installed system-wide otherwise wins
+the name and sets the Qur'an in *its* copy of the face, silently. Proven by
+installing an impostor under that name and watching the mushaf change. The
+CSP's `font-src` must stay in step, or the faces never load at all.
+
 ### CSS mechanics
 
 11. **`rgb(var(--x-rgb) / 0.16)` — slash syntax.** `rgba(var(--x-rgb), 0.16)`
@@ -430,6 +437,69 @@ Consequences already handled in the code:
   declare dependencies.
 - The updater is gated on `updater_can_self_install` so deb users are not shown
   an update prompt whose Retry can never succeed.
+
+### WebKitGTK 2.46+ drops the Qur'anic harakat (the big one)
+
+**This is the outstanding Linux defect, it is not ours, and nothing in the app
+can fix it.** Suspect it first whenever a Linux screenshot shows a mushaf of
+bare consonants.
+
+From WebKitGTK 2.46 — the release that moved rendering from Cairo to Skia — the
+engine no longer applies HarfBuzz's GPOS mark-attachment offsets for the KFGQPC
+faces. Shaping is fine: the glyph list carries every mark, and `hb-shape` on
+the same file returns the right offsets under HarfBuzz 8.3 and 14.3 alike. The
+marks are simply painted at the baseline instead of above their letter, where
+they vanish into the letterforms. The reader is left with an incomplete
+Qur'anic text — a manhaj problem, not a cosmetic one.
+
+**How it was proven.** The *same* `.deb` binary, same fonts, same automation
+script, captured twice: at 20:47 on 2026-08-01 under WebKitGTK 2.44, every
+harakah present; and again under 2.52.3, all of them gone. `/var/log/dpkg.log`
+records the downgrade to 2.44.0-2 at 20:44:16 and the upgrade back at 20:55:55.
+One variable.
+
+**Already ruled out — do not spend a day re-testing these.** Font fallback; the
+app's CSS (it reproduces on a bare page whose only font is the `@font-face`
+file); `.woff2` vs `.ttf`; Hafs vs Warsh (both fail); the `gasp` table; the
+legacy `kern` table; `line-height`; `text-rendering`; `-webkit-font-smoothing`;
+`text-shadow`; `-webkit-text-stroke`; layerisation (`opacity`, `will-change`,
+`translateZ`, `contain`); `font-feature-settings`; `word-spacing`;
+`paint-order`; font size; DOM vs SVG `<text>` vs `<canvas>` (all three fail
+identically, so there is no surface to move the mushaf onto); and the env vars
+`WEBKIT_FORCE_COMPLEX_TEXT`, `WEBKIT_SKIA_ENABLE_CPU_RENDERING`,
+`WEBKIT_DISABLE_COMPOSITING_MODE`, `WEBKIT_DISABLE_DMABUF_RENDERER`,
+`LIBGL_ALWAYS_SOFTWARE` (byte-identical output).
+
+**Why a screenshot can look half-right.** KFGQPC precomposes some sequences
+into single glyphs via GSUB — `بِسۡمِ` is one glyph (`Bism`), and most of
+`ٱلرَّحۡمَٰنِ` likewise. A glyph carrying its own marks needs no GPOS offset, so
+the basmala survives while `ٱلۡحَمۡدُ` beside it does not. Marks *below* the
+line (kasra) also survive: their outlines already sit below the baseline.
+
+**What the app does about it — it is fixed.** `checkHarakat` detects the
+engine; when it is one of these, the Qur'an page renders each word from
+outlines shaped in Rust (`src-tauri/src/commands/mushaf_shape.rs`, rustybuzz
+over the Complex's own face) instead of asking the engine to lay out Arabic.
+Verified on WebKitGTK 2.52: the page renders the full harakat. The transport
+sends each glyph once and places it by reference, because whole-word paths come
+to ~19 MB for al-Baqarah alone. Windows is untouched — the fallback is keyed on
+the probe, and Chromium renders zero outlines. Settings → Diagnostics still
+reports `harakat OK` / `HARAKAT NOT PLACED` so the engine itself is visible.
+
+Gotchas if you touch it: SVG's y grows downward, so the placement y must be
+negated along with the outline (a test asserts this); the word span keeps its
+id and box so the recitation cue is unaffected; the real text stays in the DOM
+clipped, not `display:none`, so copy and screen readers still work; and the
+warning banner only shows if the fallback itself fails. The probe measures painted pixels, because
+that is the only thing that reveals it; canvas fails the same way as the DOM,
+which is exactly what makes it a faithful witness.
+
+**If you want to actually fix it**, the only avenues are outside the web layer,
+and each is a real decision the owner should take, not a quiet refactor:
+bundling a working WebKitGTK in the AppImage (large, fragile, and the AppImage
+is not what the tester uses — he is on the deb); or generating a font whose
+marks need no GPOS. The second would mean shipping a mushaf face that is not
+the Complex's own file, which §2 forbids. Neither should be done unilaterally.
 
 ### The AppImage / HarfBuzz trap (do not repeat this)
 
@@ -591,27 +661,35 @@ Key rotation is **permanently cancelled** — it breaks every installed client.
 
 ## 14. Open / unresolved
 
-- **One field report may still be outstanding.** A Linux tester saw torn letters
-  and stranded ayah numbers. The medallion cause is found, fixed and **proven
-  against old HarfBuzz** on the shipped 1.51.3 AppImage. If that user still sees
-  **torn letters** after 1.51.3, the remaining suspect is the **mushaf font
-  failing to load on his machine** — ask him for
-  **Settings → Diagnostics → "Mushaf fonts"** (`Hafs OK / Warsh OK` vs `FAILED`)
-  and `cat /etc/os-release | head -2`. A simulated font-load failure reproduces
-  torn-looking letters, which is why the TTF fallback was added in 1.51.1.
+- **The Linux field report is explained and is an upstream defect.** The tester
+  saw torn letters and stranded ayah numbers. The torn letters were `justify`
+  on Arabic (fixed 1.51.0) and the medallion was HarfBuzz-version dependent
+  (fixed 1.51.3). What remains — a mushaf that reads as thin or wrong — is
+  **WebKitGTK 2.46+ not placing the harakat** (§9). The app now detects and
+  reports it; it cannot repair it. Ask a reporting user for
+  **Settings → Diagnostics → "Mushaf fonts"**: `harakat OK` means the engine is
+  fine and the cause is something else, `HARAKAT NOT PLACED` means it is this.
 - **The AppImage bundles Pango but not HarfBuzz/FreeType/fontconfig.** This is
   inconsistent in principle. Do **not** "fix" it by bundling the builder's
   HarfBuzz (§9). If it is ever revisited, it must be tested against an old-host
   scenario first.
 - **No frontend tests exist.** Highest-value place to add them.
-- Several sync Rust commands do heavy I/O on the main thread (`rescan_all`,
-  `export_backup`/`import_backup`, `generate_thumbnail`, the first
-  `get_quran_surahs` parse). They should move to `spawn_blocking`.
-- `import_backup` is non-transactional and rejects backups written by older
-  builds (missing `#[serde(default)]` on `Video`).
-- Tauri capabilities grant `fs:read-all`, `fs:write-all`, `shell:allow-open` and
-  `shell.open` scoped to `^.*$`, while nothing in `src/` imports those plugins.
-  That surface should be narrowed.
+- ~~Heavy sync I/O on the main thread~~ — resolved: `rescan_all`,
+  `export_backup`, `import_backup`, `generate_thumbnail` and both corpus
+  commands now run under `spawn_blocking`, matching the rest of the file.
+- ~~`import_backup` fragile~~ — resolved: `Video`/`Playlist` carry
+  container-level `#[serde(default)]` so older backups restore (rows that
+  default away their identity are skipped, not stored), and the restore is one
+  rusqlite transaction that rolls back on drop. Two tests pin both properties;
+  the poison-recovery note on `lock_conn` explains why drop-rollback keeps it
+  sound.
+- Tauri capabilities were narrowed in 1.51.4: `fs:read-all` and `fs:write-all`
+  are gone (the app-scoped `fs:allow-app*`/`appcache`/`applocaldata`/`applog`
+  grants remain) and `shell.open` is scoped to `^https://[^\s]+$` instead of
+  `^.*$`. Nothing in `src/` imports `@tauri-apps/plugin-fs` or
+  `-plugin-shell` — every file operation goes through the app's own Rust
+  commands, which the fs plugin ACL does not govern. If a future change does
+  need the fs plugin, add the narrowest scope that works, never `*-all`.
 
 ---
 

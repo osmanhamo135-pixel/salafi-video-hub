@@ -31,6 +31,9 @@ import { audioElementHolder, useRadioStore } from '@/store/radioStore';
 import { TranslationKey, useI18n } from '@/i18n';
 import { juzFor } from '@/utils/juz';
 import { SplitGrid } from '@/components/ui/SplitGrid';
+import { checkFace, checkHarakat, mushafFamily } from '@/utils/mushafFont';
+import { currentOutlines, loadOutlines } from '@/utils/mushafOutline';
+import type { OutlineSet, ShapedWord } from '@/utils/mushafOutline';
 
 const BASMALA_TEXT = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
 const BASMALA_LIGATURE = '﷽';
@@ -675,12 +678,89 @@ const useWordSync = (
   return { activeAyah, loopsDone };
 };
 
+/**
+ * One word drawn from outlines instead of text.
+ *
+ * `fill="currentColor"` is what keeps the rest of the page working unchanged:
+ * the word-sync tracker colours the spoken word by adding a class to this
+ * span, and the glyphs follow the span's `color` exactly as the text did. The
+ * span still measures the same box, so the recitation cue still lands on the
+ * right word.
+ *
+ * The real text stays in the DOM, visually hidden, so the ayah can still be
+ * selected, copied and read by a screen reader. It is the same Qur'anic text
+ * either way; only who lays it out has changed.
+ */
+const QuranWordOutline: React.FC<{ word: string; shaped: ShapedWord; upem: number }> = ({
+  word,
+  shaped,
+  upem,
+}) => {
+  const height = shaped.ascent + shaped.descent;
+  return (
+    <>
+      <svg
+        className="quran-word-outline"
+        aria-hidden="true"
+        focusable="false"
+        role="presentation"
+        width={`${shaped.width / upem}em`}
+        height={`${height / upem}em`}
+        viewBox={`0 ${-shaped.ascent} ${shaped.width} ${height}`}
+        style={{ verticalAlign: `${-shaped.descent / upem}em` }}
+      >
+        {shaped.p.map((placement, index) => (
+          <use
+            key={index}
+            href={`#svh-g${placement.g}`}
+            x={placement.x}
+            y={placement.y}
+            fill="currentColor"
+          />
+        ))}
+      </svg>
+      <span className="quran-word-source">{word}</span>
+    </>
+  );
+};
+
+/**
+ * A run of mushaf-face text outside an ayah body — the surah heading. Words an
+ * outline exists for are drawn; anything else stays text, so a word the shaper
+ * missed degrades to exactly what the page showed before.
+ */
+const OutlineTextRun: React.FC<{ text: string; outlines: OutlineSet | null }> = ({
+  text,
+  outlines,
+}) => {
+  if (!outlines || outlines.upem <= 0) return <>{text}</>;
+  const parts = text.trim().split(/ +/).filter(Boolean);
+  return (
+    <>
+      {parts.map((word, index) => {
+        const shaped = outlines.words.get(word);
+        return (
+          <React.Fragment key={`${index}-${word}`}>
+            {index > 0 ? ' ' : null}
+            {shaped ? (
+              <QuranWordOutline word={word} shaped={shaped} upem={outlines.upem} />
+            ) : (
+              word
+            )}
+          </React.Fragment>
+        );
+      })}
+    </>
+  );
+};
+
 const QuranVerseWords: React.FC<{
   surahId: number;
   ayah: number;
   text: string;
   syncedWords?: string[];
-}> = React.memo(({ surahId, ayah, text, syncedWords }) => {
+  outlines?: OutlineSet | null;
+}> = React.memo(({ surahId, ayah, text, syncedWords, outlines }) => {
   /* Split on the ASCII space ONLY — never `\s`. Both corpora use a second,
      deliberate space that is *inside* a word and must never become a split
      point: Hafs carries U+2009 THIN SPACE in 2:72 (فَٱدَّٰرَٰٔتُمۡ), and Warsh
@@ -700,7 +780,16 @@ const QuranVerseWords: React.FC<{
             id={`quran-word-${surahId}-${ayah}-${index + 1}`}
             className="quran-word"
           >
-            {word}
+            {(() => {
+              const shaped = outlines?.words.get(word);
+              // A word the shaper could not produce keeps its text: better one
+              // word without its marks than a gap where an ayah should be.
+              return shaped && outlines && outlines.upem > 0 ? (
+                <QuranWordOutline word={word} shaped={shaped} upem={outlines.upem} />
+              ) : (
+                word
+              );
+            })()}
           </span>{' '}
         </React.Fragment>
       ))}
@@ -896,6 +985,40 @@ const SurahReader: React.FC = () => {
   }, [loadTimingReads]);
 
   const warshMode = riwayah === 'warsh';
+
+  /* Whether the bundled mushaf face for the ACTIVE riwayah actually loaded.
+     Qur'anic text must render only through the Complex's own face, and the
+     chain deliberately names no fallback family — so if the bundled file ever
+     fails to load, the reader would otherwise be shown Qur'an set in whatever
+     the browser reaches for, with no indication that it is not the mushaf.
+     The families are app-private names, so nothing installed on the machine
+     can quietly stand in for them; this reports the failure instead. */
+  const [mushafFaceMissing, setMushafFaceMissing] = React.useState(false);
+  /* And whether this engine places the harakat at all. WebKitGTK 2.46+ shapes
+     the ayah correctly and then paints every above-the-letter mark down at the
+     baseline, where it vanishes into the letterforms — the reader is left with
+     bare consonants. The face loaded, so the check above stays silent; only a
+     pixel probe sees it. See checkHarakat. */
+  const [harakatBroken, setHarakatBroken] = React.useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    const family = mushafFamily(warshMode);
+    void (async () => {
+      const state = await checkFace(family);
+      if (cancelled) return;
+      setMushafFaceMissing(state === 'failed');
+      // Only meaningful once the face is actually there: with no face, the
+      // probe measures a fallback and would blame the engine for a missing file.
+      if (state !== 'loaded') return;
+      const marks = await checkHarakat(family);
+      if (!cancelled) setHarakatBroken(marks === 'broken');
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [warshMode]);
+
+
   const read = timingReads.find((entry) => entry.id === selectedTimingReadId) ?? timingReads[0];
   const readName = read ? (language === 'ar' ? read.nameAr ?? read.name : read.name) : '';
   const syncStationId = surah && read ? `quran-sync-${read.id}-${surah.id}` : null;
@@ -913,6 +1036,66 @@ const SurahReader: React.FC = () => {
     () => new Map(synced?.wordsByAyah.map((entry) => [entry.ayah, entry.words]) ?? []),
     [synced],
   );
+
+  /* When the engine will not place the marks, shape the surah's words out in
+     Rust and render outlines instead. Only the words actually on the page are
+     shaped, and only once per window: the second surah reuses almost every
+     glyph the first one needed. */
+  const [outlines, setOutlines] = React.useState<OutlineSet | null>(null);
+  /* 'working' while the shaper is being asked, so the warning below does not
+     flash in the gap before the outlines arrive; 'failed' only once there is
+     genuinely nothing to draw with. */
+  const [outlineStatus, setOutlineStatus] = React.useState<'off' | 'working' | 'ready' | 'failed'>(
+    'off',
+  );
+  useEffect(() => {
+    if (!harakatBroken || !surah) {
+      setOutlines(null);
+      setOutlineStatus('off');
+      return;
+    }
+    let cancelled = false;
+    setOutlineStatus('working');
+    const words = new Set<string>();
+    const collect = (text: string) => {
+      for (const word of text.trim().split(/ +/)) {
+        if (word) words.add(word);
+      }
+    };
+    for (const verse of surah.verses) collect(verse.text);
+    /* The heading is set in the mushaf face too, and its dammas drop with the
+       rest — a bare سورة over a fully vocalised page reads as a defect. */
+    collect(`\u0633\u064F\u0648\u0631\u064E\u0629\u064F ${surah.name}`);
+    /* Synced recitation swaps in quran.com's word list, which spells the same
+       words as DIFFERENT strings than the bundled corpus. Without shaping them
+       the mushaf regressed to bare consonants the moment playback started. */
+    if (synced) {
+      for (const entry of synced.wordsByAyah) {
+        for (const word of entry.words) {
+          if (word) words.add(word);
+        }
+      }
+    }
+    // Show whatever is already shaped straight away, so switching back to a
+    // surah read earlier paints without a round trip.
+    setOutlines(currentOutlines(warshMode));
+    void loadOutlines(warshMode, Array.from(words))
+      .then((set) => {
+        if (cancelled) return;
+        setOutlines(set);
+        setOutlineStatus(set.words.size > 0 ? 'ready' : 'failed');
+      })
+      .catch(() => {
+        // Nothing to draw with; the ayah keeps its text and the reader is told
+        // plainly that this engine will not place the marks.
+        if (cancelled) return;
+        setOutlines(null);
+        setOutlineStatus('failed');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [harakatBroken, surah, synced, warshMode]);
   const repeatSelection = useMemo<QuranRepeatSelection>(
     () => ({ mode: repeatMode, startAyah: repeatStart, endAyah: repeatEnd, times: repeatTimes }),
     [repeatEnd, repeatMode, repeatStart, repeatTimes],
@@ -1544,6 +1727,39 @@ const SurahReader: React.FC = () => {
         </button>
       )}
 
+      {mushafFaceMissing && (
+        <p
+          role="alert"
+          className="mb-3 rounded-md border border-warning-orange/40 bg-warning-orange/10 px-3 py-2 text-xs leading-relaxed text-warning-orange"
+          dir="auto"
+        >
+          {t('quranMushafFontMissing')}
+        </p>
+      )}
+
+      {!mushafFaceMissing && harakatBroken && outlineStatus === 'failed' && (
+        <p
+          role="alert"
+          className="mb-3 rounded-md border border-warning-orange/40 bg-warning-orange/10 px-3 py-2 text-xs leading-relaxed text-warning-orange"
+          dir="auto"
+        >
+          {t('quranHarakatEngineBug')}
+        </p>
+      )}
+
+      {/* Every glyph the surah uses, defined once and referenced by each word.
+          Emitted here rather than per word because a surah reuses a few hundred
+          glyphs across thousands of words. */}
+      {outlines && outlines.glyphs.length > 0 && (
+        <svg className="quran-glyph-defs" aria-hidden="true" focusable="false" width="0" height="0">
+          <defs>
+            {outlines.glyphs.map((glyph) => (
+              <path key={glyph.id} id={`svh-g${glyph.id}`} d={glyph.d} />
+            ))}
+          </defs>
+        </svg>
+      )}
+
       {/* Three elements, and the split matters:
             .quran-reading-frame     holds the jadwal and bounds the height
             .quran-reading-viewport  the scroller
@@ -1581,7 +1797,9 @@ const SurahReader: React.FC = () => {
           className="quran-surah-heading quran-script arabic-text mb-6 text-center font-normal"
           style={{ fontSize: fontSize * 0.66, lineHeight: 1.5 }}
         >
-          <span className="quran-surah-title">سُورَةُ {surah.name}</span>
+          <span className="quran-surah-title">
+            <OutlineTextRun text={`سُورَةُ ${surah.name}`} outlines={outlines} />
+          </span>
         </h2>
 
         {/* The unnumbered opening basmala: written before every surah except
@@ -1641,6 +1859,7 @@ const SurahReader: React.FC = () => {
                         ayah={verse.id}
                         text={verse.text}
                         syncedWords={syncedWordsByAyah.get(verse.id)}
+                        outlines={outlines}
                       />
                       <AyahMarker ayah={verse.id} />
                     </span>
@@ -1693,6 +1912,7 @@ const SurahReader: React.FC = () => {
                     ayah={verse.id}
                     text={verse.text}
                     syncedWords={syncedWordsByAyah.get(verse.id)}
+                    outlines={outlines}
                   />
                   <AyahMarker ayah={verse.id} />
                 </span>

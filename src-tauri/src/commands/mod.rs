@@ -1,6 +1,7 @@
 pub mod diagnostics;
 pub mod downloader;
 pub mod ffmpeg;
+pub mod mushaf_shape;
 pub mod radio;
 pub mod file_ops;
 pub mod playback;

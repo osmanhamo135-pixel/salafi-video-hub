@@ -149,7 +149,16 @@ pub fn get_app_data_path(app_handle: tauri::AppHandle) -> Result<String, String>
 }
 
 #[tauri::command]
-pub fn export_backup(db: State<'_, DbState>) -> Result<String, String> {
+pub async fn export_backup(db: State<'_, DbState>) -> Result<String, String> {
+    let db = db.inner().clone();
+    // Serialising and writing a whole library is file I/O; off the main thread
+    // like every other heavy command, or the window freezes for its duration.
+    tauri::async_runtime::spawn_blocking(move || export_backup_blocking(&db))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn export_backup_blocking(db: &DbState) -> Result<String, String> {
     let app_data_dir = dirs::data_dir()
         .ok_or("No data dir")?
         .join("com.salafivideohub.app");
@@ -184,45 +193,91 @@ pub fn export_backup(db: State<'_, DbState>) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn import_backup(db: State<'_, DbState>, path: String) -> Result<(), String> {
-    let backup_json =
-        std::fs::read_to_string(&path).map_err(|e| format!("Failed to read backup file: {}", e))?;
-    let backup: BackupPayload =
-        serde_json::from_str(&backup_json).map_err(|e| format!("Invalid backup JSON: {}", e))?;
+pub async fn import_backup(db: State<'_, DbState>, path: String) -> Result<(), String> {
+    let db = db.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let backup_json = std::fs::read_to_string(&path)
+            .map_err(|e| format!("Failed to read backup file: {}", e))?;
+        let backup: BackupPayload =
+            serde_json::from_str(&backup_json).map_err(|e| format!("Invalid backup JSON: {}", e))?;
 
+        let mut conn = crate::db::lock_conn(&db);
+        /* One transaction for the whole restore: a backup that fails half-way
+           through must leave the library exactly as it was, never half-restored.
+           rusqlite rolls the transaction back on drop, so every early return —
+           and even a panic unwinding through here — lands back on the
+           pre-import state. That drop-rollback is also what keeps lock_conn's
+           poison recovery sound; see the note on lock_conn. */
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+        apply_backup(&tx, backup)?;
+        tx.commit().map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+fn apply_backup(conn: &rusqlite::Connection, backup: BackupPayload) -> Result<(), String> {
     for video in backup.videos {
-        if crate::db::video::get_video_by_id(&db, &video.id)
+        /* Serde-level defaults are what let an older build's backup in at all;
+           they also mean a malformed row can default its way to no identity.
+           A video without an id or a path is not restorable data — skip the
+           row rather than store it. */
+        if video.id.trim().is_empty() || video.file_path.trim().is_empty() {
+            continue;
+        }
+        if crate::db::video::get_video_by_id_with_conn(conn, &video.id)
             .map_err(|e| e.to_string())?
             .is_some()
         {
-            crate::db::video::update_video(&db, &video).map_err(|e| e.to_string())?;
+            crate::db::video::update_video_with_conn(conn, &video).map_err(|e| e.to_string())?;
         } else {
-            crate::db::video::insert_video(&db, &video).map_err(|e| e.to_string())?;
+            crate::db::video::insert_video_with_conn(conn, &video).map_err(|e| e.to_string())?;
         }
     }
 
     for playlist in backup.playlists {
-        crate::db::playlist::insert_playlist(&db, &playlist).map_err(|e| e.to_string())?;
+        if playlist.id.trim().is_empty() {
+            continue;
+        }
+        crate::db::playlist::insert_playlist_with_conn(conn, &playlist)
+            .map_err(|e| e.to_string())?;
     }
 
     for reminder in backup.reminders {
-        crate::db::reminder::insert_reminder(&db, &reminder).map_err(|e| e.to_string())?;
+        if reminder.id.trim().is_empty() {
+            continue;
+        }
+        crate::db::reminder::insert_reminder_with_conn(conn, &reminder)
+            .map_err(|e| e.to_string())?;
     }
 
     if let Some(mut settings) = backup.settings {
         if settings.id.trim().is_empty() {
             settings.id = "default".to_string();
         }
-        crate::db::settings::update_settings(&db, &settings).map_err(|e| e.to_string())?;
+        crate::db::settings::update_settings_with_conn(conn, &settings)
+            .map_err(|e| e.to_string())?;
     }
 
     Ok(())
 }
 
 #[tauri::command]
-pub fn rescan_all(
+pub async fn rescan_all(
     app_handle: tauri::AppHandle,
     db: State<'_, DbState>,
+) -> Result<serde_json::Value, String> {
+    let db = db.inner().clone();
+    // Walking every imported folder is filesystem I/O proportional to the
+    // library; on the main thread it froze the UI for the whole rescan.
+    tauri::async_runtime::spawn_blocking(move || rescan_all_blocking(app_handle, &db))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn rescan_all_blocking(
+    app_handle: tauri::AppHandle,
+    db: &DbState,
 ) -> Result<serde_json::Value, String> {
     let settings = crate::db::settings::get_settings(&db).map_err(|e| e.to_string())?;
     let automatic_thumbnails_mode = settings.automatic_thumbnails_mode.clone();
@@ -251,7 +306,7 @@ pub fn rescan_all(
     if automatic_thumbnails_mode != "disabled" {
         crate::services::thumbnail_gen::spawn_thumbnail_generation(
             app_handle.clone(),
-            db.inner().clone(),
+            db.clone(),
             thumbnail_ids,
         );
     }
@@ -353,4 +408,72 @@ pub fn open_app_data_folder(app_handle: tauri::AppHandle) -> Result<(), String> 
         .map_err(|e| e.to_string())?;
 
     crate::commands::file_ops::open_file_location(path.to_string_lossy().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Arc, Mutex};
+
+    fn test_db() -> DbState {
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        let db: DbState = Arc::new(Mutex::new(conn));
+        crate::db::schema::create_tables(&db).unwrap();
+        db
+    }
+
+    /// A backup written before `playable_status` / `codec_info` / `watch_later`
+    /// existed must still restore. Rejecting the whole file over fields the old
+    /// build could not have written threw away the user's restorable library.
+    #[test]
+    fn old_backup_missing_new_fields_still_imports() {
+        let db = test_db();
+        let json = r#"{
+            "videos": [{
+                "id": "v1", "title": "lesson", "filePath": "/x/a.mp4",
+                "folderPath": "/x", "fileName": "a.mp4", "extension": "mp4",
+                "durationSeconds": 60, "thumbnailPath": null,
+                "thumbnailStatus": "missing", "category": null, "speaker": null,
+                "description": null, "progressSeconds": 0, "completed": false,
+                "favorite": false, "fileSize": 1, "modifiedAt": 0,
+                "createdAt": 0, "updatedAt": 0, "lastPlayedAt": null
+            }, {
+                "title": "a row with no identity is skipped, not stored"
+            }],
+            "playlists": [], "reminders": [], "settings": null
+        }"#;
+        let backup: BackupPayload = serde_json::from_str(json).expect("old backup parses");
+
+        let mut conn = crate::db::lock_conn(&db);
+        let tx = conn.transaction().unwrap();
+        apply_backup(&tx, backup).unwrap();
+        tx.commit().unwrap();
+        drop(conn);
+
+        let videos = crate::db::video::get_all_videos(&db).unwrap();
+        assert_eq!(videos.len(), 1, "the identity-less row must be skipped");
+        assert_eq!(videos[0].id, "v1");
+        // The fields the old build never wrote arrive as their defaults.
+        assert_eq!(videos[0].playable_status, "unknown");
+        assert!(!videos[0].watch_later);
+    }
+
+    /// The restore is one transaction. Dropping it uncommitted — an early
+    /// return, an error, a panic unwinding through the import — must leave the
+    /// library exactly as it was.
+    #[test]
+    fn uncommitted_restore_leaves_no_trace() {
+        let db = test_db();
+        let backup: BackupPayload = serde_json::from_str(
+            r#"{"videos":[{"id":"v1","filePath":"/x/a.mp4"}]}"#,
+        )
+        .unwrap();
+        {
+            let mut conn = crate::db::lock_conn(&db);
+            let tx = conn.transaction().unwrap();
+            apply_backup(&tx, backup).unwrap();
+            // No commit: the drop IS the rollback import_backup relies on.
+        }
+        assert!(crate::db::video::get_all_videos(&db).unwrap().is_empty());
+    }
 }

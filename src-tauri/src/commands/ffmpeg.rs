@@ -38,10 +38,24 @@ pub async fn install_ffmpeg_helper(
 }
 
 #[tauri::command]
-pub fn generate_thumbnail(
+pub async fn generate_thumbnail(
     app_handle: tauri::AppHandle,
     video_path: String,
     _output_path: Option<String>,
+    timestamp: f64,
+) -> Result<String, String> {
+    // Spawning ffmpeg and waiting on it — up to seven times for awkward
+    // videos — is exactly the work that must not sit on the main thread.
+    tauri::async_runtime::spawn_blocking(move || {
+        generate_thumbnail_blocking(app_handle, video_path, timestamp)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+fn generate_thumbnail_blocking(
+    app_handle: tauri::AppHandle,
+    video_path: String,
     timestamp: f64,
 ) -> Result<String, String> {
     let (ffmpeg, _, _, _) = ffmpeg_finder::ensure_ffmpeg_for_app(&app_handle)?;
@@ -77,6 +91,10 @@ pub fn generate_thumbnail(
     let timestamps = [timestamp, 0.1, 0.5, 1.0, 3.0, 8.0, 15.0];
 
     for &ts in &timestamps {
+        // The output path is passed as an OsStr, not via to_str().unwrap():
+        // a path that is not valid UTF-8 is a panic there, and to_string_lossy
+        // would be worse — ffmpeg would happily write to the mangled name and
+        // the file we then look for would not exist.
         let result = hidden_command(&ffmpeg)
             .args([
                 "-y",
@@ -93,8 +111,8 @@ pub fn generate_thumbnail(
                 "2",
                 "-vf",
                 "scale=320:-1",
-                thumb_path.to_str().unwrap(),
             ])
+            .arg(&thumb_path)
             .output()
             .map_err(|e| format!("FFmpeg error: {}", e))?;
 

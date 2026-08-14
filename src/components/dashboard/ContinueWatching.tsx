@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { withTimeout } from '@/utils/async';
 import { useNavigate } from 'react-router-dom';
 import { Play, PlayCircle } from 'lucide-react';
 import { ContinueWatchingItem } from '@/types';
@@ -42,7 +43,14 @@ export const ContinueWatching: React.FC = () => {
     const fetchItems = async () => {
       try {
         if (!loadedRef.current) setLoading(true);
-        const data = await invoke<ContinueWatchingItem[]>('get_continue_watching', { limit: 20 });
+        /* Bounded so this card can never sit in its skeleton forever: if the
+           backend is wedged the timeout rejects, the catch empties the card,
+           and the watchdog banner says what actually happened. */
+        const data = await withTimeout(
+          invoke<ContinueWatchingItem[]>('get_continue_watching', { limit: 20 }),
+          15000,
+          'Loading continue watching',
+        );
         if (!cancelled) setItems(data || []);
       } catch (error) {
         console.error('Failed to load continue watching:', error);
