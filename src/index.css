@@ -4655,6 +4655,20 @@
   fill: currentColor;
 }
 
+/* Half-pixel stroke, constant across font sizes. A font rasterizer hints and
+   stem-darkens its glyphs; a filled SVG outline gets neither, so at reading
+   size the harakat — thin shapes to begin with — anti-alias into hairlines a
+   reader loses against the page: a dagger alef the shaper placed correctly
+   was reported as MISSING. Measured against the same page on a healthy
+   engine (WebKitGTK 2.44), 0.5px restores the native ink weight; at large
+   sizes it is a fraction of a stem and invisible. This is rasterization
+   compensation, not styling — the curves stay the Complex's own. */
+.quran-word-outline use {
+  stroke: currentColor;
+  stroke-width: 0.5px;
+  vector-effect: non-scaling-stroke;
+}
+
 /* The real Qur'anic text, kept in the DOM so the ayah can still be selected,
    copied and announced — but never painted, because the outlines above are
    already showing it. Not `display: none`, which would take it out of the

@@ -486,6 +486,118 @@ mod tests {
         println!("wrote {} ({} words, {} glyphs)", out, words_out.len(), glyphs.len());
     }
 
+    /// Coverage specimen: one word for EVERY distinct codepoint each corpus
+    /// uses, shaped and emitted with the same defs+use mechanism the page
+    /// uses, so the whole character repertoire can be LOOKED AT in the engine
+    /// with the defect. Ignored by default because it writes a file:
+    ///   COVERAGE_OUT=/tmp/cov.html cargo test render_coverage -- --ignored --nocapture
+    #[test]
+    #[ignore]
+    fn render_coverage() {
+        let mut body = String::new();
+        let mut defs = String::new();
+        let mut glyph_ids: Vec<(bool, u16)> = Vec::new();
+
+        for (warsh, path, label) in [
+            (false, "resources/quran.json", "HAFS"),
+            (true, "resources/quran-warsh.json", "WARSH"),
+        ] {
+            let corpus = std::fs::read_to_string(path).expect("corpus");
+            let value: serde_json::Value = serde_json::from_str(&corpus).expect("json");
+            let f = face(warsh);
+            let upem = 2048.0f32;
+
+            // One exemplar word per codepoint, preferring SHORT words so the
+            // page stays readable.
+            let mut exemplar: std::collections::BTreeMap<u32, String> =
+                std::collections::BTreeMap::new();
+            // Hafs is an array of surahs with a `verses` list; Warsh is a flat
+            // array of {sura, aya, text} rows. Take `text` wherever it lives.
+            let mut texts: Vec<String> = Vec::new();
+            for item in value.as_array().expect("array") {
+                if let Some(verses) = item["verses"].as_array() {
+                    for verse in verses {
+                        if let Some(t) = verse["text"].as_str() {
+                            texts.push(t.to_string());
+                        }
+                    }
+                } else if let Some(t) = item["text"].as_str() {
+                    texts.push(t.to_string());
+                }
+            }
+            for text in &texts {
+                for word in text.split(' ') {
+                    if word.is_empty() {
+                        continue;
+                    }
+                    for ch in word.chars() {
+                        let cp = ch as u32;
+                        let best = exemplar.entry(cp).or_insert_with(|| word.to_string());
+                        if word.chars().count() < best.chars().count() {
+                            *best = word.to_string();
+                        }
+                    }
+                }
+            }
+
+            body.push_str(&format!(
+                "<h2>{} — {} codepoints</h2><div class=\"grid\">",
+                label,
+                exemplar.len()
+            ));
+            for (cp, word) in &exemplar {
+                let shaped = match shape_one(&f, word) {
+                    Some(s) if !s.p.is_empty() => s,
+                    _ => {
+                        body.push_str(&format!(
+                            "<div class=\"cell bad\">U+{:04X}<br>UNSHAPED</div>",
+                            cp
+                        ));
+                        continue;
+                    }
+                };
+                let h = shaped.ascent + shaped.descent;
+                let mut uses = String::new();
+                for p in &shaped.p {
+                    if !glyph_ids.contains(&(warsh, p.g)) {
+                        glyph_ids.push((warsh, p.g));
+                        let mut w = PathWriter { d: String::new() };
+                        f.outline_glyph(ttf_parser::GlyphId(p.g), &mut w);
+                        if !w.d.is_empty() {
+                            defs.push_str(&format!(
+                                "<path id=\"c{}-{}\" d=\"{}\"/>",
+                                warsh as u8, p.g, w.d
+                            ));
+                        }
+                    }
+                    uses.push_str(&format!(
+                        "<use href=\"#c{}-{}\" x=\"{}\" y=\"{}\"/>",
+                        warsh as u8, p.g, p.x, p.y
+                    ));
+                }
+                body.push_str(&format!(
+                    "<div class=\"cell\"><span class=\"cp\">U+{:04X}</span><svg width=\"{}em\" height=\"{}em\" viewBox=\"0 {} {} {}\">{}</svg></div>",
+                    cp,
+                    shaped.width as f32 / upem,
+                    h as f32 / upem,
+                    -shaped.ascent,
+                    shaped.width,
+                    h,
+                    uses
+                ));
+            }
+            body.push_str("</div>");
+        }
+
+        let doc = format!(
+            "<!doctype html><meta charset=\"utf-8\"><style>body{{background:#14110c;color:#eee;font-size:34px;margin:16px;font-family:monospace}}h2{{font-size:15px;color:#8cf}}.grid{{display:flex;flex-wrap:wrap;gap:10px 18px;direction:rtl}}.cell{{text-align:center}}.cell.bad{{color:#f66;font-size:11px}}.cp{{display:block;font-size:9px;color:#887;direction:ltr}}svg{{overflow:visible;fill:#fff;stroke:#fff;stroke-width:.5px;vector-effect:non-scaling-stroke}}use{{vector-effect:non-scaling-stroke}}</style><svg width=\"0\" height=\"0\" style=\"position:absolute\"><defs>{}</defs></svg>{}",
+            defs, body
+        );
+        let out = std::env::var("COVERAGE_OUT").unwrap_or_else(|_| "/tmp/cov.html".to_string());
+        std::fs::write(&out, doc).expect("write coverage");
+        println!("wrote {}", out);
+    }
+
     /// Every glyph a word references must have an outline the client can draw,
     /// or the page renders gaps where letters should be.
     #[test]
