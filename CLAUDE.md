@@ -187,6 +187,11 @@ Rules for that path:
   said.
 - Cost: a long surah gains roughly four `<use>` nodes per word. Acceptable
   against an unreadable mushaf, but it is why the fallback is not the default.
+- The outlines carry a 0.5px non-scaling stroke. A font rasterizer hints and
+  stem-darkens; a filled SVG path gets neither, so at reading size the harakat
+  thinned into hairlines — a correctly placed dagger alef was reported as
+  missing. 0.5px was matched against WebKitGTK 2.44's native rendering of the
+  same page; do not remove it because large-size renders look fine without it.
 
 The banner text and the Diagnostics row still report the engine plainly. It measures painted pixels — canvas is the only way to see them,
 and it fails the same way, which is what makes it a faithful witness. It
